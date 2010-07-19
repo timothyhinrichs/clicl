@@ -10,19 +10,20 @@ where <version> is one of linuxx86, freebsdx86, solarisx86, windows, darwinppc, 
 
 1c) Set the variable CCL_DEFAULT_DIRECTORY to the path to CCL (not ending the path with a /).
 
+2) Install minisat and SNARK
 
-2) Compile application
+FILL THIS IN.
 
-// Put all this into a Makefile ??
-cd path/to/code
-ccl --eval "(progn (load \"loader\") (save-tlh))"    ; see savess in stringsolver
-create shell script with hardcoded path?  Then that shell script can be moved around.
+3) Compile application
 
-Will see lots of errors.  Ignore them.
+FIGURE OUT HOW TO ALLOW USERS TO CUSTOMIZE GLOBAL VARIABLES. Maybe when saving application, add line somewhere that says (ignore-errors (load "absolutepath/clicl-init")). 
 
-3) Run 
+cd /to/path/with/clicl
+make
 
-To change parameters, edit tlh-init.lisp
+4) Run 
+
+To change parameters, edit clicl-init.
 
 // To run, we use a shell script that calls the lisp image output by (2).  Need to figure out which commands to expose via the shell script.
 
