@@ -17,6 +17,7 @@
 (compile-file (loadfn "fhlc" :dir '("source" "logic")))
 (compile-file (loadfn "external" :dir '("source" "logic")))
 (compile-file (loadfn "empirical" :dir '("source" "logic")))
+(compile-file (loadfn "esodatalog" :dir '("source" "logic")))
 
 (compile-file (loadfn "educational" :dir '("source" "logic")))
 (compile-file (loadfn "stringsolver" :dir '("source" "logic")))
