@@ -1,0 +1,55 @@
+
+body {
+	font-family: verdana;
+	font-size: 90%;
+}
+
+.title {
+	font-family: courier;
+	font-size: 150%;
+}
+
+.databox {
+	padding: 3px;
+}
+
+#status { 
+	color: white;
+	background-color: #996633;
+	padding: 3px;
+	visibility: hidden;
+}
+
+td.required {
+	text-align: center;
+}
+td.description {
+	text-align: right;
+}
+td.data {
+	text-align: left;
+	padding: 4px;
+	font-size: 80%
+}
+
+.required {
+	color: blue;
+	padding: 0px 5px;
+}
+.description {
+	color: #333333;
+}
+
+.autoform {
+	margin-top: 20px;
+	text-align: center;
+}
+
+.details {
+	font-size: 80%
+}
+
+.conflict { color: blue; }
+.stipulated { color: green; }
+.forbidden { color: red; }
+.normal { color: black; }

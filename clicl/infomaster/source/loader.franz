@@ -1,0 +1,55 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; (c) Copyright 1993-2002 Michael Genesereth
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(load "~mrg/infomaster/source/epilog")
+(load "~mrg/infomaster/source/database")
+(load "~mrg/infomaster/source/full")
+(load "~mrg/infomaster/source/tcp")
+(load "~mrg/infomaster/source/magenta")
+(load "~mrg/infomaster/source/diskserver")
+(load "~mrg/infomaster/source/proforma")
+(load "~mrg/infomaster/source/inspect")
+(load "~mrg/infomaster/source/inspector")
+(load "~mrg/infomaster/source/docserver")
+(load "~mrg/infomaster/source/sequel")
+(load "~mrg/infomaster/source/kif")
+(load "~mrg/infomaster/source/sxml")
+(load "~mrg/infomaster/source/cdf")
+(load "~mrg/infomaster/source/cdt")
+(load "~mrg/infomaster/source/html")
+(load "~mrg/infomaster/source/qbe")
+(load "~mrg/infomaster/source/transform")
+(load "~mrg/infomaster/source/integrator")
+(load "~mrg/infomaster/source/update")
+(load "~mrg/infomaster/source/preprocessor")
+(load "~mrg/infomaster/source/multiprocessor")
+(load "~mrg/infomaster/source/infomaster")
+(load "~mrg/infomaster/source/patch")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; To start the acl interface, type one of the following:
+;;;   (tcp-handler #'connection-handler <port>)
+;;;   (tcp-loop #'connection-handler <port>)
+;;;   (tcp-server #'connection-handler <port>)
+;;;   (start-tcp-server-process #'connection-handler <port>)
+;;; Incoming messages should be addressed to infomaster@hostname
+;;;
+;;; To start the web interface, type one of the following:
+;;;   (tcp-handler #'http-handler <port>)
+;;;   (tcp-loop #'http-handler <port>)
+;;;   (tcp-server #'http-handler <port>)
+;;;   (start-tcp-server-process #'http-handler <port>)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(declaim (optimize (speed 2) (space 0) (debug 0) (safety 3)))
+(setq *host* (hostname))
+(setq *port* 3000)
+(setq *home* "doc?Path=~mrg/infomaster/")
+(setq *uniquify* 'safeway)
+(setq *icons* t)
+(setq *update* nil)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

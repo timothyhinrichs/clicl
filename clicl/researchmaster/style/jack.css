@@ -1,0 +1,161 @@
+
+td.spacer {
+	background-color: #e5ecf9;
+}
+
+td.links {
+	background-color: #e5ecf9;
+	text-align: right;
+}
+td.title {
+	background-color: #e5ecf9;
+	font-size: medium;
+	font-weight: bold;
+	font-family: verdana, helvetica, sans-serif;
+}
+
+table.blueheader {
+	border-top: 2px solid #3366cc;
+	
+}
+#indent {
+	margin-left: 30px;
+}
+	
+#functionality {
+	margin-top: 20px;
+	
+}
+
+table.entailment {
+	margin-top: 30px;
+	border-left: 2px solid #3366cc;
+}
+
+table.optionswrap {
+	border-top: 1px dotted gray;
+	border-left: 1px dotted gray;
+	border-right: 1px dotted gray;
+	border-bottom: 1px dotted gray;
+	padding-left: 5px;
+	padding-right: 5px;
+	padding-top: 5px;
+	padding-bottom: 5px;
+}
+
+table.test tr.testrow {
+	border-top: 1px dotted gray;
+	border-left: 1px dotted gray;
+	border-right: 1px dotted gray;
+	border-bottom: 1px dotted gray;	
+}
+
+td.opttitle {
+	font-size: large;
+	font-weight: bold;
+	/* valign: top; */
+}
+td.option {
+	font-size: medium;
+	/* valign-text: top; */
+}
+td.moreoptions {
+	font-size: small;
+}
+
+	div.trace {
+	   /* border: 1px solid red; */
+	}
+	div.subtrace {
+	   /* border: 1px solid red; */
+	   display: none;
+	   margin-left: 0px;
+	}
+	div.item { 
+	   margin-left: 0px; 
+	   clear: left;
+	}
+	div.sentence {
+	   position: relative;
+	   clear: left;
+	}
+	div.head {
+	   position: relative;
+	   float: left;
+	   margin-left: 4px;
+	   width: 23px;
+	}
+	div.body {
+	   position: relative;
+	   float: left;
+	   margin-left: 2px;
+	   margin-top: 2px;
+	}
+	span.white {
+	   color: white;
+	}
+
+.subtitle {
+	font-weight: bold;
+	margin-top: 30px;
+	background-color: #e5ecf9;
+}
+
+table.languagespec {
+	border: 2px solid gray;
+	font-size: small;
+	margin-top: 10px;
+	margin-bottom: 10px;
+	margin-left: auto;
+	margin-right: auto;
+	
+}
+table.languagespec td, table.languagespec th {
+	border: 1px solid gray;
+	text-align: center;
+	padding: 2px 2px 2px 2px;
+}
+
+
+.tab_item_active {
+	background-color: #b10000;
+}
+.tab_item a {
+	color: #666;
+}
+
+.tab_item_active a {
+	color: #fff;
+}
+
+.tab_item a:hover {
+	background: #ddd;
+}
+
+#submitblock {
+	margin-top: 20px;
+	text-align: center;
+}
+
+#links {
+	font-size: small;
+	margin-top: 40px;
+	text-align: center;
+}
+
+
+#footer {
+	margin-top: 30px;
+	width: 100%;
+	border-top: 1px solid gray;
+	font-size: small;
+	font-style: italic;
+	padding-top: 10px;
+}
+#owner {
+	text-align: left;
+	float: left;
+}
+#update {
+	text-align: right;
+}

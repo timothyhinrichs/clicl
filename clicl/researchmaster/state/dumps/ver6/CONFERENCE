@@ -1,0 +1,67 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; conference
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    (conference.instance aaai)
+    (prettyname          aaai "AAAI Conference on Artificial Intelligence")
+
+    (conference.instance acsac)
+    (prettyname          acsac "Annual Computer Security Applications Conference")
+
+    (conference.instance aiia)
+    (prettyname          aiia "Congress of Italian Association for Artificial Intelligence")
+
+    (conference.instance cade)
+    (prettyname          cade "Conference on Automated Deduction")
+
+    (conference.instance ccs)
+    (prettyname          ccs "ACM Conference on Computer and Communications Security")
+
+    (conference.instance constraints)
+    (prettyname          constraints "International Conference on Principles and Practice of Constraint Programming")
+
+    (conference.instance designautomationconference)
+    (prettyname          designautomationconference "Design Automation Conference")
+
+    (conference.instance eurosys)
+    (prettyname          eurosys "European Conference on Computer Systems")
+
+    (conference.instance flairs)
+    (prettyname          flairs "FLAIRS Conference")
+
+    (conference.instance hcss)
+    (prettyname          hcss "High Confidence Software and Systems Conference")
+
+    (conference.instance iberamia)
+    (prettyname          iberamia "Ibero-American Conference on Artificial Intelligence")
+
+    (conference.instance iclp)
+    (prettyname          iclp "International Conference on Logic Programming")
+
+    (conference.instance ijcai)
+    (prettyname          ijcai "International Joint Conference on Artificial Intelligence")
+
+    (conference.instance ijcar)
+    (prettyname          ijcar "International Joint Conference on Automated Reasoning")
+
+    (conference.instance kimas)
+    (prettyname          kimas "Integration of Knowledge Intensive Multi-Agent Systems")
+
+    (conference.instance kr)
+    (prettyname          kr "International Conference on Principles of Knowledge Representation and Reasoning")
+
+    (conference.instance pricai)
+    (prettyname          pricai "Pacific Rim International Conference on Artificial Intelligence")
+
+    (conference.instance supercomputing)
+    (prettyname          supercomputing "International Conference for High Performance Computing, Networking, Storage, and Analysis")
+
+    (conference.instance vldb)
+    (prettyname          vldb "Very Large Databases Conference")
+
+    (conference.instance www)
+    (prettyname          www "International Conference on the World Wide Web")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

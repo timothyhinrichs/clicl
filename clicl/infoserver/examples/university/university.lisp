@@ -1,0 +1,1285 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; (c) Copyright 2006-2008 by Michael Genesereth.  All rights reserved.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; toplevel
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod process (s (command (eql 'toplevel)) postlines)
+  (declare (ignore postlines))
+  (cond ((eq *gui* 'standard) (output-standard-toplevel s))
+        (t (html-message s "Hello."))))
+
+(defun output-standard-toplevel (s)
+  (format-html s)
+  (output-head s "University")
+  (format-body s *bgcolor*)
+  (output-header s)
+  (output-content s)
+  (output-footer s)
+  (finish-body s)
+  (finish-html s))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; components
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun output-header (s)
+  (output-heading s)
+  (output-commandbar s)
+  (format s "<center>") (crlf s))
+
+(defun output-heading (s)
+  (format s  "<center>
+<table width='800' cellpadding='0' cellspacing='0' border='0'><tr>
+<td width='500' height='90' align='center' style='font-size:36px'>Dataweb University</td>
+<td width='100'>&nbsp;</td>
+<td width='200' align='left'>")
+  (format s (signinbanner))
+  (format s "</td>")
+  (format s "</tr></table>
+</center>")
+ 'done)
+
+(defun signinbanner ()
+  (cond ((eq *client* 'anonymous)
+         "<a href='signin?'>Sign In</a><br/>Individual? <a href='signup?'>Sign Up</a><br/>Organization? <a href='mailto:action@charitopia.org'>Request an Account</a>")
+        (t (format nil "<b>~A</b><br/><a href='signout?'>Sign Out</a>" (prettify *client*)))))
+
+(defun output-commandbar (s)
+  (format s "<center>
+<hr width='800'/>
+<table WIDTH='800' cellpadding='0' cellspacing='0' border='0'>
+<tr>
+<td width='100' align='center'><a href='/' target='_top'>Home</a></td>
+<td width='100' align='center'><a href='/fasttableaupage?Class=person'>People</a></td>
+<td width='100' align='center'><a href='/fastviewpage?Class=department'>Departments</a></td>
+<td width='100' align='center'><a href='/fastviewpage?Class=classroom'>Classrooms</a></td>
+<td width='100' align='center'><a href='/fastviewpage?Class=course'>Courses</a></td>
+<td width='100' align='center'><a href='/showeventspage?'>Events</a></td>
+<td width='100' align='center'><a href='/showschedulepage?'>Schedule</a></td>
+<td width='100' align='center'><a href='/profile?'>Profile</a></td>
+</tr>
+</table>
+<hr width='800'/>
+</center>"))
+
+(defun output-content (s)
+  (format s "<table width='800'><tr><td>
+<DL>
+<DD>
+<DL>
+<DD><FONT COLOR=BLUE SIZE=4><B>People</B></FONT>
+<DD>
+<A HREF='fasttableaupage?class=faculty'><FONT SIZE=4>Faculty</FONT></A><FONT SIZE=4>, </FONT>
+<A HREF='fasttableaupage?class=STAFF'><FONT SIZE=4>Staff</FONT></A><FONT SIZE=4>, </FONT>
+<A HREF='fasttableaupage?class=STUDENT'><FONT SIZE=4>Student</FONT></A>
+<P>
+<DD><FONT COLOR=BLUE SIZE=4><B>Locations</B></FONT>
+<DD>
+<A HREF='fastviewpage?class=BUILDING'><FONT SIZE=4>Building</FONT></A><FONT SIZE=4>, </FONT>
+<A HREF='fastviewpage?class=CLASSROOM'><FONT SIZE=4>Classroom</FONT></A><FONT SIZE=4>, </FONT>
+<A HREF='fastviewpage?class=OFFICE'><FONT SIZE=4>Office</FONT></A>
+<P>
+<DD><FONT COLOR=BLUE SIZE=4><B>Activities</B></FONT>
+<DD>
+<A HREF='fastviewpage?class=COURSE'><FONT SIZE=4>Course</FONT></A><FONT SIZE=4>, </FONT>
+<A HREF='fastviewpage?class=LECTURE'><FONT SIZE=4>Lecture</FONT></A>, </FONT>
+<A HREF='fastviewpage?class=SEMINAR'><FONT SIZE=4>Seminar</FONT></A>, </FONT>
+<A HREF='fastviewpage?class=SCHEDULE'><FONT SIZE=4>Schedule</FONT></A>
+<P>
+<DD><FONT COLOR=BLUE SIZE=4><B>Things</B></FONT>
+<DD>
+<A HREF='fastviewpage?class=BOOK'><FONT SIZE=4>Book</FONT></A><FONT SIZE=4>, </FONT>
+<A HREF='fastviewpage?class=COMPUTER'><FONT SIZE=4>Computer</FONT></A>
+<P>
+<DD><FONT COLOR=BLUE SIZE=4><B>Organizations</B></FONT>
+<DD>
+<A HREF='fastviewpage?class=SCHOOL'><FONT SIZE=4>School</FONT></A><FONT SIZE=4>, </FONT>
+<A HREF='fastviewpage?class=DEPARTMENT'><FONT SIZE=4>Department</FONT></A>
+</DL>
+</DL>
+</td></tr></table>"))
+
+(defun output-footer (s)
+  (format s "</center>") (crlf s)
+  (format s "<hr width='800'/>
+<center>
+<font size='3'>Compliments and complaints to <tt><a href='mailto:genesereth@stanford.edu'>genesereth@stanford.edu</a></tt>.</font>
+</center>"))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; people
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod process (s (command (eql 'showpeoplepage)) postlines)
+  (let (dum start end (*performative* "showpeoplepage"))
+    (cond ((null postlines)
+           (process-showpeoplepage s (fastcomparestructure 'person) 1 *count*))
+          ((setq dum (getf-post "Structure" postlines))
+           (setq start (or (read-value-string (getf-post "Start" postlines)) 1))
+           (setq end (or (read-value-string (getf-post "End" postlines)) *count*))
+           (process-showpeoplepage s (read-user-string dum) start end))
+          (t (http-problem s "Bad request.")))))
+
+(defun process-showpeoplepage (s structure start end)
+  (format-html s) (crlf s)
+  (format-head s)
+  (format s "<title>People</title>") (crlf s)
+  (format-javascript s) (crlf s)
+  (finish-head s) (crlf s)
+  (format-body s *bgcolor*) (crlf s)
+  (output-header s)
+  (format-border s)
+  (format s "<center>")
+  (output-showpeople-query s structure)
+  (format s "<hr width='800'/>") (crlf s)
+  (output-showpeople-results s structure start end)
+  (format s "</center>") (crlf s)
+  (finish-border s)
+  (output-footer s)
+  (finish-body s) (crlf s)
+  (finish-html s) (crlf s))
+
+(defun output-showpeople-query (s structure)
+  (let (first last status affiliation (*buttons* 0))
+    (setq first (cadr (assoc 'person.firstname (cddr structure))))
+    (setq last (cadr (assoc 'person.lastname (cddr structure))))
+    (setq status (cadr (assoc 'person.status (cddr structure))))
+    (setq affiliation (cadr (assoc 'person.affiliation (cddr structure))))
+    (format s "<form name='form1' action='showpeoplepage?' method='post'>") (crlf s)
+    (format-hidden s "Object" (stringize (car structure))) (crlf s)
+    (format-hidden s "Class" (stringize (cadr structure))) (crlf s)
+    (format s "<table border='0'>") (crlf s)
+    (format s "<tr>")
+    (format s "<td>")
+    (format s "First Name")
+    (format s "<br/>")
+    (output-fastshow-cell s 'person.firstname first 'stringfield)
+    (format s "<br/>")
+    (format s "Last Name")
+    (format s "<br/>")
+    (output-fastshow-cell s 'person.lastname last 'stringfield)
+    (format s "</td>")
+    (format s "<td>")
+    (format s "Status")
+    (format s "<br/>")
+    (output-fastshow-cell s 'person.status status 'selector)
+    (format s "<br/>")
+    (format s "Affiliation")
+    (format s "<br/>")
+    (output-fastshow-cell s 'person.affiliation affiliation 'selector)
+    (format s "</td>")
+    (format s "</tr>") (crlf s)
+    (format s "</tr>") (crlf s)
+    (format s "</table>") (crlf s)
+    (format s "</form>") (crlf s)))
+
+(defun output-showpeople-results (s structure start end)
+  (let (objects slots results count)
+    (setq objects (findinstances (viewconvert structure) *gui*))
+    (setq objects (sort objects #'smallerp))
+    (multiple-value-setq (objects count start end) (trim objects start end))
+    (setq slots (displayable-slots (cadr structure)))
+    (setq results (prorequest `(ask-table ,objects ,slots)))
+    (output-fastlook s structure objects slots results count start end)))
+
+(defun smallerp (x y)
+  (lessp (result 'person.lastname x *repository*)
+	 (result 'person.lastname y *repository*)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod output-fastinspect (s object (class (eql 'person)))
+  (output-inspectchange s object class))
+
+(defun output-inspectchange (s object class)
+  (let (structure)
+    (setq structure (inspectitem object class))   
+    (format s "<B>~A</B> is " (prettyname object))
+    (format s (article class))
+    (format s " <B>" )
+    (output-classlink s class)
+    (format s "</B>.")
+    (force-output s)
+    (format s "<table cellspacing='8'>")
+    (do ((l (cddr structure)) (slot) (values) (style) (label))
+        ((null l))
+      (setq slot (caar l))
+      (setq style (find-inspectstyle slot))
+      (setq label (find-inspectlabel slot))
+      (multiple-value-setq (values l) (collectvalues slot l))
+      (format s "<tr><th align='left' valign='top'>")
+      (output-slotlink s slot)
+      (format s "</th><td>")
+      (output-cells s slot values style)
+      (format s "</td>")
+      (when label (format s "<td>~A</td>" label))
+      (format s "</tr>"))
+    (format s "</table>")
+    (format s "<dl>")
+    (format s "<dt>")
+    (output-fastinspect-change s object class)
+    (format s "</dt>")
+    (format s "</dl>")))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; groups
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; classrooms
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; events
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod process (s (command (eql 'showeventspage)) postlines)
+  (let (dum start end (*performative* "showeventspage"))
+    (cond ((null postlines)
+           (process-showeventspage s `(? event (event.startdate ,(today))) 1 *count*))
+          ((setq dum (getf-post "Structure" postlines))
+           (setq start (or (read-value-string (getf-post "Start" postlines)) 1))
+           (setq end (or (read-value-string (getf-post "End" postlines)) *count*))
+           (process-showeventspage s (read-user-string dum) start end))
+          (t (http-problem s "Bad request.")))))
+
+(defun process-showeventspage (s structure start end)
+  (format-html s) (crlf s)
+  (format-head s)
+  (format s "<title>Events</title>") (crlf s)
+  (format-javascript s) (crlf s)
+  (finish-head s) (crlf s)
+  (format-body s *bgcolor*) (crlf s)
+  (output-header s)
+  (format-border s)
+  (format s "<center>")
+  (output-showevents-query s structure)
+  (format s "<hr width='800'/>") (crlf s)
+  (output-showevents-results s structure start end)
+  (format s "</center>") (crlf s)
+  (finish-border s)
+  (output-footer s)
+  (finish-body s) (crlf s)
+  (finish-html s) (crlf s))
+
+(defun output-showevents-query (s structure)
+  (let (title sd ed room start end (*buttons* 0))
+    (setq title (cadr (assoc 'event.title (cddr structure))))
+    (setq sd (cadr (assoc 'event.startdate (cddr structure))))
+    (setq ed (cadr (assoc 'event.enddate (cddr structure))))
+    (setq room (cadr (assoc 'event.room (cddr structure))))
+    (setq start (cadr (assoc 'event.start (cddr structure))))
+    (setq end (cadr (assoc 'event.end (cddr structure))))
+    (format s "<form name='form1' action='showeventspage?' method='post'>") (crlf s)
+    (format-hidden s "Object" (stringize (car structure))) (crlf s)
+    (format-hidden s "Class" (stringize (cadr structure))) (crlf s)
+    (format s "<table border='0'>") (crlf s)
+    (format s "<tr>")
+    (format s "<td valign='top'>")
+    (format s "Title")
+    (format s "<br/>")
+    (output-fastshow-cell s 'event.title title 'stringfield)
+    (format s "<br/>")
+    (format s "From Date")
+    (format s "<br/>")
+    (output-fastshow-cell s 'event.startdate sd 'dateinput)
+    (format s "<br/>")
+    (format s "To Date")
+    (format s "<br/>")
+    (output-fastshow-cell s 'event.enddate ed 'dateinput)
+    (format s "</td>")
+    (format s "<td>")
+    (format s "Room")
+    (format s "<br/>")
+    (output-fastshow-cell s 'event.room room 'selector)
+    (format s "<br/>")
+    (format s "Start Time")
+    (format s "<br/>")
+    (output-fastshow-cell s 'event.start start 'selector)
+    (format s "<br/>")
+    (format s "End Time")
+    (format s "<br/>")
+    (output-fastshow-cell s 'event.end end 'selector)
+    (format s "</td>")
+    (format s "</tr>") (crlf s)
+    (format s "</tr>") (crlf s)
+    (format s "</table>") (crlf s)
+    (format s "</form>") (crlf s)))
+
+(defun output-showevents-results (s structure start end)
+  (let (title sd ed room st et objects slots results count (*buttons* 0))
+    (setq title (cadr (assoc 'event.title (cddr structure))))
+    (setq sd (cadr (assoc 'event.startdate (cddr structure))))
+    (setq ed (cadr (assoc 'event.enddate (cddr structure))))
+    (setq room (cadr (assoc 'event.room (cddr structure))))
+    (setq st (cadr (assoc 'event.start (cddr structure))))
+    (setq et (cadr (assoc 'event.end (cddr structure))))
+    (setq objects (findevents title sd ed room st et))
+    (setq objects (sort objects #'earlierp))
+    (multiple-value-setq (objects count start end) (trim objects start end))
+    (setq slots (displayable-slots (cadr structure)))
+    (setq results (prorequest `(ask-table ,objects ,slots)))
+    (output-fastlook s structure objects slots results count start end)))
+
+(defun earlierp (x y)
+  (let (xd yd)
+    (setq xd (result 'event.date x *repository*))
+    (setq yd (result 'event.date y *repository*))
+    (or (eq xd yd) (lessp xd yd))))
+
+(defmethod findevents (title sd ed room st et)
+ (do ((l (instances 'event *repository*) (cdr l)) (nl))
+      ((null l) (nreverse nl))
+      (when (findeventp (car l) title sd ed room st et)
+	(setq nl (cons (car l) nl)))))
+
+(defun findeventp (event title sd ed room st et)
+  (and (eventtitlep event title)
+       (eventroomp event room)
+       (eventdatep event sd ed)
+       (eventstartp event st)
+       (eventendp event et)))
+
+(defun eventtitlep (event title)
+  (or (null title) (substringp title (result 'event.title event *repository*))))
+
+(defun eventroomp (event room)
+  (or (null room) (eq (result 'event.room event *repository*) room)))
+
+(defun eventdatep (event sd ed)
+  (let (date)
+    (setq date (result 'event.date event *repository*))
+    (and (or (null sd) (eq date sd) (lessp sd date))
+	 (or (null ed) (eq date ed) (lessp date ed)))))
+
+(defun eventstartp (event st)
+  (or (null st) (eq st (result 'event.start event *repository*))))
+
+(defun eventendp (event et)
+  (or (null et) (eq et (result 'event.end event *repository*))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod output-fastinspect (s object (class (eql 'event)))
+  (output-inspectchangedelete s object class))
+
+(defun output-inspectchangedelete (s object class)
+  (let (structure)
+    (setq structure (inspectitem object class))   
+    (format s "<B>~A</B> is " (prettyname object))
+    (format s (article class))
+    (format s " <B>" )
+    (output-classlink s class)
+    (format s "</B>.")
+    (force-output s)
+    (format s "<table cellspacing='8'>")
+    (do ((l (cddr structure)) (slot) (values) (style) (label))
+        ((null l))
+      (setq slot (caar l))
+      (setq style (find-inspectstyle slot))
+      (setq label (find-inspectlabel slot))
+      (multiple-value-setq (values l) (collectvalues slot l))
+      (format s "<tr><th align='left' valign='top'>")
+      (output-slotlink s slot)
+      (format s "</th><td>")
+      (output-cells s slot values style)
+      (format s "</td>")
+      (when label (format s "<td>~A</td>" label))
+      (format s "</tr>"))
+    (format s "</table>")
+    (format s "<dl>")
+    (format s "<dt>")
+    (output-fastinspect-change s object class)
+    (format s "</dt>")
+    (format s "<dt>")
+    (output-fastinspect-delete s object class)
+    (format s "</dt>")
+    (format s "</dl>")))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod process (s (command (eql 'createeventpage)) postlines)
+  (let (event title room date st et owner url)
+    (setq event (or (read-user-string (getf-post "object" postlines)) (newinstance 'event)))
+    (setq title (getf-post "event.title" postlines))
+    (setq room (read-user-string (getf-post "event.room" postlines)))
+    (setq date (read-user-string (getf-post "event.date" postlines)))
+    (setq st (read-user-string (getf-post "event.start" postlines)))
+    (setq et (read-user-string (getf-post "event.end" postlines)))
+    (setq owner (or (read-user-string (getf-post "event.owner" postlines)) *client*))
+    (setq url (getf-post "event.url" postlines))
+    (cond ((string-equal (getf-post "Command" postlines) "Create")
+           (process-createeventpage-create s event title room date st et owner url))
+          (t (output-createeventpage s event title room date st et owner url)))))
+
+(defmethod process-createeventpage-create (s event title room date st et owner url)
+  (let (result)
+    (cond ((setq result (checkevent event title room date st et owner url))
+           (http-problems s result))
+	  (t (createevent event title room date st et nil owner url)
+	     (output-fastcreatepage-success s event)))))
+
+(defmethod checkevent (event title room date st et owner url)
+  (declare (ignore owner url))
+  (let (errors)
+    (unless (eq (classify event *gui*) 'thing)
+      (setq errors (cons "Event already exists." errors)))
+    (when (equal title "") (push "No title specified." errors))
+    (cond ((null room) (push "No classroom specified." errors))
+	  ((eq room 'university-100)
+	   (push "Not authorized to reserve university 100." errors)))
+    (unless date (push "No date specified." errors))
+    (unless st (push "No start specified." errors))
+    (unless et (push "No end specified." errors))
+    (when (lessp et st) (push "End before start." errors))
+    (dolist (o (viewfinds '?x `(and (event.date ?x ,date) (distinct ?x ,event)
+				    (event.room ?x ,room)
+				    (event.start ?x ?s) (event.end ?x ?e)
+				    (less ?s ,st) (less ,st ?e)) *repository*))
+      (push (format nil "Proposed event conflicts with <a href='~A'>~A</a>."
+		    o (prettyname o))
+            errors))
+    (when errors
+      (setq errors (cons "Press the Back button, correct the error(s), and resubmit." errors)))
+    (nreverse errors)))
+
+(defmethod testcreation (object class constraints)
+  (let (errors)
+    (unless (eq (classify object *gui*) 'thing)
+      (setq errors (cons "Object already exists." errors)))
+    (setq errors (nreconc (creationerrors object class constraints) errors))
+    (when errors
+      (setq errors (cons "Go back, correct, and resubmit." errors)))
+    (nreverse errors)))
+
+(defmethod structure-to-kif (structure)
+  (let (predicate facts)
+    (setq predicate (find-predicate (cadr structure)))
+    (setq facts (cons (list predicate (car structure)) facts))
+    (dolist (pair (cddr structure))
+      (when (cdr pair)
+        (setq facts (cons (list (first pair) (car structure) (second pair)) facts))))
+    (nreverse facts)))
+
+(defmethod structure-to-pos (structure)
+  (let (predicate facts)
+    (setq predicate (find-predicate (cadr structure)))
+    (setq facts (cons `(pos ,(list predicate (car structure))) facts))
+    (dolist (pair (cddr structure))
+      (when (cdr pair)
+        (setq facts (cons `(pos ,(list (first pair) (car structure) (second pair))) facts))))
+    (nreverse facts)))
+
+(defun creationerrors (object class constraints)
+  (let (errors)
+    (definemore *repository* (structure-to-pos (list* object class constraints)))
+    (setq errors (viewfinds '?e '(pos (illegal ?e)) *repository*))
+    (kill 'pos *repository*)
+    errors))
+
+(defun output-createeventpage (s event title room date st et owner url)
+  (format-html s) (crlf s)
+  (format-head s) (crlf s)
+  (output-title s "Create Event") (crlf s)
+  (format-javascript s) (crlf s)
+  (finish-head s) (crlf s)
+  (force-output s)
+  (format-body s *bgcolor* "hidePopup()") (crlf s)
+  (output-header s)
+  (format-border s) (crlf s)
+  (output-createevent s  event title room date st et owner url)
+  (finish-border s) (crlf s)
+  (output-footer s)
+  (finish-body s) (crlf s)
+  (finish-html s) (crlf s)
+  'done)
+
+(defun output-createevent (s event title room date st et owner url)
+  (let ((*buttons* 0))
+    (format s "Create a new Event.") (crlf s)
+    (format s "<form name='form1' action='createeventpage?' method='post'>") (crlf s)
+    (format-hidden s "Object" event) (crlf s)
+    (format s "<table cellspacing='3' border='0'>") (crlf s)
+    (format s "<tr>")
+    (format s "<th align='left' valign='top'>Title</th>")
+    (format s "<td>")
+    (output-fastchange-cell s 'event.title title 'stringfield)
+    (format s "</td>")
+    (format s "</tr>") (crlf s)
+    (format s "<tr>")
+    (format s "<th align='left' valign='top'>Room</th>")
+    (format s "<td>")
+    (output-fastchange-cell s 'event.room room 'selector)
+    (format s "</td>")
+    (format s "</tr>") (crlf s)
+    (format s "<tr>")
+    (format s "<th align='left' valign='top'>Date</th>")
+    (format s "<td>")
+    (output-fastchange-cell s 'event.date date 'dateinput)
+    (format s "</td>")
+    (format s "</tr>") (crlf s)
+    (format s "<tr>")
+    (format s "<th align='left' valign='top'>Start Time</th>")
+    (format s "<td>")
+    (output-fastchange-cell s 'event.start st 'selector)
+    (format s "</td>")
+    (format s "</tr>") (crlf s)
+    (format s "<tr>")
+    (format s "<th align='left' valign='top'>End Time</th>")
+    (format s "<td>")
+    (output-fastchange-cell s 'event.end et 'selector)
+    (format s "</td>")
+    (format s "</tr>") (crlf s)
+    (format s "<tr>")
+    (format s "<th align='left' valign='top'>Owner</th>")
+    (format s "<td>")
+    (output-fastchange-cell s 'event.owner owner 'glyph)
+    (format s "</td>")
+    (format s "</tr>") (crlf s)
+    (format s "<tr>")
+    (format s "<th align='left' valign='top'>Webpage</th>")
+    (format s "<td>")
+    (output-fastchange-cell s 'event.url url 'stringfield)
+    (format s "</td>")
+    (format s "</tr>") (crlf s)
+    (format s "</table>") (crlf s)
+    (when *debug*
+      (format s "<input type='button' name='Command' value='Show' onClick='showstructure(this)'/>"))
+    (format s "<input type='submit' name='Command' value='Create'/>")
+    (format s "</form>") (crlf s)))
+
+(defun createevent (event title room date st et series owner url)
+  (insert `(event.instance ,event) *repository*)
+  (insert `(event.title ,event ,title) *repository*)
+  (insert `(event.room ,event ,room) *repository*)
+  (insert `(event.date ,event ,date) *repository*)
+  (insert `(event.start ,event ,st) *repository*)
+  (insert `(event.end ,event ,et) *repository*)
+  (insert `(event.owner ,event ,owner) *repository*)
+  (when series (insert `(event.series ,event ,series) *repository*))
+  (when url (insert `(event.url ,event ,url) *repository*))
+  event)
+
+(defmethod checkcreation (object (class (eql 'event)) constraints)
+  (let (room date start end errors)
+    (unless (eq (classify object *gui*) 'thing)
+      (setq errors (cons "Object already exists." errors)))
+    (when (not (getslotval 'event.title constraints))
+      (push "No title specified." errors))
+    (cond ((not (setq room (getslotval 'event.room constraints)))
+	   (push "No classroom specified." errors))
+	  ((eq room 'university-100)
+	   (push "Not authorized to reserve university 100." errors)))
+    (when (not (setq date (getslotval 'event.date constraints)))
+      (push "No date specified." errors))
+    (when (not (setq start (getslotval 'event.start constraints)))
+      (push "No start specified." errors))
+    (when (not (setq end (getslotval 'event.end constraints)))
+      (push "No end specified." errors))
+    (when (lessp end start)
+      (push "End before start." errors))
+    (dolist (o (viewfinds '?x `(and (event.date ?x ,date) (distinct ?x ,object)
+				    (event.room ?x ,room)
+				    (event.start ?x ?s) (event.end ?x ?e)
+				    (less ?s ,end) (less ,start ?e)) *repository*))
+      (push (format nil "Proposed event conflicts with <a href='~A'>~A</a>."
+		    o (prettyname o))
+            errors))
+    (when errors
+      (setq errors (cons "Press the Back button, correct the error(s), and resubmit." errors)))
+    (nreverse errors)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; series
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod process (s (command (eql 'showseriespage)) postlines)
+  (let (dum start end (*performative* "showseriespage"))
+    (cond ((null postlines)
+           (process-showseriespage s `(? series (series.date ,(today))) 1 *count*))
+          ((setq dum (getf-post "Structure" postlines))
+           (setq start (or (read-value-string (getf-post "Start" postlines)) 1))
+           (setq end (or (read-value-string (getf-post "End" postlines)) *count*))
+           (process-showseriespage s (read-user-string dum) start end))
+          (t (http-problem s "Bad request.")))))
+
+(defun process-showseriespage (s structure start end)
+  (format-html s) (crlf s)
+  (format-head s)
+  (format s "<title>Series</title>") (crlf s)
+  (format-javascript s) (crlf s)
+  (finish-head s) (crlf s)
+  (format-body s *bgcolor*) (crlf s)
+  (output-header s)
+  (format-border s)
+  (format s "<center>")
+  (output-showseries-query s structure)
+  (format s "<hr width='800'/>") (crlf s)
+  (output-showseries-results s structure start end)
+  (format s "</center>") (crlf s)
+  (finish-border s)
+  (output-footer s)
+  (finish-body s) (crlf s)
+  (finish-html s) (crlf s))
+
+(defun output-showseries-query (s structure)
+  (let (title date room starttime endtime (*buttons* 0))
+    (setq title (cadr (assoc 'series.title (cddr structure))))
+    (setq date (cadr (assoc 'series.date (cddr structure))))
+    (setq room (cadr (assoc 'series.classroom (cddr structure))))
+    (setq starttime (cadr (assoc 'series.starttime (cddr structure))))
+    (setq endtime (cadr (assoc 'series.endtime (cddr structure))))
+    (format s "<form name='form1' action='showseriespage?' method='post'>") (crlf s)
+    (format-hidden s "Object" (stringize (car structure))) (crlf s)
+    (format-hidden s "Class" (stringize (cadr structure))) (crlf s)
+    (format s "<table border='0'>") (crlf s)
+    (format s "<tr>")
+    (format s "<td valign='top'>")
+    (format s "Title")
+    (format s "<br/>")
+    (output-fastshow-cell s 'series.title title 'stringfield)
+    (format s "<br/>")
+    (format s "Active on Date")
+    (format s "<br/>")
+    (output-fastshow-cell s 'series.date date 'dateinput)
+    (format s "</td>")
+    (format s "<td>")
+    (format s "Room")
+    (format s "<br/>")
+    (output-fastshow-cell s 'series.classroom room 'selector)
+    (format s "<br/>")
+    (format s "Start Time")
+    (format s "<br/>")
+    (output-fastshow-cell s 'series.starttime starttime 'selector)
+    (format s "<br/>")
+    (format s "End Time")
+    (format s "<br/>")
+    (output-fastshow-cell s 'series.endtime endtime 'selector)
+    (format s "</td>")
+    (format s "</tr>") (crlf s)
+    (format s "</tr>") (crlf s)
+    (format s "</table>") (crlf s)
+    (format s "</form>") (crlf s)))
+
+(defun output-showseries-results (s structure start end)
+  (let (title date room st et objects slots results count)
+    (setq title (cadr (assoc 'series.title (cddr structure))))
+    (setq date (cadr (assoc 'series.date (cddr structure))))
+    (setq room (cadr (assoc 'series.classroom (cddr structure))))
+    (setq st (cadr (assoc 'series.starttime (cddr structure))))
+    (setq et (cadr (assoc 'series.endtime (cddr structure))))
+    (setq objects (findseries title date room st et))
+    (multiple-value-setq (objects count start end) (trim objects start end))
+    (setq slots (displayable-slots (cadr structure)))
+    (setq results (prorequest `(ask-table ,objects ,slots)))
+    (output-fastlook s structure objects slots results count start end)))
+
+(defmethod findseries (title date room st et)
+ (do ((l (instances 'series *repository*) (cdr l)) (nl))
+      ((null l) (nreverse nl))
+      (when (findseriesp (car l) title date room st et)
+	(setq nl (cons (car l) nl)))))
+
+(defun findseriesp (event title date room st et)
+  (and (seriestitlep event title)
+       (seriesroomp event room)
+       (seriesdatep event date)
+       (seriesstarttimep event st)
+       (seriesendtimep event et)))
+
+(defun seriestitlep (series title)
+  (or (null title) (substringp title (result 'series.title series *repository*))))
+
+(defun seriesroomp (series room)
+  (or (null room) (eq (result 'series.classroom series *repository*) room)))
+
+(defun seriesdatep (series date)
+  (let (sd ed)
+    (or (null date)
+	(and (setq sd (result 'series.startdate series *repository*))
+	     (setq ed (result 'series.enddate series *repository*))
+	     (or (eq date sd) (lessp sd date))
+	     (or (eq date ed) (lessp date ed))))))
+
+(defun seriesstarttimep (series st)
+  (or (null st) (eq st (result 'series.starttime series *repository*))))
+
+(defun seriesendtimep (series et)
+  (or (null et) (eq et (result 'series.endtime series *repository*))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod output-fastinspect (s object (class (eql 'series)))
+  (let (structure)
+    (setq structure (inspectitem object class))   
+    (format s "<B>~A</B> is " (prettyname object))
+    (format s (article class))
+    (format s " <B>" )
+    (output-classlink s class)
+    (format s "</B>.")
+    (force-output s)
+    (format s "<table cellspacing='8'>")
+    (do ((l (cddr structure)) (slot) (values) (style) (label))
+        ((null l))
+      (setq slot (caar l))
+      (setq style (find-inspectstyle slot))
+      (setq label (find-inspectlabel slot))
+      (multiple-value-setq (values l) (collectvalues slot l))
+      (format s "<tr><th align='left' valign='top'>")
+      (output-slotlink s slot)
+      (format s "</th><td>")
+      (output-cells s slot values style)
+      (format s "</td>")
+      (when label (format s "<td>~A</td>" label))
+      (format s "</tr>"))
+    (format s "</table>")
+    (output-fastinspect-delete s object class)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod process-fastcreatepage-create (s object (class (eql 'series)) constraints)
+  (let (title room days sd ed st et owner url errors)
+    (setq title (getslotval 'series.title constraints))
+    (setq room (getslotval 'series.classroom constraints))
+    (setq days (getslotvals 'series.day constraints))
+    (setq sd (getslotval 'series.startdate constraints))
+    (setq ed (getslotval 'series.enddate constraints))
+    (setq st (getslotval 'series.starttime constraints))
+    (setq et (getslotval 'series.endtime constraints))
+    (setq owner (getslotval 'series.owner constraints))
+    (setq url (getslotval 'series.url constraints))
+    (cond ((setq errors (checkseries object title room days sd ed st et))
+           (http-problems s errors))
+	  ((setq errors (seriesconflicts room days sd ed st et))
+	   (handleconflicts s (list* object class constraints) errors))
+	  (t (defineobject object class constraints *gui*)
+	     (dolist (p (createevents object title room days sd ed st et owner url))
+               (insert p *repository*))
+	     (output-fastcreatepage-success s object)))))
+
+(defun checkseries (object title room days sd ed st et)
+  (let (errors)
+    (unless (eq (classify object *gui*) 'thing)
+      (setq errors (cons "Object already exists." errors)))
+    (unless title (push "No title specified." errors))
+    (unless room (push "No classroom specified." errors))
+    (unless days (push "No days specified." errors))
+    (unless sd (push "No start date specified." errors))
+    (unless ed (push "No end date specified." errors))
+    (unless st (push "No start time specified." errors))
+    (unless et (push "No end time specified." errors))
+    (when (lessp ed sd) (push "End date before start date." errors))
+    (when (lessp et st) (push "End time before start time." errors))
+    (when errors
+      (setq errors (cons "Press the Back button, correct the error(s), and try again." errors)))
+    (nreverse errors)))
+
+(defun seriesconflicts (room days sd ed st et)
+  (setq days (getdayincrements days))
+  (do ((date (lastmonday sd) (dateint-plus date 7)) (flag) (errors))
+      (flag (nreverse errors))
+      (do ((i days (cdr i)) (wd date))
+          ((null i))
+          (setq wd (dateint-plus date (car i)))
+          (cond ((dategreaterp sd wd))
+                ((dategreaterp wd ed) (setq flag t) (return t))
+                (t (dolist (e (findconflicts room wd st et))
+                     (push e errors)))))))
+
+(defun handleconflicts (s structure conflicts)
+  (format-html s) (crlf s)
+  (format-head s)
+  (format s "<title>Create Series</title>") (crlf s)
+  (format-javascript s) (crlf s)
+  (finish-head s) (crlf s)
+  (format-body s *bgcolor*) (crlf s)
+  (output-header s)
+  (format-border s)
+  (format s "<center>") (crlf s)
+  (format s "<table style='color:#ff0000' border='0'") (crlf s)
+  (dolist (event conflicts)
+    (format s "<tr><td>Proposed series conflicts with <a href=~A>~A</a>.</td></tr>"
+	    event (prettyname event))
+    (crlf s))
+  (format s "<tr><td>Press the Back button, correct the error(s), and resubmit.</td></tr>")
+  (format s "<tr><td>Alternatively, click <a href='createseriespage?Structure=~A'>here</a> to let GIN propose alternate room assignments.</td></tr>"
+	  (htmlify (prin1-to-string structure)))
+  (format s "<tr><td>Once GIN creates the series, you can still edit each event to change its choices.</td></tr>")
+  (format s "<tr><td>Just click on the correpsonding event, push the Change button, and select a different room.</td></tr>")
+  (format s "</table>") (crlf s)
+  (format s "</center>") (crlf s)
+  (finish-border s)
+  (output-footer s)
+  (finish-body s) (crlf s)
+  (finish-html s) (crlf s))
+
+(defun createevents (series title room days sd ed st et owner url)
+  (setq days (getdayincrements days))
+  (do ((date (lastmonday sd) (dateint-plus date 7))
+       (seriesname (subseq (symbol-name series) 7)) (count 1) (event) 
+       (flag) (data))
+      (flag (nreverse data))
+      (do ((i days (cdr i)) (wd date))
+	  ((null i))
+	  (setq wd (dateint-plus date (car i)))
+	  (cond ((dategreaterp sd wd))
+		((dategreaterp wd ed) (setq flag t) (return t))
+		(t (setq event (intern (stringappend "EVENT." seriesname "." (princ-to-string count))))
+		   (push `(event.instance ,event) data)
+		   (push `(event.title ,event ,title) data)
+		   (push `(event.room ,event ,room) data)
+		   (push `(event.date ,event ,wd) data)
+		   (push `(event.start ,event ,st) data)
+		   (push `(event.end ,event ,et) data)
+		   (push `(event.owner ,event ,owner) data)
+		   (when url (push `(event.url ,event ,url) data))
+		   (push `(event.series ,event ,series) data)
+		   (setq count (1+ count)))))))
+
+(defun createseriesevents (series title room days sd ed st et owner url)
+  (setq days (getdayincrements days))
+  (do ((date (lastmonday sd) (dateint-plus date 7))
+       (seriesname (subseq (symbol-name series) 7)) (count 1) (event) (flag))
+      (flag series)
+      (do ((i days (cdr i)) (wd date))
+	  ((null i))
+	  (setq wd (dateint-plus date (car i)))
+	  (cond ((dategreaterp sd wd))
+		((dategreaterp wd ed) (setq flag t) (return t))
+		(t (setq event (intern (stringappend "EVENT." seriesname "." (princ-to-string count))))
+		   (insert `(event.instance ,event) *repository*)
+		   (insert `(event.title ,event ,title) *repository*)
+		   (insert `(event.room ,event ,room) *repository*)
+		   (insert `(event.date ,event ,wd) *repository*)
+		   (insert `(event.start ,event ,st) *repository*)
+		   (insert `(event.end ,event ,et) *repository*)
+		   (insert `(event.owner ,event ,owner) *repository*)
+		   (insert url (push `(event.url ,event ,url) *repository*))
+		   (insert `(event.series ,event ,series) *repository*)
+		   (setq count (1+ count)))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod process (s (command (eql 'createseriespage)) postlines)
+  (let (dum)
+    (cond ((null postlines) (process-fastcreatepage s 'series))
+          ((setq dum (getf-post "Structure" postlines))
+           (setq dum (read-user-string dum))
+           (process-createseriespage s (car dum) (cddr dum)))
+          (t (http-problem s "Bad request.")))))
+
+(defun process-createseriespage (s object constraints)
+  (let (title room days sd ed st et owner url errors data)
+    (setq title (getslotval 'series.title constraints))
+    (setq room (getslotval 'series.classroom constraints))
+    (setq days (getslotvals 'series.day constraints))
+    (setq sd (getslotval 'series.startdate constraints))
+    (setq ed (getslotval 'series.enddate constraints))
+    (setq st (getslotval 'series.starttime constraints))
+    (setq et (getslotval 'series.endtime constraints))
+    (setq owner (getslotval 'series.owner constraints))
+    (setq url (getslotval 'series.url constraints))
+    (cond ((setq errors (checkseries object title room days sd ed st et))
+           (http-problems s errors))
+	  ((setq data (createothers object title room days sd ed st et owner url))
+	   (defineobject object 'series constraints *gui*)
+	   (dolist (p data) (insert p *repository*))
+	   (output-fastcreatepage-success s object))
+	  (t (http-problems s (list "No rooms available for at least one event in the series."))))))
+
+(defun createothers (series title room days sd ed st et owner url)
+  (setq days (getdayincrements days))
+  (do ((date (lastmonday sd) (dateint-plus date 7))
+       (seriesname (subseq (symbol-name series) 7)) (count 1) (event) 
+       (flag) (data))
+      (flag (nreverse data))
+      (do ((i days (cdr i)) (wd date) (myroom room room))
+	  ((null i))
+	  (setq wd (dateint-plus date (car i)))
+	  (cond ((dategreaterp sd wd))
+		((dategreaterp wd ed) (setq flag t) (return t))
+		((or (freeroomp myroom wd st et) (setq myroom (findroom wd st et)))
+		 (setq event (intern (stringappend "EVENT." seriesname "." (princ-to-string count))))
+		 (push `(event.instance ,event) data)
+		 (push `(event.title ,event ,title) data)
+		 (push `(event.room ,event ,myroom) data)
+		 (push `(event.date ,event ,wd) data)
+		 (push `(event.start ,event ,st) data)
+		 (push `(event.end ,event ,et) data)
+		 (push `(event.owner ,event ,owner) data)
+		 (when url (push `(event.url ,event ,url) data))
+		 (push `(event.series ,event ,series) data)
+		 (setq count (1+ count)))
+		(t (setq data nil flag t) (return t))))))
+
+(defun findroom (date st et)
+  (dolist (room (cdr (classrooms)))
+    (when (freeroomp room date st et) (return room))))
+
+(defun freeroomp (room date st et)
+  (do ((l (objects 'event.date date *repository*) (cdr l)))
+      ((null l) t)
+      (when (and (triplep 'event.room (car l) room *repository*)
+		 (overlapsp (result 'event.start (car l) *repository*)
+			    (result 'event.end (car l) *repository*)
+			    st et))
+	(return nil))))
+
+(defun overlapsp (st1 et1 st2 et2)
+  (or (and (lessp st2 et1) (lessp st1 et2))
+      (and (lessp st1 et2) (lessp st2 et1))))
+
+(defun lqp (x y)
+  (or (equal x y) (lessp x y)))
+
+(defun getdayincrements (days)
+  (do ((l days (cdr l)) (dum) (dl))
+      ((null l) (nreverse dl))
+      (when (setq dum (position (car l) *day-names*)) (setq dl (cons dum dl)))))
+
+(defun dategreaterp (x y)
+  (let (xy yy)
+    (setq x (symbol-name x) y (symbol-name y))
+    (cond ((string> (setq xy (subseq x 6)) (setq yy (subseq y 6))))
+          ((string< xy yy) nil)
+          (t (string> x y)))))
+
+(defun findconflicts (room date starttime endtime)
+  (viewfinds '?e `(and (event.room ?e ,room) (event.date ?e ,date)
+		       (event.start ?e ?s) (event.end ?e ?t)
+		       (less ?s ,endtime) (less ,starttime ?t))
+	     *repository*))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod process-fastdeletepage (s object (class (eql 'series)))
+  (killseries object)
+  (html-message s "Object deleted."))
+
+(defun killseries (series)
+  (dolist (event (objects 'event.series series *repository*))
+    (killobject event *repository*))
+  (killobject series *repository*))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; showschedulepage
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod process (s (command (eql 'showschedulepage)) postlines)
+  (let (dum)
+    (cond ((null postlines)
+           (process-showschedulepage s (fastcomparestructure 'schedule)))
+          ((setq dum (getf-post "Structure" postlines))
+           (process-showschedulepage s (read-user-string dum)))
+          (t (http-problem s "Bad request.")))))
+
+(defun process-showschedulepage (s structure)
+  (format-html s) (crlf s)
+  (format-head s)
+  (format s "<title>schedule</title>") (crlf s)
+  (format-javascript s) (crlf s)
+  (finish-head s) (crlf s)
+  (format-body s *bgcolor*) (crlf s)
+  (output-header s)
+  (format-border s)
+  (process-showschedule s structure)
+  (finish-border s)
+  (output-footer s)
+  (finish-body s) (crlf s)
+  (finish-html s) (crlf s))
+
+(defun process-showschedule (s structure)
+  (format s "<center>")
+  (output-showschedule-query s structure)
+  (output-showschedule s structure)
+  (format s "</center>") (crlf s))
+
+(defun output-showschedule-query (s structure)
+  (let (date (*buttons* 0))
+    (setq date (or (cadr (assoc 'schedule.date (cddr structure))) (today)))
+    (format s "<form name='form1' action='showschedulepage?' method='post'>") (crlf s)
+    (format-hidden s "Object" (stringize (car structure))) (crlf s)
+    (format-hidden s "Class" (stringize (cadr structure))) (crlf s)
+    (format s "<table border='0'>") (crlf s)
+    (format s "<tr>")
+    (format s "<td valign='top'>")
+    (format s "Date")
+    (format s "<br/>")
+    (output-fastshow-cell s 'schedule.date date 'dateinput)
+    (format s "</td>")
+    (format s "</tr>")
+    (format s "</table>")
+    (format s "</form>") (crlf s)))
+
+(defun output-showschedule (s structure)
+  (let (date)
+    (setq date (or (cadr (assoc 'schedule.date (cddr structure))) (today)))
+    (format s "~A" (makeschedule date))))
+
+(defun makeschedule (date) 
+  (let (events) 
+    (setq events 
+      (asks '(?event ?title ?room ?st ?et) 
+            `(and (event.date ?event ,date) 
+                  (event.title ?event ?title) 
+                  (event.room ?event ?room) 
+                  (event.start ?event ?st) 
+                  (event.end ?event ?et)) 
+            nil *repository*)) 
+    (print-schedule-all date 8 21 30 events)))
+
+(defun print-schedule-all (date start end resolution data) 
+  (let (hour month day year allrooms ids titles rooms sts ets stcs etcs) 
+    (setq hour (hour-to-time start)) 
+    (setq month (month date) day (day date) year (year date)) 
+    (setq allrooms (classrooms)) 
+    (setq ids (mapcar #'first data)) 
+    (setq titles (mapcar #'second data)) 
+    (setq rooms (mapcar #'third data)) 
+    (setq sts (mapcar #'fourth data)) 
+    (setq ets (mapcar #'fifth data)) 
+    (setq stcs (mapcar #'(lambda (time) (if (lessp time hour) hour time)) sts)) 
+    (setq stcs (mapcar #'(lambda (st) (time-ceiling st resolution)) stcs)) 
+    (setq etcs (mapcar #'(lambda (et) (time-ceiling et resolution)) ets)) 
+    (with-output-to-string (ns) 
+      (format ns "<table cellspacing='0' border='1'>") 
+      (format ns "<tr bgcolor='#eeeeee'>") 
+      (format ns "<th>~A<br/>~A</th>" 
+              (nth (day-of month day year) *short-day-names*) date) 
+      (dolist (room allrooms) 
+        (format ns "<th><a href='~A'>~A</a></th>" room (prettyname room)))
+      (format ns "</tr>")
+      (format ns "<tr bgcolor='#eeeeee'>") 
+      (format ns "<th>&nbsp;</th>") 
+      (dolist (room allrooms) 
+	(format ns "<th><a href='createeventpage?event.room=~A&event.date=~A' style='font-family:arial; text-decoration:none; cursor:pointer; font-size:12px; color:red'>schedule</a></th>"
+		room date))
+      (format ns "</tr>")
+      (do ((tl (all-times resolution start end) (cdr tl)) (filled) (last 0)) 
+          ((null tl)) 
+          (format ns "<tr>")
+	  (format ns "<th width='80' bgcolor='#eeeeee'>~A</th>" (prettyname (car tl)))
+          (dolist (current-room allrooms) 
+            (setq filled nil) 
+            (loop 
+              for id in ids 
+              for title in titles 
+              for room in rooms 
+              for st in sts 
+              for et in ets 
+              for stc in stcs 
+              for etc in etcs 
+              unless filled 
+              do  
+              (cond ((and (eq current-room room) (lessp last stc) 
+                          (or (eq (car tl) stc) (greaterp (car tl) stc))) 
+                     (printevent ns id title st et (schedule-span stc etc resolution)) 
+                     (setq filled t)) 
+                    ((and (equal current-room room) (lessp stc (car tl)) (lessp (car tl) etc)) 
+                     (setq filled t)))) 
+            (unless filled (format ns "<TD></TD>"))) 
+          (format ns "</tr>") 
+          (setq last (car tl)))
+      (format ns "</table>"))))
+
+(defun classrooms () 
+  (instances 'classroom *repository*))
+
+(defun printevent (s handle title start end span) 
+  (format s "<td rowspan='~A' align='center' bgcolor='#eeeeee'>" span) 
+  (format s "<a href='~A'>~A</a>" handle title) 
+  (when (and start end) 
+    (setq start (nbspify (prettify (prettyname start)))) 
+    (setq end (nbspify (prettify (prettyname end)))) 
+    (format s "<br/><font size='-1'>") 
+    (format s "~A - ~A" start end) 
+    (format s "</fonr>")) 
+  (format s "</td>")) 
+
+(defun nbspify (str) 
+  (do ((pos (position #\space str) (position #\space str :start pos))) 
+      ((null pos) str) 
+      (setq str (stringappend (subseq str 0 pos) "&nbsp;" (subseq str (1+ pos)))))) 
+
+(defun hour-to-time (hour) 
+  (intern (strappend (format nil "~2,'0D" hour) "-00"))) 
+
+(defun all-times (resolution start end) 
+  (loop 
+      for hour from start to (1- end) 
+      append 
+    (if (= hour end) (list (maktime hour 0)) 
+        (loop for minute from 0 to 59 by resolution 
+              collect (maktime hour minute))))) 
+
+(defun schedule-span (start-time end-time resolution) 
+  (let (s-hour s-min e-hour e-min) 
+    (setq s-hour (hour start-time) s-min (minute start-time)) 
+    (setq e-hour (hour end-time) e-min (minute end-time)) 
+    (setq s-min (* resolution (ceiling s-min resolution))) 
+    (setq e-min (* resolution (floor e-min resolution))) 
+    (let (min-diff) 
+      (setq min-diff (+ (* (- e-hour s-hour) 60) (- e-min s-min))) 
+      (ceiling (/ min-diff resolution))))) 
+
+(defun time-ceiling (time resolution) 
+  (maktime (hour time) (* resolution (ceiling (minute time) resolution)))) 
+
+(defun maktime (hour minute) 
+  (intern (strappend (format nil "~2,'0D" hour) "-" (format nil "~2,'0D" minute)))) 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; showgradesheetpage
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod process (s (command (eql 'showgradesheetpage)) postlines)
+  (let (dum)
+    (cond ((null postlines) (http-problem s "Bad request."))
+          ((setq dum (getf-post "Course" postlines))
+           (process-showgradesheetpage s (read-user-string dum)))
+          (t (http-problem s "Bad request.")))))
+
+(defun process-showgradesheetpage (s course)
+  (format-html s) (crlf s)
+  (format-head s)
+  (format s "<title>Gradesheet</title>") (crlf s)
+  (format-javascript s) (crlf s)
+  (finish-head s) (crlf s)
+  (format-body s *bgcolor*) (crlf s)
+  (output-header s)
+  (format-margin s)
+  (output-gradesheet s course)
+  (finish-border s)
+  (output-footer s)
+  (finish-body s) (crlf s)
+  (finish-html s) (crlf s))
+
+(defun output-gradesheet (s course)
+  (format s "<table cellspacing='0' cellpadding='4' border='1'>") (crlf s)
+  (format s "<tr><th>Student</th><th>Grade</th></tr>") (crlf s)
+  (do ((l (viewfinds '(?s ?g) `(grades ,course ?s ?g) *repository*) (cdr l)))
+      ((null l) 'done)
+      (format s "<tr>")
+      (format s "<td>")
+      (output-handle s (caar l))
+      (format s "</td>")
+      (format s "<td align='center'>")
+      (output-handle s (cadar l))
+      (format s "</td>")
+      (format s "</tr>")
+      (crlf s))
+  (format s "</table>") (crlf s))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; showtranscriptpage
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod process (s (command (eql 'showtranscriptpage)) postlines)
+  (let (dum)
+    (cond ((null postlines) (http-problem s "Bad request."))
+          ((setq dum (getf-post "Student" postlines))
+           (process-showtranscriptpage s (read-user-string dum)))
+          (t (http-problem s "Bad request.")))))
+
+(defun process-showtranscriptpage (s student)
+  (format-html s) (crlf s)
+  (format-head s)
+  (format s "<title>Transcript</title>") (crlf s)
+  (format-javascript s) (crlf s)
+  (finish-head s) (crlf s)
+  (format-body s *bgcolor*) (crlf s)
+  (output-header s)
+  (format-margin s)
+  (output-transcript s student)
+  (finish-border s)
+  (output-footer s)
+  (finish-body s) (crlf s)
+  (finish-html s) (crlf s))
+
+(defun output-transcript (s student)
+  (format s "<table cellspacing='0' cellpadding='4' border='1'>") (crlf s)
+  (format s "<tr><th>Course</th><th>Grade</th></tr>") (crlf s)
+  (do ((l (viewfinds '(?c ?g) `(grades ?c ,student ?g) *repository*) (cdr l)))
+      ((null l) 'done)
+      (format s "<tr>")
+      (format s "<td>")
+      (output-handle s (caar l))
+      (format s "</td>")
+      (format s "<td align='center'>")
+      (output-handle s (cadar l))
+      (format s "</td>")
+      (format s "</tr>")
+      (crlf s))
+  (format s "</table>") (crlf s))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; profile
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod process (s (command (eql 'profile)) postlines)
+  (declare (ignore postlines))
+  (output-fastinspectpage s *client* 'person))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Logging
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defparameter *log* nil)
+
+(defmethod insert (p (receiver (eql *repository*)))
+  (prog1 (with-lock-grabbed (*lock*) (call-next-method p receiver))
+    (when *log*
+      (unless (eq (car p) 'nonce)
+	(with-lock-grabbed (*lock*)
+	  (logmessage `(insert (quote ,p) *repository*) *log*))))))
+
+(defmethod uninsert (p (receiver (eql *repository*)))
+  (prog1 (with-lock-grabbed (*lock*) (call-next-method p receiver))
+    (when *log*
+      (unless (eq (car p) 'nonce)
+	(with-lock-grabbed (*lock*)
+	  (logmessage `(uninsertitem (quote ,p) *repository*) *log*))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Checking
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun checkclasses ()
+  (+ (checkclass 'person *repository*)
+     (checkclass 'group *repository*)
+     (checkclass 'office *repository*)
+     (checkclass 'classroom *repository*)
+     (checkclass 'event *repository*)
+     (checkclass 'series *repository*)
+     (checkclass 'feature *repository*)
+     (checkclass 'floor *repository*)
+     (checkclass 'grouptype *repository*)
+     (checkclass 'status *repository*)
+     (checkclass 'time *repository*)
+     (checkclass 'weekday *repository*)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Dumping
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun dumpclasses ()
+  (dumpclass 'person *repository* "/infoserver/examples/university/backup/person.kif" 'ookif)
+  (dumpclass 'group *repository* "/infoserver/examples/university/backup/group.kif" 'ookif)
+  (dumpclass 'office *repository* "/infoserver/examples/university/backup/office.kif" 'ookif)
+  (dumpclass 'classroom *repository* "/infoserver/examples/university/backup/classroom.kif" 'ookif)
+  (dumpclass 'event *repository* "/infoserver/examples/university/backup/event.kif" 'ookif)
+  (dumpclass 'series *repository* "/infoserver/examples/university/backup/series.kif" 'ookif)
+  (dumpclass 'feature *repository* "/infoserver/examples/university/backup/feature.kif" 'ookif)
+  (dumpclass 'floor *repository* "/infoserver/examples/university/backup/floor.kif" 'ookif)
+  (dumpclass 'grouptype *repository* "/infoserver/examples/university/backup/grouptype.kif" 'ookif)
+  (dumpclass 'status *repository* "/infoserver/examples/university/backup/status.kif" 'ookif)
+  (dumpclass 'time *repository* "/infoserver/examples/university/backup/time.kif" 'ookif)
+  (dumpclass 'weekday *repository* "/infoserver/examples/university/backup/weekday.kif" 'ookif)
+  'done)
+
+(defun dumpdata (fn)
+  (dumptheory *repository* fn 'kif))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -1,0 +1,145 @@
+
+<HTML>
+<BODY BGCOLOR=WHITE>
+<BR>
+<CENTER>
+<H1>Logica</H1>
+</CENTER>
+<HR>
+&nbsp;&nbsp;
+<A HREF=>Home</A>&nbsp;&nbsp;
+<A HREF=Truthtable?>Truth Table</A>&nbsp;&nbsp;
+<A HREF=Converter?>Converter</A>&nbsp;&nbsp;
+<A HREF=Unifier?>Unifier</A>&nbsp;&nbsp;
+<A HREF=LOGICA?>Resolution</A>&nbsp;&nbsp;
+<A HREF=EPILOG?>Epilog</A>&nbsp;&nbsp;
+<A HREF=EDITOR?>Editor</A>&nbsp;&nbsp;
+<A HREF=STP?>STP</A>&nbsp;&nbsp;
+<A HREF=STP2?>Experimental</A>&nbsp;&nbsp;
+<HR>
+<H3>Overview</H3>
+
+<B>Logica</B> is a simple proof system for propositional and relational logic.
+It includes a truth-table-based satisfiability checker for Propositional Logic;
+it includes a unifier for checking unifiability of Relational Logic expressions;
+it incudes automatic proof methods based on Resolution and Epilog; and
+it includes an editor for manually creating proofs.  Click on the desired link
+above to access one of these capabilities.</P>
+
+<H3>Language</H3>
+
+<P>The language used by <B>Logica</B> is a prefix version of the language used
+in class.  Every expression takes the form of a logical operator or a relation
+constant followed by its arguments and enclosed in parentheses.</P>
+
+<P>The following examples illustrate the relationship between the infix
+notation used in class and this prefix notation.  Note: Most of the capabilities
+assume a subset of this notation, e.g. Epilog accepts literals and reductions
+only.  In fact, only Resolution allows the full syntax.  See descriptions below
+for details.
+</P>
+
+<P><CENTER><TABLE BORDER>
+<TR><TH>Infix</TH><TH>Prefix</TH></TR>
+<TR><TD><TT>r(a,b,c)</TT></TD><TD><TT>(r a b c)</TT></TD></TR>
+<TR><TD><TT>~~p</TT></TD><TD><TT>(not p)</TT></TD></TR>
+<TR><TD><TT>p&amp;q</TT></TD><TD><TT>(and p q)</TT></TD></TR>
+<TR><TD><TT>p|q</TT></TD><TD><TT>(or p q)</TT></TD></TR>
+<TR><TD><TT>p=>q</TT></TD><TD><TT>(=> p q)</TT></TD></TR>
+<TR><TD><TT>p<=q</TT></TD><TD><TT>(<= p q)</TT></TD></TR>
+<TR></TR>
+<TR></TR>
+<TR><TD><TT>Ax.Ey.p(x,y)</TT></TD><TD><TT>(forall (?x) (exists (?y) (p ?x ?y)))</TT></TD></TR>
+</TABLE></CENTER></P>
+
+<P>Case does not matter in this notation.  Upper and lower case versions of a
+character are treated as the same character.   Variables are denoted by
+prefixing with the <TT>?</TT> character.  In other words, to enter the variable
+<TT>X</TT>, type <TT>?x</TT> or <TT>?X</TT>.</P>
+
+<P><CENTER><TABLE BORDER>
+<TR><TH>Infix</TH><TH>Prefix</TH></TR>
+<TR><TD><TT>p(X,b)=>q(X)</TT></TD><TD><TT>(=> (p ?x b) (q ?x))</TT></TD></TR>
+</TABLE></CENTER></P>
+
+<H3>Truth Table</H3>
+
+<P>Type any number of Propositional Logic sentences into the expression box.  Press
+Check Truth Table to determine joint validity, satisfiability, or unsatisfiability
+of the specified sentences.  Press Show Truth Table if you also want to see the truth
+table.  Note that the truth tables grow exponentially in the number of propositional
+constants.  Specifying too many constants will stress the system.</P>
+
+<H3>Unifier</H3>
+
+<P>Type a single atomic sentence into each of the expression boxes and press Unify to
+compute a most general unifier (if any).</P>
+
+<H3>Resolution</H3>
+
+<P>Type your premises into the Premise box and your desired conclusion, if any,
+into the Conclusion box.  Remember to use Prefix notation.
+
+If you enter no premises, it will assume you have
+none.  If you have no conclusion, it will assume <TT>false</TT>.  If the system
+detects a syntax error in either field, it will treat that field as empty.  So,
+if    you enter premises or conclusions and do not see any in the resulting
+proof, it means there is a syntax error.</P>
+
+<P>Once you have entered your premises and conclusions, select from among the
+strategy choices.  The system ALWAYS applies Identical Clause Removal, i.e. it
+will not produce the same conclusion twice.</P>
+
+<P>Finally, select a maximum number of steps for the system to take before
+quitting.  Beware of specifying too high a number.  This will waste system
+resources and tax your patience.</P>
+
+<H3>Epilog</H3>
+
+<P>Type your premises into the Premise box and your desired conclusion, if any,
+into the Conclusion box.  Premises should all be literals (e.g. <TT>(p a b)</TT>
+and <TT>(q b)</TT>) or reductions (e.g. <TT>(<= (r ?x) (p ?x ?y) (q ?y))</TT>). 
+Conclusions should be boolean expressions (e.g. <TT>(and (p a b) (r a))</TT>).
+
+If you enter no premises, it will assume
+you have none.  If you have no conclusion, it will assume <TT>false</TT>.  If the
+system detects a syntax error in either field, it will treat that field as empty. 
+So, if you enter premises or conclusions and do not see any in the resulting proof,
+it means there is a syntax error.</P>
+
+<P>Once you have entered your premises and conclusions, select a maximum depth.
+Do not specify too high a number.  You may also check the Contrapositives box
+if yuo want the system to compute contrapositives before starting inference.</P>
+
+<H3>Editor</H3>
+
+<P>Pretty straightforward after a little experimentation.  Expressions should all
+be literals  (e.g. <TT>(p a b)</TT> and <TT>(q b)</TT>) or clauses (e.g.
+<TT>(or (r ?x) (not (p ?x ?y)) (not (q ?y)))</TT>).
+
+For premises, type \"Premise\" into one of the justification boxes. For goals,
+type \"Goal\" into one of the justification boxes.  For resolutions, enter the line
+numbers of the parents into the justification boxes.  Otherwise, the proof checker
+will complain.  To get more lines, select the place where you want to insert a new
+line and press Add Row at any time.  Press Check Proof after you get to the
+last line to check your proof.  Press Clean proof to eliminate redundant lines.</P>
+
+<H3>Future Plans</H3>
+
+<P>This is a quickie implementation, just to see what is needed here. 
+Constructive comments welcome.  Snide remarks less welcome (unless
+humorous).</P>
+
+If people think this system has any pedagogical value, we will develop it
+further in the future.  For example, we will switch to infix format.  We will
+add additional elimination and restriction strategies and search control
+capabilities.  In order to facilitate navigation, we will offer hyperlinked
+proofs as well as linear proofs.  We may add capabilties for using truth tables
+and Herbrand tables.  We may add unification checkers.  And so forth.  If you
+have comments, please let us know.
+
+<P><HR>
+<ADDRESS>Comments to <A HREF=\"mailto:genesereth@stanford.edu\">Michael Genesereth</A>.</ADDRESS>
+
+</HTML>
+

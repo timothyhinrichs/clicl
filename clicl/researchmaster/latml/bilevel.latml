@@ -1,0 +1,94 @@
+<html>
+<head><title>Bilevel Reasoning Examples</title>
+<style type="text/css" media="all">
+		@import "/style/main.css";
+	</style>
+</head>
+
+<body>
+
+<div class="structure">
+<div class="whiteongray">
+	<div class="header">
+		<div class="title">Bilevel Reasoning</div>
+		<div class="navigation">
+		<span class="nav1"><a href="examples/">Examples</a></span>
+		</div>
+	</div>
+</div>
+
+<div class="bodytext">
+
+<h2>Bilevel Reasoning</h2></a>
+Bilevel reasoning consists of automated reasoning about a pair \ltstruct\Gamma, M\gtstruct, where \Gamma is a set of axioms and M is a model.  It is convenient to talk about bilevel reasoning in the context of <a href="http://logic.stanford.edu/~thinrich/herbrand/html/">Herbrand Logic</a>, a logic with the same syntax of first-order logic, but where the only models in existence are the Herbrand models.  In this setting, the definitions of satisfaction and entailment are straightforward.  Hence, the terms model and Herbrand model are synonymous throughout this site.  It is noteworthy that Herbrand logic is equivalent to first-order logic plus unique-names axioms and a (possibly infinitary) domain closure axiom over all ground terms.
+
+<p><b>Definition (Bilevel Pair)</b>: A bilevel pair is \ltstruct\Gamma, M\gtstruct, where \Gamma is a set of axioms, M is a Herbrand model, and  vocabulary[\Gamma] \cup vocabulary[M], denoted vocabulary[\ltstruct\Gamma,M\gtstruct], meets the definition for a vocabulary (see <a href="http://logic.stanford.edu/~thinrich/herbrand/html/herbrandlogic.html">definition for a vocabulary</a>).
+
+<p>Satisfaction for bilevel pairs can be defined using the notion of a model's reduct, which is just a way of talking about the portion of a model in a shrunken vocabulary.
+
+<p><b>Definition (Reduct)</b>: The reduct of model M wrt vocabulary V, written Reduct[M,V] is the intersection of M and the ground atoms of V.
+
+<p><b>Definition (Bilevel Satisfaction)</b>: Let \ltstruct\Gamma, M\gtstruct be a bilevel pair, where \Gamma consists of closed sentences.  Let N be a model in the vocabulary V = vocabulary[\ltstruct\Gamma,M\gtstruct].  N satisfies the pair exactly when N satisfies \Gamma wrt V and the portion of N corresponding to the vocabulary of M is the same as M.
+<center>\models_N \ltstruct\Gamma,M\gtstruct if and only if \models_N \Gamma wrt V and Reduct[N,vocabulary[M]] = M</center>
+
+<p>Just as the set of models for an axiomatization \Delta is usually denoted Mod[\Delta], we can use Mod[\ltstruct\Gamma,M\gtstruct] to denote the set of models that satisfy the bilevel pair \ltstruct\Gamma,M\gtstruct.  Entailment in bilevel reasoning can therefore be defined follows.
+
+<p><b>Definition (Bilevel Entailment)</b>: Let P be a bilevel pair and \phi a closed sentence.  P entails \phi exactly when every model that satisfies P satisfies \phi.
+<center>P \models\phi if and only if for every M in Mod[P], \models_M\phi</center>
+
+<p>Just as Cn[\Delta] is the set of all sentences entailed by a set of axioms \Delta, we can use Cn[\ltstruct\Gamma,M\gtstruct] to denote the set of sentences entailed by the bilevel pair \ltstruct\Gamma,M\gtstruct.  We also use Cn[M], where M is a model, to denote the set of all sentences satisfied by the model M.
+
+<p>As we will see, separating data from axioms is sometimes convenient, but mainly for reasons to do with modularity and/or computational complexity.  As long as the model is finite, a bilevel pair can always be represented as a simple set of axioms in Herbrand logic, as the following theorem states.
+
+<p><b>Theorem (Finite Bilevel Equivalent to Herbrand Logic)</b>: Let \ltstruct\Gamma,M\gtstruct be a bilevel pair, where M is finite.  Then there is a  sentence set \Delta in Herbrand logic such that Mod[\Delta] = Mod[\ltstruct\Gamma,M\gtstruct].
+
+<p>Even though every finite bilevel pair can be encoded as a finite set of sentences in Herbrand logic, this separation often allows a problem to be defined independent of the problem instance.  For example, deductive databases take as input a query that is independent of the data, and in formal verification, the system under consideration can be defined as an initial state (the data) and the dynamics of the system, which are independent of the state.  See <a href="http://logic.stanford.edu/~thinrich/herbrand/html/applications.html">Herbrand Logic Applications page</a> for more details.  Because these two applications are industrial-strength solutions to problems, it is worthwhile to partition the space of bilevel reasoning to see where they fall.  Here we discuss just deductive databases.
+
+<!--
+<p>In the context of <a href="http://games.stanford.edu/">General Game Playing (GGP)</a>, we have also found Bilevel reasoning helpful.  GGP gives machines the rules of a game at run-time and pits several machines against one another in a head-to-head competition.  While the games are unknown to the programmers before the competition, the language for describing games is known.  That language, <a href="http://logic.stanford.edu/reports/lg01-2006.pdf">GDL</a>, is founded on this separation of a model from the constraints on that model.  
+-->
+
+<p>In the setting of deductive databases, \Gamma does not constrain the model M but rather extends the theory defined by it, which is a small wrinkle on the notion of a conservative extension to a logical theory.
+
+<p><b>Definition (Conservative Pair)</b>: \ltstruct\Gamma,M\gtstruct is conservative exactly when every sentence entailed by \ltstruct\Gamma,M\gtstruct that is in the vocabulary of M is satisfied by M itself.  That is, \ltstruct\Gamma,M\gtstruct is conservative if and only if
+<center>every sentence s in Cn[\ltstruct\Gamma,M\gtstruct] and vocabulary[M] is also in Cn[M]</center>
+
+<p><b>Definition (Conservative Bilevel Axioms)</b>: A set of axioms \Gamma is conservative wrt vocabulary V if and only if for every model M in V, \ltstruct\Gamma,M\gtstruct is a conservative pair.
+
+<!--
+<p>The current definition of GDL describes only games of complete information, where the only unknown to a player are the moves the other players will make: chess and othello are simple examples.  This is a special case of Bilevel reasoning, very analagous to complete theories in first-order logic.
+-->
+
+<p>More than conservative, deductive databases are also complete and satisfiable: that is, if the pair \ltstruct\Gamma,M\gtstruct represents a database, it is satisfied by exactly one model.
+
+<!--
+<p>This notion of completeness is a common one.  In first-order logic, a set of axioms whose models are all elementarily equivalent, i.e. indistinguishable with respect to first-order sentences, is said to be axiomatically complete.  This means every sentence in the language or its negation is entailed by the axioms.
+-->
+
+<p><b>Definition (Axiomatic Completeness)</b>: Let L be a language and \Delta a set of sentences.  \Delta is axiomatically complete if and only if for every closed sentence s in L, \Delta entails s or \Delta entails \negs or both.
+
+<p>In Herbrand logic, if a set of sentences is axiomatically complete, those sentences are satisfied by exactly one model.  (The fact that axiomatic completeness in Herbrand logic has different model-theoretic properties than first-order logic stems from the fact that Herbrand logic fixes the equality relation, whereas first-order logic does not.)  Likewise, we will say that a bilevel pair is (axiomatically) complete if and only if it has at most one model. 
+
+<p><b>Definition (Complete Bilevel Pair)</b>: A bilevel pair P is complete if and only if Mod[P] is either a singleton set or the empty set.
+
+<p><b>Definition (Complete Bilevel Axioms)</b>: A set of bilevel axioms \Gamma is complete wrt vocabulary V if and only if for every model M in V \ltstruct\Gamma,M\gtstruct is a complete bilevel pair.
+
+<p>Thus, a deductive database is a conservative, complete, satisfiable set of bilevel axioms.
+
+<p>Various kinds of operations can be performed on bilevel pairs.  We are going to focus on two: (1) check if a given pair entailments some sentence and (2) optimize a set of bilevel axioms \Gamma so that entailment queries can be answered efficiently, regardless which model is chosen.
+
+<p>These operations make sense only in certain circumstances.  If the model M is known, then the optimization problem reduces to the entailment problem--the optimal solution simply answers the entailment problem as efficiently as possible  Thus, only when the model M is unknown is the optimization problem different than the entailment problem.  
+
+<p>Below is a table that gives examples of work that may be brought to bear on performing these two operations in the context of conservative, finite bilevel pairs.
+
+<center>
+<table class="matrix">
+<tr><td class="rowhead"></td><td class="rowhead">Known Model</td><td class="rowhead">Unknown Model</td></tr>
+<tr><td class="rowhead">Complete</td><td>Stratified Logic Programming</td><td>Datalog Optimization</td></tr>
+<tr><td class="rowhead">Incomplete</td><td>Inductive Theorem Proving</td><td>?</td></tr>
+</table>
+</center>
+
+</div></div>
+
+</body></html>

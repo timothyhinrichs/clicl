@@ -1,0 +1,32 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Researchmaster Rules
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(<= (publication.instance ?x)
+	(conference.instance ?x))
+
+(<= (publication.instance ?x)
+	(journal.instance ?x))
+
+(<= (publication.instance ?x)
+	(workshop.instance ?x))
+
+(<= (publication.instance ?x)
+	(symposium.instance ?x))
+
+(<= (publication.instance ?x)
+	(magazine.instance ?x))
+
+(<= (publication.instance ?x)
+	(miscpub.instance ?x))
+
+(<= (published ?x)
+	(person.instance ?x)
+	(paper.author ?y ?x))
+	
+(<= (prettyname ?x ?y)
+	(person.instance ?x)
+	(evaluate (personname ?x) ?y))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

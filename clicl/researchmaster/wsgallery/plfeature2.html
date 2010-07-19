@@ -1,0 +1,746 @@
+<html>
+<head><title>PLFEATURE2</title>
+<link rel="stylesheet" type="text/css" href="/docserver/infoserver/examples/researchmaster/style/main.css">
+<link rel="stylesheet" type="text/css" href="/docserver/infoserver/examples/researchmaster/style/jack.css">
+<link rel="stylesheet" type="text/css" href="/docserver/infoserver/examples/researchmaster/style/websheet.css">
+<script type="text/javascript" src="/docserver/infoserver/examples/researchmaster/javascript/browser.js"></script>
+<script type="text/javascript" src="/docserver/infoserver/examples/researchmaster/javascript/util.js"></script>
+<script type="text/javascript" src="/docserver/infoserver/examples/researchmaster/javascript/spreadsheet.js"></script>
+<script type="text/javascript" src="/docserver/infoserver/examples/researchmaster/javascript/ds.js"></script>
+<script type="text/javascript">
+var univ;
+
+var component_o = new set("o", "fs", "c");
+var component_e = new set("e", "m");
+
+var prettynames = new Object();
+prettynames[undefined] = '';
+prettynames[0] = '';
+prettynames[1] = '1';
+prettynames[2] = 'false';
+prettynames[3] = 'true';
+prettynames[4] = 'Constant folding';
+prettynames[5] = 'Short circuit';
+
+var uglynames = new Object();
+uglynames[''] = 0;
+uglynames['1'] = 1;
+uglynames['false'] = 2;
+uglynames['true'] = 3;
+uglynames['Constant folding'] = 4;
+uglynames['Short circuit'] = 5;
+
+function init () { 
+   allowconflicts = true;
+   valuecount = 6;
+   init_index();
+   univ = ds.get(datastore, "univ");
+   var mycellarray = new Array();
+   mycellarray[0] = new cell('e', ds.get(datastore, "boolean"), "selector", negs_e, poss_e, negsupps_e, possupps_e, negsuppx_e, possuppx_e, component_e, true, new set(3), false);
+   mycellarray[1] = new cell('m', ds.get(datastore, "boolean"), "selector", negs_m, poss_m, negsupps_m, possupps_m, negsuppx_m, possuppx_m, component_e, true, undefined, false);
+   mycellarray[2] = new cell('o', ds.get(datastore, "boolean"), "selector", negs_o, poss_o, negsupps_o, possupps_o, negsuppx_o, possuppx_o, component_o, true, new set(3), false);
+   mycellarray[3] = new cell('fs', ds.get(datastore, "fs_type"), "selector", negs_fs, poss_fs, negsupps_fs, possupps_fs, negsuppx_fs, possuppx_fs, component_o, true, new set(4), false);
+   mycellarray[4] = new cell('c', ds.get(datastore, "boolean"), "selector", undefined, poss_c, undefined, possupps_c, undefined, possuppx_c, component_o, true, undefined, false);
+   initspread(mycellarray); }
+
+function external_init () {  }
+
+function submitprep () { 
+   var s = new set();
+   if (!(findcell("e").conflictset.empty())) {
+      s.adjoin("e");}
+   if (!(findcell("m").conflictset.empty())) {
+      s.adjoin("m");}
+   if (!(findcell("o").conflictset.empty())) {
+      s.adjoin("o");}
+   if (!(findcell("fs").conflictset.empty())) {
+      s.adjoin("fs");}
+   if (!(findcell("c").conflictset.empty())) {
+      s.adjoin("c");}
+   if (!(s.empty())) {
+      alert('Errors remain.  You must fix them before submitting.');
+      return false;}
+   clear_forced_gui();
+   return true; }
+
+var datastore;
+
+function init_index () { 
+   datastore = new dictionary();
+   ds.set(datastore, "univ", new hashbag(new expr(0), new expr(1), new expr(2), new expr(3), new expr(4), new expr(5)));
+   ds.set(datastore, "fs_type", new set(new expr(4), new expr(5)));
+   ds.set(datastore, "boolean", new set(new expr(2), new expr(3))); }
+
+function check_univ (x0) { return ds.member(ds.get(datastore, "univ"), new expr(x0), equalp); }
+
+function check_boolean (x0) { return ds.member(ds.get(datastore, "boolean"), new expr(x0), equalp); }
+
+function check_fs_type (x0) { return ds.member(ds.get(datastore, "fs_type"), new expr(x0), equalp); }
+
+function enum_univ (x0) { 
+   
+   return ds.get(datastore, "univ"); }
+
+function enum_boolean (x0) { 
+   
+   return ds.get(datastore, "boolean"); }
+
+function enum_fs_type (x0) { 
+   
+   return ds.get(datastore, "fs_type"); }
+
+function negx_m (x0) { return neg_m(function (newval, support, sofar) { 
+
+return new pair(true, newval); }, x0); }
+
+function negs_m (x0) { return neg_m(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+
+function negsuppx_m (x0) { return neg_m(function (newval, support, sofar) { 
+
+return new pair(true, new pair(newval, support)); }, x0); }
+
+function negsupps_m (x0) { return neg_m(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
+
+function neg_m (onsuccess, x0) { 
+   if (varp(x0)) {
+      if (!(neg_m_f === undefined)) return neg_m_f(onsuccess, x0);
+      else return undefined;}
+   else {
+      if (!(neg_m_b === undefined)) return neg_m_b(onsuccess, x0);
+      else return undefined;} }
+
+function neg_m_b (onsuccess, nsh90) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh90;
+   if (hascellvalue("e")) {
+      if (x0 === 3) {
+         if (ds.member(cellvalues("e"), 3)) {
+            tmp = onsuccess(new expr(x0), new set("e"), sofar);
+            if (ds.first(tmp) === true) return ds.second(tmp);
+            else sofar = ds.second(tmp);}
+         x0 = nsh90;}}
+   return sofar; }
+
+function neg_m_f (onsuccess, nsh91) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh91;
+   if (hascellvalue("e")) {
+      if (ds.member(cellvalues("e"), 3)) {
+         var arh91 = enum_boolean(x0);
+         for (var key in ds.data(arh91)) {
+            x0 = ds.element(ds.element(arh91, key), 0);
+            if (x0 === 3) {
+               tmp = onsuccess(new expr(x0), new set("e"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}
+         x0 = nsh91;}}
+   return sofar; }
+
+function negx_e (x0) { return neg_e(function (newval, support, sofar) { 
+
+return new pair(true, newval); }, x0); }
+
+function negs_e (x0) { return neg_e(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+
+function negsuppx_e (x0) { return neg_e(function (newval, support, sofar) { 
+
+return new pair(true, new pair(newval, support)); }, x0); }
+
+function negsupps_e (x0) { return neg_e(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
+
+function neg_e (onsuccess, x0) { 
+   if (varp(x0)) {
+      if (!(neg_e_f === undefined)) return neg_e_f(onsuccess, x0);
+      else return undefined;}
+   else {
+      if (!(neg_e_b === undefined)) return neg_e_b(onsuccess, x0);
+      else return undefined;} }
+
+function neg_e_b (onsuccess, nsh92) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh92;
+   if (hascellvalue("m")) {
+      if (x0 === 3) {
+         if (ds.member(cellvalues("m"), 3)) {
+            tmp = onsuccess(new expr(x0), new set("m"), sofar);
+            if (ds.first(tmp) === true) return ds.second(tmp);
+            else sofar = ds.second(tmp);}
+         x0 = nsh92;}}
+   return sofar; }
+
+function neg_e_f (onsuccess, nsh93) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh93;
+   if (hascellvalue("m")) {
+      if (ds.member(cellvalues("m"), 3)) {
+         var arh93 = enum_boolean(x0);
+         for (var key in ds.data(arh93)) {
+            x0 = ds.element(ds.element(arh93, key), 0);
+            if (x0 === 3) {
+               tmp = onsuccess(new expr(x0), new set("m"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}
+         x0 = nsh93;}}
+   return sofar; }
+
+function posx_m (x0) { return pos_m(function (newval, support, sofar) { 
+
+return new pair(true, newval); }, x0); }
+
+function poss_m (x0) { return pos_m(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+
+function possuppx_m (x0) { return pos_m(function (newval, support, sofar) { 
+
+return new pair(true, new pair(newval, support)); }, x0); }
+
+function possupps_m (x0) { return pos_m(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
+
+function pos_m (onsuccess, x0) { 
+   if (varp(x0)) {
+      if (!(pos_m_f === undefined)) return pos_m_f(onsuccess, x0);
+      else return undefined;}
+   else {
+      if (!(pos_m_b === undefined)) return pos_m_b(onsuccess, x0);
+      else return undefined;} }
+
+function pos_m_b (onsuccess, nsh94) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh94;
+   if (hascellvalue("e")) {
+      if (x0 === 3) {
+         if (!(ds.member(cellvalues("e"), 3))) {
+            tmp = onsuccess(new expr(x0), new set("e"), sofar);
+            if (ds.first(tmp) === true) return ds.second(tmp);
+            else sofar = ds.second(tmp);}
+         x0 = nsh94;}}
+   return sofar; }
+
+function pos_m_f (onsuccess, nsh95) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh95;
+   if (hascellvalue("e")) {
+      if (!(ds.member(cellvalues("e"), 3))) {
+         var arh95 = enum_boolean(x0);
+         for (var key in ds.data(arh95)) {
+            x0 = ds.element(ds.element(arh95, key), 0);
+            if (x0 === 3) {
+               tmp = onsuccess(new expr(x0), new set("e"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}
+         x0 = nsh95;}}
+   return sofar; }
+
+function posx_e (x0) { return pos_e(function (newval, support, sofar) { 
+
+return new pair(true, newval); }, x0); }
+
+function poss_e (x0) { return pos_e(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+
+function possuppx_e (x0) { return pos_e(function (newval, support, sofar) { 
+
+return new pair(true, new pair(newval, support)); }, x0); }
+
+function possupps_e (x0) { return pos_e(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
+
+function pos_e (onsuccess, x0) { 
+   if (varp(x0)) {
+      if (!(pos_e_f === undefined)) return pos_e_f(onsuccess, x0);
+      else return undefined;}
+   else {
+      if (!(pos_e_b === undefined)) return pos_e_b(onsuccess, x0);
+      else return undefined;} }
+
+function pos_e_b (onsuccess, nsh96) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh96;
+   if (hascellvalue("m")) {
+      if (x0 === 3) {
+         if (!(ds.member(cellvalues("m"), 3))) {
+            tmp = onsuccess(new expr(x0), new set("m"), sofar);
+            if (ds.first(tmp) === true) return ds.second(tmp);
+            else sofar = ds.second(tmp);}
+         x0 = nsh96;}}
+   return sofar; }
+
+function pos_e_f (onsuccess, nsh97) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh97;
+   if (hascellvalue("m")) {
+      if (!(ds.member(cellvalues("m"), 3))) {
+         var arh97 = enum_boolean(x0);
+         for (var key in ds.data(arh97)) {
+            x0 = ds.element(ds.element(arh97, key), 0);
+            if (x0 === 3) {
+               tmp = onsuccess(new expr(x0), new set("m"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}
+         x0 = nsh97;}}
+   return sofar; }
+
+function negx_fs (x0) { return neg_fs(function (newval, support, sofar) { 
+
+return new pair(true, newval); }, x0); }
+
+function negs_fs (x0) { return neg_fs(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+
+function negsuppx_fs (x0) { return neg_fs(function (newval, support, sofar) { 
+
+return new pair(true, new pair(newval, support)); }, x0); }
+
+function negsupps_fs (x0) { return neg_fs(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
+
+function neg_fs (onsuccess, x0) { 
+   if (varp(x0)) {
+      if (!(neg_fs_f === undefined)) return neg_fs_f(onsuccess, x0);
+      else return undefined;}
+   else {
+      if (!(neg_fs_b === undefined)) return neg_fs_b(onsuccess, x0);
+      else return undefined;} }
+
+function neg_fs_b (onsuccess, nsh98) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh98;
+   if (hascellvalue("c")) {
+      if (x0 === 5) {
+         if (!(ds.member(cellvalues("c"), 3))) {
+            tmp = onsuccess(new expr(x0), new set("c"), sofar);
+            if (ds.first(tmp) === true) return ds.second(tmp);
+            else sofar = ds.second(tmp);}
+         x0 = nsh98;}}
+   if (hascellvalue("o")) {
+      if (x0 === 5) {
+         if (!(ds.member(cellvalues("o"), 3))) {
+            tmp = onsuccess(new expr(x0), new set("o"), sofar);
+            if (ds.first(tmp) === true) return ds.second(tmp);
+            else sofar = ds.second(tmp);}
+         x0 = nsh98;}
+      if (x0 === 4) {
+         if (!(ds.member(cellvalues("o"), 3))) {
+            tmp = onsuccess(new expr(x0), new set("o"), sofar);
+            if (ds.first(tmp) === true) return ds.second(tmp);
+            else sofar = ds.second(tmp);}
+         x0 = nsh98;}}
+   return sofar; }
+
+function neg_fs_f (onsuccess, nsh99) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh99;
+   if (hascellvalue("c")) {
+      if (!(ds.member(cellvalues("c"), 3))) {
+         var arh101 = enum_fs_type(x0);
+         for (var key in ds.data(arh101)) {
+            x0 = ds.element(ds.element(arh101, key), 0);
+            if (x0 === 5) {
+               tmp = onsuccess(new expr(x0), new set("c"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}
+         x0 = nsh99;}}
+   if (hascellvalue("o")) {
+      if (!(ds.member(cellvalues("o"), 3))) {
+         var arh102 = enum_fs_type(x0);
+         for (var key in ds.data(arh102)) {
+            x0 = ds.element(ds.element(arh102, key), 0);
+            if (x0 === 5) {
+               tmp = onsuccess(new expr(x0), new set("o"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}
+         x0 = nsh99;}
+      if (!(ds.member(cellvalues("o"), 3))) {
+         var arh103 = enum_fs_type(x0);
+         for (var key in ds.data(arh103)) {
+            x0 = ds.element(ds.element(arh103, key), 0);
+            if (x0 === 4) {
+               tmp = onsuccess(new expr(x0), new set("o"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}
+         x0 = nsh99;}}
+   return sofar; }
+
+function posx_o (x0) { return pos_o(function (newval, support, sofar) { 
+
+return new pair(true, newval); }, x0); }
+
+function poss_o (x0) { return pos_o(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+
+function possuppx_o (x0) { return pos_o(function (newval, support, sofar) { 
+
+return new pair(true, new pair(newval, support)); }, x0); }
+
+function possupps_o (x0) { return pos_o(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
+
+function pos_o (onsuccess, x0) { 
+   if (varp(x0)) {
+      if (!(pos_o_f === undefined)) return pos_o_f(onsuccess, x0);
+      else return undefined;}
+   else {
+      if (!(pos_o_b === undefined)) return pos_o_b(onsuccess, x0);
+      else return undefined;} }
+
+function pos_o_b (onsuccess, nsh103) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh103;
+   if (hascellvalue("fs")) {
+      if (x0 === 3) {
+         if (ds.member(cellvalues("fs"), 5)) {
+            tmp = onsuccess(new expr(x0), new set("fs"), sofar);
+            if (ds.first(tmp) === true) return ds.second(tmp);
+            else sofar = ds.second(tmp);}
+         x0 = nsh103;}
+      if (x0 === 3) {
+         if (ds.member(cellvalues("fs"), 4)) {
+            tmp = onsuccess(new expr(x0), new set("fs"), sofar);
+            if (ds.first(tmp) === true) return ds.second(tmp);
+            else sofar = ds.second(tmp);}
+         x0 = nsh103;}}
+   return sofar; }
+
+function pos_o_f (onsuccess, nsh104) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh104;
+   if (hascellvalue("fs")) {
+      if (ds.member(cellvalues("fs"), 5)) {
+         var arh105 = enum_boolean(x0);
+         for (var key in ds.data(arh105)) {
+            x0 = ds.element(ds.element(arh105, key), 0);
+            if (x0 === 3) {
+               tmp = onsuccess(new expr(x0), new set("fs"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}
+         x0 = nsh104;}
+      if (ds.member(cellvalues("fs"), 4)) {
+         var arh106 = enum_boolean(x0);
+         for (var key in ds.data(arh106)) {
+            x0 = ds.element(ds.element(arh106, key), 0);
+            if (x0 === 3) {
+               tmp = onsuccess(new expr(x0), new set("fs"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}
+         x0 = nsh104;}}
+   return sofar; }
+
+function posx_fs (x0) { return pos_fs(function (newval, support, sofar) { 
+
+return new pair(true, newval); }, x0); }
+
+function poss_fs (x0) { return pos_fs(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+
+function possuppx_fs (x0) { return pos_fs(function (newval, support, sofar) { 
+
+return new pair(true, new pair(newval, support)); }, x0); }
+
+function possupps_fs (x0) { return pos_fs(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
+
+function pos_fs (onsuccess, x0) { 
+   if (varp(x0)) {
+      if (!(pos_fs_f === undefined)) return pos_fs_f(onsuccess, x0);
+      else return undefined;}
+   else {
+      if (!(pos_fs_b === undefined)) return pos_fs_b(onsuccess, x0);
+      else return undefined;} }
+
+function pos_fs_b (onsuccess, nsh106) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh106;
+   if ((hascellvalue("fs") && hascellvalue("o"))) {
+      if (x0 === 4) {
+         if (!(ds.member(cellvalues("fs"), 5))) {
+            if (ds.member(cellvalues("o"), 3)) {
+               tmp = onsuccess(new expr(x0), new set("fs", "o"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}
+         x0 = nsh106;}
+      if (x0 === 5) {
+         if (!(ds.member(cellvalues("fs"), 4))) {
+            if (ds.member(cellvalues("o"), 3)) {
+               tmp = onsuccess(new expr(x0), new set("fs", "o"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}
+         x0 = nsh106;}}
+   if ((hascellvalue("c") && hascellvalue("o"))) {
+      if (x0 === 4) {
+         if (!(ds.member(cellvalues("c"), 3))) {
+            if (ds.member(cellvalues("o"), 3)) {
+               tmp = onsuccess(new expr(x0), new set("c", "o"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}
+         x0 = nsh106;}}
+   return sofar; }
+
+function pos_fs_f (onsuccess, nsh107) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh107;
+   if ((hascellvalue("fs") && hascellvalue("o"))) {
+      if (!(ds.member(cellvalues("fs"), 5))) {
+         if (ds.member(cellvalues("o"), 3)) {
+            var arh109 = enum_fs_type(x0);
+            for (var key in ds.data(arh109)) {
+               x0 = ds.element(ds.element(arh109, key), 0);
+               if (x0 === 4) {
+                  tmp = onsuccess(new expr(x0), new set("fs", "o"), sofar);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
+                  else sofar = ds.second(tmp);}}}
+         x0 = nsh107;}
+      if (!(ds.member(cellvalues("fs"), 4))) {
+         if (ds.member(cellvalues("o"), 3)) {
+            var arh110 = enum_fs_type(x0);
+            for (var key in ds.data(arh110)) {
+               x0 = ds.element(ds.element(arh110, key), 0);
+               if (x0 === 5) {
+                  tmp = onsuccess(new expr(x0), new set("fs", "o"), sofar);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
+                  else sofar = ds.second(tmp);}}}
+         x0 = nsh107;}}
+   if ((hascellvalue("c") && hascellvalue("o"))) {
+      if (!(ds.member(cellvalues("c"), 3))) {
+         if (ds.member(cellvalues("o"), 3)) {
+            var arh111 = enum_fs_type(x0);
+            for (var key in ds.data(arh111)) {
+               x0 = ds.element(ds.element(arh111, key), 0);
+               if (x0 === 4) {
+                  tmp = onsuccess(new expr(x0), new set("c", "o"), sofar);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
+                  else sofar = ds.second(tmp);}}}
+         x0 = nsh107;}}
+   return sofar; }
+
+function negx_o (x0) { return neg_o(function (newval, support, sofar) { 
+
+return new pair(true, newval); }, x0); }
+
+function negs_o (x0) { return neg_o(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+
+function negsuppx_o (x0) { return neg_o(function (newval, support, sofar) { 
+
+return new pair(true, new pair(newval, support)); }, x0); }
+
+function negsupps_o (x0) { return neg_o(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
+
+function neg_o (onsuccess, x0) { 
+   if (varp(x0)) {
+      if (!(neg_o_f === undefined)) return neg_o_f(onsuccess, x0);
+      else return undefined;}
+   else {
+      if (!(neg_o_b === undefined)) return neg_o_b(onsuccess, x0);
+      else return undefined;} }
+
+function neg_o_b (onsuccess, nsh111) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh111;
+   if ((hascellvalue("c") && hascellvalue("fs"))) {
+      if (x0 === 3) {
+         if (!(ds.member(cellvalues("fs"), 4))) {
+            if (!(ds.member(cellvalues("c"), 3))) {
+               tmp = onsuccess(new expr(x0), new set("c", "fs"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}
+         x0 = nsh111;}}
+   if (hascellvalue("fs")) {
+      if (x0 === 3) {
+         if (!(ds.member(cellvalues("fs"), 4))) {
+            if (!(ds.member(cellvalues("fs"), 5))) {
+               tmp = onsuccess(new expr(x0), new set("fs"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}
+         x0 = nsh111;}}
+   return sofar; }
+
+function neg_o_f (onsuccess, nsh112) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh112;
+   if ((hascellvalue("c") && hascellvalue("fs"))) {
+      if (!(ds.member(cellvalues("fs"), 4))) {
+         if (!(ds.member(cellvalues("c"), 3))) {
+            var arh113 = enum_boolean(x0);
+            for (var key in ds.data(arh113)) {
+               x0 = ds.element(ds.element(arh113, key), 0);
+               if (x0 === 3) {
+                  tmp = onsuccess(new expr(x0), new set("c", "fs"), sofar);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
+                  else sofar = ds.second(tmp);}}}
+         x0 = nsh112;}}
+   if (hascellvalue("fs")) {
+      if (!(ds.member(cellvalues("fs"), 4))) {
+         if (!(ds.member(cellvalues("fs"), 5))) {
+            var arh114 = enum_boolean(x0);
+            for (var key in ds.data(arh114)) {
+               x0 = ds.element(ds.element(arh114, key), 0);
+               if (x0 === 3) {
+                  tmp = onsuccess(new expr(x0), new set("fs"), sofar);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
+                  else sofar = ds.second(tmp);}}}
+         x0 = nsh112;}}
+   return sofar; }
+
+function posx_c (x0) { return pos_c(function (newval, support, sofar) { 
+
+return new pair(true, newval); }, x0); }
+
+function poss_c (x0) { return pos_c(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+
+function possuppx_c (x0) { return pos_c(function (newval, support, sofar) { 
+
+return new pair(true, new pair(newval, support)); }, x0); }
+
+function possupps_c (x0) { return pos_c(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
+
+function pos_c (onsuccess, x0) { 
+   if (varp(x0)) {
+      if (!(pos_c_f === undefined)) return pos_c_f(onsuccess, x0);
+      else return undefined;}
+   else {
+      if (!(pos_c_b === undefined)) return pos_c_b(onsuccess, x0);
+      else return undefined;} }
+
+function pos_c_b (onsuccess, nsh114) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh114;
+   if ((hascellvalue("fs") && hascellvalue("o"))) {
+      if (x0 === 3) {
+         if (!(ds.member(cellvalues("fs"), 4))) {
+            if (ds.member(cellvalues("o"), 3)) {
+               tmp = onsuccess(new expr(x0), new set("fs", "o"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}
+         x0 = nsh114;}}
+   if (hascellvalue("fs")) {
+      if (x0 === 3) {
+         if (ds.member(cellvalues("fs"), 5)) {
+            tmp = onsuccess(new expr(x0), new set("fs"), sofar);
+            if (ds.first(tmp) === true) return ds.second(tmp);
+            else sofar = ds.second(tmp);}
+         x0 = nsh114;}}
+   return sofar; }
+
+function pos_c_f (onsuccess, nsh115) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh115;
+   if ((hascellvalue("fs") && hascellvalue("o"))) {
+      if (!(ds.member(cellvalues("fs"), 4))) {
+         if (ds.member(cellvalues("o"), 3)) {
+            var arh116 = enum_boolean(x0);
+            for (var key in ds.data(arh116)) {
+               x0 = ds.element(ds.element(arh116, key), 0);
+               if (x0 === 3) {
+                  tmp = onsuccess(new expr(x0), new set("fs", "o"), sofar);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
+                  else sofar = ds.second(tmp);}}}
+         x0 = nsh115;}}
+   if (hascellvalue("fs")) {
+      if (ds.member(cellvalues("fs"), 5)) {
+         var arh117 = enum_boolean(x0);
+         for (var key in ds.data(arh117)) {
+            x0 = ds.element(ds.element(arh117, key), 0);
+            if (x0 === 3) {
+               tmp = onsuccess(new expr(x0), new set("fs"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}
+         x0 = nsh115;}}
+   return sofar; }
+
+</script>
+</head><body leftmargin='0' topmargin='0' marginwidth='0' marginheight='0' bgcolor='WHITE' onLoad='init()'>
+<div class="structure">
+<div class="whiteongray">
+	<div class="header">
+		<div class="title">Plato</div>
+	<div class="navigation">
+	
+		<span class="nav1"><a href="/plato/">Home</a></span>
+		<span class="nav"><a href="editwebsheet?">New Form</a></span>
+		<span class="nav"><a href="openwebsheet?">Open Form</a></span>		
+		<span class="nav"><a href="/docserver/infoserver/examples/researchmaster/pages/plato-gallery.html">Gallery</a></span>
+	</div>
+</div></div>
+<div class="autoform">
+<span id="status"></span><center>
+<form method="post" action="/plato/commitform?" onsubmit="return submitprep()">
+<table>
+<tr><td class="description"><span class="description">Evaluation</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><div id="ebox" class="databox" onMouseOver="selector_mouseover('e')" onMouseOut="selector_mouseout('e')" >
+<select name='e' onChange="selector_change('e')" onFocus="selector_focus('e')" multiple><option value='2'>false</option>
+<option value='3' selected='true'>true</option>
+</select></div></td></tr>
+<tr><td class="description"><span class="description">Machine</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><div id="mbox" class="databox" onMouseOver="selector_mouseover('m')" onMouseOut="selector_mouseout('m')" >
+<select name='m' onChange="selector_change('m')" onFocus="selector_focus('m')" multiple><option value='2'>false</option>
+<option value='3'>true</option>
+</select></div></td></tr>
+<tr><td class="description"><span class="description">Optimizer</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><div id="obox" class="databox" onMouseOver="selector_mouseover('o')" onMouseOut="selector_mouseout('o')" >
+<select name='o' onChange="selector_change('o')" onFocus="selector_focus('o')" multiple><option value='2'>false</option>
+<option value='3' selected='true'>true</option>
+</select></div></td></tr>
+<tr><td class="description"><span class="description">Optimization</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><div id="fsbox" class="databox" onMouseOver="selector_mouseover('fs')" onMouseOut="selector_mouseout('fs')" >
+<select name='fs' onChange="selector_change('fs')" onFocus="selector_focus('fs')" multiple><option value='4' selected='true'>Constant folding</option>
+<option value='5'>Short circuit</option>
+</select></div></td></tr>
+<tr><td class="description"><span class="description">Conditional</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><div id="cbox" class="databox" onMouseOver="selector_mouseover('c')" onMouseOut="selector_mouseout('c')" >
+<select name='c' onChange="selector_change('c')" onFocus="selector_focus('c')" multiple><option value='2'>false</option>
+<option value='3'>true</option>
+</select></div></td></tr>
+</table>
+<p><input type="submit" value="Submit"><input type="hidden" name="time" id="time"><input type="hidden" name="formname" id="formname" value="PLFEATURE2"></form></center></div>
+</div>
+</body>
+</html>

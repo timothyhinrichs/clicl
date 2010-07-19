@@ -1,0 +1,2350 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; person
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    (person.instance   aarmando)
+    (person.firstname  aarmando "A.")
+    (person.lastname   aarmando "Armando")
+
+    (person.instance   aaronstump)
+    (person.firstname  aaronstump "Aaron")
+    (person.lastname   aaronstump "Stump")
+
+    (person.instance   aartigupta)
+    (person.firstname  aartigupta "Aarti")
+    (person.lastname   aartigupta "Gupta")
+
+    (person.instance   aborning)
+    (person.firstname  aborning "A.")
+    (person.lastname   aborning "Borning")
+
+    (person.instance   adam.barth)
+    (person.firstname  adam.barth "Adam")
+    (person.lastname   adam.barth "Barth")
+
+    (person.instance   adam.j.lee)
+    (person.firstname  adam.j.lee "Adam")
+    (person.middlename adam.j.lee "J.")
+    (person.lastname   adam.j.lee "Lee")
+
+    (person.instance   adampease)
+    (person.firstname  adampease "Adam")
+    (person.lastname   adampease "Pease")
+
+    (person.instance   adnandarwiche)
+    (person.firstname  adnandarwiche "Adnan")
+    (person.lastname   adnandarwiche "Darwiche")
+
+    (person.instance   akhilsahai)
+    (person.firstname  akhilsahai "Akhil")
+    (person.lastname   akhilsahai "Sahai")
+
+    (person.instance   akihiroyamatomoto)
+    (person.firstname  akihiroyamatomoto "Akihiro")
+    (person.lastname   akihiroyamatomoto "Yamatomoto")
+
+    (person.instance   alanbundy)
+    (person.firstname  alanbundy "Alan")
+    (person.lastname   alanbundy "Bundy")
+
+    (person.instance   alanrobinson)
+    (person.firstname  alanrobinson "Alan")
+    (person.lastname   alanrobinson "Robinson")
+
+    (person.instance   alexanderfuchs)
+    (person.firstname  alexanderfuchs "Alexander")
+    (person.lastname   alexanderfuchs "Fuchs")
+
+    (person.instance   alexanderkogan)
+    (person.firstname  alexanderkogan "Alexander")
+    (person.lastname   alexanderkogan "Kogan")
+
+    (person.instance   alexandernareyek)
+    (person.firstname  alexandernareyek "Alexander")
+    (person.lastname   alexandernareyek "Nareyek")
+
+    (person.instance   alexandreriazanov)
+    (person.firstname  alexandreriazanov "Alexandre")
+    (person.lastname   alexandreriazanov "Riazanov")
+
+    (person.instance   alexborgida)
+    (person.firstname  alexborgida "Alex")
+    (person.lastname   alexborgida "Borgida")
+
+    (person.instance   allennewell)
+    (person.firstname  allennewell "Allen")
+    (person.lastname   allennewell "Newell")
+
+    (person.instance   allenvangelder)
+    (person.firstname  allenvangelder "Allen")
+    (person.middlename allenvangelder "van")
+    (person.lastname   allenvangelder "Gelder")
+
+    (person.instance   alonhalevy)
+    (person.firstname  alonhalevy "Alon")
+    (person.lastname   alonhalevy "Halevy")
+
+    (person.instance   alonlevy)
+    (person.firstname  alonlevy "Alon")
+    (person.lastname   alonlevy "Levy")
+
+    (person.instance   alvarodelval)
+    (person.firstname  alvarodelval "Alvaro")
+    (person.lastname   alvarodelval "del Val")
+
+    (person.instance   andre.valente)
+    (person.firstname  andre.valente "Andre")
+    (person.lastname   andre.valente "Valente")
+
+    (person.instance   andre.zuquete)
+    (person.firstname  andre.zuquete "Andre")
+    (person.lastname   andre.zuquete "Zuquete")
+
+    (person.instance   andrea.colgrove)
+    (person.firstname  andrea.colgrove "Andrea")
+    (person.lastname   andrea.colgrove "Colgrove")
+
+    (person.instance   andreaschaerf)
+    (person.firstname  andreaschaerf "Andrea")
+    (person.lastname   andreaschaerf "Schaerf")
+
+    (person.instance   andreivoronkov)
+    (person.firstname  andreivoronkov "Andrei")
+    (person.lastname   andreivoronkov "Voronkov")
+
+    (person.instance   andrew.birrell)
+    (person.firstname  andrew.birrell "Andrew")
+    (person.lastname   andrew.birrell "Birrell")
+
+    (person.instance   andrew.d.gordon)
+    (person.firstname  andrew.d.gordon "Andrew")
+    (person.middlename andrew.d.gordon "D.")
+    (person.lastname   andrew.d.gordon "Gordon")
+
+    (person.instance   andrewrhaas)
+    (person.firstname  andrewrhaas "Andrew")
+    (person.middlename andrewrhaas "R.")
+    (person.lastname   andrewrhaas "Haas")
+
+    (person.instance   anne.anderson)
+    (person.firstname  anne.anderson "Anne")
+    (person.lastname   anne.anderson "Anderson")
+
+    (person.instance   anneliret)
+    (person.firstname  anneliret "Anne")
+    (person.lastname   anneliret "Liret")
+
+    (person.instance   anthony.hunter)
+    (person.firstname  anthony.hunter "Anthony")
+    (person.lastname   anthony.hunter "Hunter")
+
+    (person.instance   antonella.poggi)
+    (person.firstname  antonella.poggi "Antonella")
+    (person.lastname   antonella.poggi "Poggi")
+
+    (person.instance   anupam.datta)
+    (person.firstname  anupam.datta "Anupam")
+    (person.lastname   anupam.datta "Datta")
+
+    (person.instance   apu.kapadia)
+    (person.firstname  apu.kapadia "Apu")
+    (person.lastname   apu.kapadia "Kapadia")
+
+    (person.instance   arcotrajasekar)
+    (person.firstname  arcotrajasekar "Arcot")
+    (person.lastname   arcotrajasekar "Rajasekar")
+
+    (person.instance   arminbiere)
+    (person.firstname  arminbiere "Armin")
+    (person.lastname   arminbiere "Biere")
+
+    (person.instance   arthurstutt)
+    (person.firstname  arthurstutt "Arthur")
+    (person.lastname   arthurstutt "Stutt")
+
+    (person.instance   atate)
+    (person.firstname  atate "A.")
+    (person.lastname   atate "Tate")
+
+    (person.instance   atul.prakash)
+    (person.firstname  atul.prakash "Atul")
+    (person.lastname   atul.prakash "Prakash")
+
+    (person.instance   avik.chaudhuri)
+    (person.firstname  avik.chaudhuri "Avik")
+    (person.lastname   avik.chaudhuri "Chaudhuri")
+
+    (person.instance   barbara.catania)
+    (person.firstname  barbara.catania "Barbara")
+    (person.lastname   barbara.catania "Catania")
+
+    (person.instance   bartselman)
+    (person.firstname  bartselman "Bart")
+    (person.lastname   bartselman "Selman")
+
+    (person.instance   belaidbenhamou)
+    (person.firstname  belaidbenhamou "Belaid")
+    (person.lastname   belaidbenhamou "Benhamou")
+
+    (person.instance   benediktlinse)
+    (person.firstname  benediktlinse "Benedikt")
+    (person.lastname   benediktlinse "Linse")
+
+    (person.instance   benjamingrosof)
+    (person.firstname  benjamingrosof "Benjamin")
+    (person.lastname   benjamingrosof "Grosof")
+
+    (person.instance   berndloechner)
+    (person.firstname  berndloechner "Bernd")
+    (person.lastname   berndloechner "Loechner")
+
+    (person.instance   bernhardgramlich)
+    (person.firstname  bernhardgramlich "Bernhard")
+    (person.lastname   bernhardgramlich "Gramlich")
+
+    (person.instance   bertramfronhofer)
+    (person.firstname  bertramfronhofer "Bertram")
+    (person.lastname   bertramfronhofer "Fronhofer")
+
+    (person.instance   birgit.pfitzmann)
+    (person.firstname  birgit.pfitzmann "Birgit")
+    (person.lastname   birgit.pfitzmann "Pfitzmann")
+
+    (person.instance   bnfreeman-benson)
+    (person.firstname  bnfreeman-benson "B.N.")
+    (person.lastname   bnfreeman-benson "Freeman-Benson")
+
+    (person.instance   bo.lang)
+    (person.firstname  bo.lang "Bo")
+    (person.lastname   bo.lang "Lang")
+
+    (person.instance   boon.thau.loo)
+    (person.firstname  boon.thau.loo "Boon")
+    (person.middlename boon.thau.loo "Thau")
+    (person.lastname   boon.thau.loo "Loo")
+
+    (person.instance   borismotik)
+    (person.firstname  borismotik "Boris")
+    (person.lastname   borismotik "Motik")
+
+    (person.instance   brian.campbell)
+    (person.firstname  brian.campbell "Brian")
+    (person.lastname   brian.campbell "Campbell")
+
+    (person.instance   brianfalkenhainer)
+    (person.firstname  brianfalkenhainer "Brian")
+    (person.lastname   brianfalkenhainer "Falkenhainer")
+
+    (person.instance   brianpeterson)
+    (person.firstname  brianpeterson "Brian")
+    (person.lastname   brianpeterson "Peterson")
+
+    (person.instance   brigettebartschsporl)
+    (person.firstname  brigettebartschsporl "Brigitte")
+    (person.lastname   brigettebartschsporl "Bartsch-Sporl")
+
+    (person.instance   brucemckenzie)
+    (person.firstname  brucemckenzie "Bruce")
+    (person.lastname   brucemckenzie "McKenzie")
+
+    (person.instance   butler.lampson)
+    (person.firstname  butler.lampson "Butler")
+    (person.lastname   butler.lampson "Lampson")
+
+    (person.instance   c.r.ramakrishnan)
+    (person.firstname  c.r.ramakrishnan "C.")
+    (person.middlename c.r.ramakrishnan "R.")
+    (person.lastname   c.r.ramakrishnan "Ramakrishnan")
+
+    (person.instance   calvin.powers)
+    (person.firstname  calvin.powers "Calvin")
+    (person.lastname   calvin.powers "Powers")
+
+    (person.instance   carl.a.gunter)
+    (person.firstname  carl.a.gunter "Carl")
+    (person.middlename carl.a.gunter "A.")
+    (person.lastname   carl.a.gunter "Gunter")
+
+    (person.instance   carl.kesselman)
+    (person.firstname  carl.kesselman "Carl")
+    (person.lastname   carl.kesselman "Kesselman")
+
+    (person.instance   carlos.ribeiro)
+    (person.firstname  carlos.ribeiro "Carlos")
+    (person.lastname   carlos.ribeiro "Ribeiro")
+
+    (person.instance   carolyntalcott)
+    (person.firstname  carolyntalcott "Carolyn")
+    (person.lastname   carolyntalcott "Talcott")
+
+    (person.instance   catalin.l.dumitrescu)
+    (person.firstname  catalin.l.dumitrescu "Catalin")
+    (person.middlename catalin.l.dumitrescu "L.")
+    (person.lastname   catalin.l.dumitrescu "Dumitrescu")
+
+    (person.instance   cbsuttner)
+    (person.firstname  cbsuttner "C.B.")
+    (person.lastname   cbsuttner "Suttner")
+
+    (person.instance   cedric.fournet)
+    (person.firstname  cedric.fournet "Cedric")
+    (person.middlename cedric.fournet "Y.")
+    (person.lastname   cedric.fournet "Fournet")
+
+    (person.instance   cesaretinelli)
+    (person.firstname  cesaretinelli "Cesare")
+    (person.lastname   cesaretinelli "Tinelli")
+
+    (person.instance   cgreen)
+    (person.firstname  cgreen "C.")
+    (person.lastname   cgreen "Green")
+
+    (person.instance   charles.zhang)
+    (person.firstname  charles.zhang "Charles")
+    (person.middlename charles.zhang "C.")
+    (person.lastname   charles.zhang "Zhang")
+
+    (person.instance   charleselkan)
+    (person.firstname  charleselkan "Charles")
+    (person.lastname   charleselkan "Elkan")
+
+    (person.instance   charlesjpetrie)
+    (person.firstname  charlesjpetrie "Charles")
+    (person.middlename charlesjpetrie "J.")
+    (person.lastname   charlesjpetrie "Petrie")
+
+    (person.instance   chin-liangchang)
+    (person.firstname  chin-liangchang "Chin-Liang")
+    (person.lastname   chin-liangchang "Chang")
+
+    (person.instance   chittabaral)
+    (person.firstname  chittabaral "Chitta")
+    (person.lastname   chittabaral "Baral")
+
+    (person.instance   christiandarken)
+    (person.firstname  christiandarken "Christian")
+    (person.lastname   christiandarken "Darken")
+
+    (person.instance   christiansuttner)
+    (person.firstname  christiansuttner "Christian")
+    (person.lastname   christiansuttner "Suttner")
+
+    (person.instance   christianthiffault)
+    (person.firstname  christianthiffault "Christian")
+    (person.lastname   christianthiffault "Thiffault")
+
+    (person.instance   christophe.lecoutre)
+    (person.firstname  christophe.lecoutre "Christophe")
+    (person.lastname   christophe.lecoutre "Lecoutre")
+
+    (person.instance   claire.saurel)
+    (person.firstname  claire.saurel "Claire")
+    (person.lastname   claire.saurel "Saurel")
+
+    (person.instance   clarkbarrett)
+    (person.firstname  clarkbarrett "Clark")
+    (person.lastname   clarkbarrett "Barrett")
+
+    (person.instance   claudekirchner)
+    (person.firstname  claudekirchner "Claude")
+    (person.lastname   claudekirchner "Kirchner")
+
+    (person.instance   clemensley)
+    (person.firstname  clemensley "Clemens")
+    (person.lastname   clemensley "Ley")
+
+    (person.instance   clementyu)
+    (person.firstname  clementyu "Clement")
+    (person.lastname   clementyu "Yu")
+
+    (person.instance   conormadigan)
+    (person.firstname  conormadigan "Conor")
+    (person.lastname   conormadigan "Madigan")
+
+    (person.instance   cpapadimitriou)
+    (person.firstname  cpapadimitriou "C.")
+    (person.lastname   cpapadimitriou "Papadimitriou")
+
+    (person.instance   craigdamon)
+    (person.firstname  craigdamon "Craig")
+    (person.lastname   craigdamon "Damon")
+
+    (person.instance   d.richard.kuhn)
+    (person.firstname  d.richard.kuhn "D")
+    (person.middlename d.richard.kuhn "Richard")
+    (person.lastname   d.richard.kuhn "Kuhn")
+
+    (person.instance   dadewaal)
+    (person.firstname  dadewaal "D.")
+    (person.middlename dadewaal "A.")
+    (person.lastname   dadewaal "de Waal")
+
+    (person.instance   daishikato)
+    (person.firstname  daishikato "Daishi")
+    (person.lastname   daishikato "Kato")
+
+    (person.instance   dan.s.wallach)
+    (person.firstname  dan.s.wallach "Dan")
+    (person.middlename dan.s.wallach "S")
+    (person.lastname   dan.s.wallach "Wallach")
+
+    (person.instance   danieljackson)
+    (person.firstname  danieljackson "Daniel")
+    (person.lastname   danieljackson "Jackson")
+
+    (person.instance   danieltroy)
+    (person.firstname  danieltroy "Daniel")
+    (person.lastname   danieltroy "Troy")
+
+    (person.instance   danroth)
+    (person.firstname  danroth "Dan")
+    (person.lastname   danroth "Roth")
+
+    (person.instance   davebarker-plummer)
+    (person.firstname  davebarker-plummer "Dave")
+    (person.lastname   davebarker-plummer "Barker-Plummer")
+
+    (person.instance   david.basin)
+    (person.firstname  david.basin "David")
+    (person.lastname   david.basin "Basin")
+
+    (person.instance   david.chadwick)
+    (person.firstname  david.chadwick "David")
+    (person.lastname   david.chadwick "Chadwick")
+
+    (person.instance   david.f.ferrailo)
+    (person.firstname  david.f.ferrailo "David")
+    (person.middlename david.f.ferrailo "F")
+    (person.lastname   david.f.ferrailo "Ferrailo")
+
+    (person.instance   david.ferraiolo)
+    (person.firstname  david.ferraiolo "David")
+    (person.lastname   david.ferraiolo "Ferraiolo")
+
+    (person.instance   davidcohen)
+    (person.firstname  davidcohen "David")
+    (person.lastname   davidcohen "Cohen")
+
+    (person.instance   davidcyrluk)
+    (person.firstname  davidcyrluk "David")
+    (person.lastname   davidcyrluk "Cyrluk")
+
+    (person.instance   daviddill)
+    (person.firstname  daviddill "David")
+    (person.lastname   daviddill "Dill")
+
+    (person.instance   davidetherington)
+    (person.firstname  davidetherington "David")
+    (person.lastname   davidetherington "Etherington")
+
+    (person.instance   davidhdwarren)
+    (person.firstname  davidhdwarren "David")
+    (person.middlename davidhdwarren "H. D.")
+    (person.lastname   davidhdwarren "Warren")
+
+    (person.instance   davidplaisted)
+    (person.firstname  davidplaisted "David")
+    (person.lastname   davidplaisted "Plaisted")
+
+    (person.instance   davidsandford)
+    (person.firstname  davidsandford "David")
+    (person.lastname   davidsandford "Sandford")
+
+    (person.instance   davidswarren)
+    (person.firstname  davidswarren "David")
+    (person.middlename davidswarren "S.")
+    (person.lastname   davidswarren "Warren")
+
+    (person.instance   dbahler)
+    (person.firstname  dbahler "D.")
+    (person.lastname   dbahler "Bahler")
+
+    (person.instance   dblenat)
+    (person.firstname  dblenat "Doug")
+    (person.middlename dblenat "B.")
+    (person.lastname   dblenat "Lenat")
+
+    (person.instance   deepak.garg)
+    (person.firstname  deepak.garg "Deepak")
+    (person.lastname   deepak.garg "Garg")
+
+    (person.instance   deepakramachandran)
+    (person.firstname  deepakramachandran "Deepak")
+    (person.lastname   deepakramachandran "Ramachandran")
+
+    (person.instance   dennis.fettterly)
+    (person.firstname  dennis.fettterly "Dennis")
+    (person.lastname   dennis.fettterly "Fetterly")
+
+    (person.instance   dennyvrandecic)
+    (person.firstname  dennyvrandecic "Denny")
+    (person.lastname   dennyvrandecic "Vrandecic")
+
+    (person.instance   derekoppen)
+    (person.firstname  derekoppen "Derek")
+    (person.lastname   derekoppen "Oppen")
+
+    (person.instance   diego.calvanese)
+    (person.firstname  diego.calvanese "Diego")
+    (person.lastname   diego.calvanese "Calvanese")
+
+    (person.instance   dkavvadias)
+    (person.firstname  dkavvadias "D.")
+    (person.lastname   dkavvadias "Kavvadias")
+
+    (person.instance   dmcdonald)
+    (person.firstname  dmcdonald "D.")
+    (person.lastname   dmcdonald "McDonald")
+
+    (person.instance   domenico.lembo)
+    (person.firstname  domenico.lembo "Domenico")
+    (person.lastname   domenico.lembo "Lembo")
+
+    (person.instance   donaldloveland)
+    (person.firstname  donaldloveland "Donald")
+    (person.middlename donaldloveland "W.")
+    (person.lastname   donaldloveland "Loveland")
+
+    (person.instance   dongeddis)
+    (person.firstname  dongeddis "Don")
+    (person.lastname   dongeddis "Geddis")
+
+    (person.instance   doronpeled)
+    (person.firstname  doronpeled "Doron")
+    (person.lastname   doronpeled "Peled")
+
+    (person.instance   dpastre)
+    (person.firstname  dpastre "D.")
+    (person.lastname   dpastre "Pastre")
+
+    (person.instance   dsabin)
+    (person.firstname  dsabin "D.")
+    (person.lastname   dsabin "Sabin")
+
+    (person.instance   duminda.wijesekera)
+    (person.firstname  duminda.wijesekera "Duminda")
+    (person.lastname   duminda.wijesekera "Wijesekera")
+
+    (person.instance   dvermeir)
+    (person.firstname  dvermeir "D.")
+    (person.lastname   dvermeir "Vermeir")
+
+    (person.instance   ealbert)
+    (person.firstname  ealbert "E.")
+    (person.lastname   ealbert "Albert")
+
+    (person.instance   earldsacerdoti)
+    (person.firstname  earldsacerdoti "Earl")
+    (person.middlename earldsacerdoti "D.")
+    (person.lastname   earldsacerdoti "Sacerdoti")
+
+    (person.instance   edmundmclarkejr)
+    (person.firstname  edmundmclarkejr "Edmund")
+    (person.middlename edmundmclarkejr "M.Clarke")
+    (person.lastname   edmundmclarkejr "Jr.")
+
+    (person.instance   edward.a.feigenbaum)
+    (person.firstname  edward.a.feigenbaum "Edward")
+    (person.middlename edward.a.feigenbaum "A.")
+    (person.lastname   edward.a.feigenbaum "Feigenbaum")
+
+    (person.instance   edward.w.felton)
+    (person.firstname  edward.w.felton "Edward")
+    (person.middlename edward.w.felton "W")
+    (person.lastname   edward.w.felton "Felton")
+
+    (person.instance   edwardtsang)
+    (person.firstname  edwardtsang "Edward")
+    (person.lastname   edwardtsang "Tsang")
+
+    (person.instance   efreuder)
+    (person.firstname  efreuder "E.")
+    (person.lastname   efreuder "Freuder")
+
+    (person.instance   egiunchiglia)
+    (person.firstname  egiunchiglia "E.")
+    (person.lastname   egiunchiglia "Giunchiglia")
+
+    (person.instance   egonborger)
+    (person.firstname  egonborger "Egon")
+    (person.lastname   egonborger "Borger")
+
+    (person.instance   elena.ferrari)
+    (person.firstname  elena.ferrari "Elena")
+    (person.lastname   elena.ferrari "Ferrari")
+
+    (person.instance   elenabaralis)
+    (person.firstname  elenabaralis "Elena")
+    (person.lastname   elenabaralis "Baralis")
+
+    (person.instance   elisa.bertino)
+    (person.firstname  elisa.bertino "Elisa")
+    (person.lastname   elisa.bertino "Bertino")
+
+    (person.instance   eminatorlak)
+    (person.firstname  eminatorlak "Emina")
+    (person.lastname   eminatorlak "Torlak")
+
+    (person.instance   enrico.pontelli)
+    (person.firstname  enrico.pontelli "Enrico")
+    (person.lastname   enrico.pontelli "Pontelli")
+
+    (person.instance   enricofranconi)
+    (person.firstname  enricofranconi "Enrico")
+    (person.lastname   enricofranconi "Franconi")
+
+    (person.instance   enricogiunchiglia)
+    (person.firstname  enricogiunchiglia "Enrico")
+    (person.lastname   enricogiunchiglia "Giunchiglia")
+
+    (person.instance   enricomotta)
+    (person.firstname  enricomotta "Enrico")
+    (person.lastname   enricomotta "Motta")
+
+    (person.instance   erichgradel)
+    (person.firstname  erichgradel "Erich")
+    (person.lastname   erichgradel "Gradel")
+
+    (person.instance   erikrosenthal)
+    (person.firstname  erikrosenthal "Erik")
+    (person.lastname   erikrosenthal "Rosenthal")
+
+    (person.instance   erkantin)
+    (person.firstname  erkantin "Erkan")
+    (person.lastname   erkantin "Tin")
+
+    (person.instance   ernestdavis)
+    (person.firstname  ernestdavis "Ernest")
+    (person.lastname   ernestdavis "Davis")
+
+    (person.instance   ernestteniente)
+    (person.firstname  ernestteniente "Ernest")
+    (person.lastname   ernestteniente "Teniente")
+
+    (person.instance   ernstruediger.olderog)
+    (person.firstname  ernstruediger.olderog "Ernst-Ruediger")
+    (person.lastname   ernstruediger.olderog "Olderog")
+
+    (person.instance   eugenefreuder)
+    (person.firstname  eugenefreuder "Eugene")
+    (person.lastname   eugenefreuder "Freuder")
+
+    (person.instance   evgenydantsin)
+    (person.firstname  evgenydantsin "Evgeny")
+    (person.lastname   evgenydantsin "Dantsin")
+
+    (person.instance   eyalamir)
+    (person.firstname  eyalamir "Eyal")
+    (person.lastname   eyalamir "Amir")
+
+    (person.instance   fahiembacchus)
+    (person.firstname  fahiembacchus "Fahiem")
+    (person.lastname   fahiembacchus "Bacchus")
+
+    (person.instance   fangwei)
+    (person.firstname  fangwei "Fang")
+    (person.lastname   fangwei "Wei")
+
+    (person.instance   fangzhenlin)
+    (person.firstname  fangzhenlin "Fangzhen")
+    (person.lastname   fangzhenlin "Lin")
+
+    (person.instance   faustogiunchiglia)
+    (person.firstname  faustogiunchiglia "Fausto")
+    (person.lastname   faustogiunchiglia "Giunchiglia")
+
+    (person.instance   fbueno)
+    (person.firstname  fbueno "F.")
+    (person.lastname   fbueno "Bueno")
+
+    (person.instance   fiorapirri)
+    (person.firstname  fiorapirri "Fiora")
+    (person.lastname   fiorapirri "Pirri")
+
+    (person.instance   francesco.buccafurri)
+    (person.firstname  francesco.buccafurri "Francesco")
+    (person.lastname   francesco.buccafurri "Buccafurri")
+
+    (person.instance   francescodonini)
+    (person.firstname  francescodonini "Francesco")
+    (person.lastname   francescodonini "Donini")
+
+    (person.instance   francescomdonini)
+    (person.firstname  francescomdonini "Francesco")
+    (person.middlename francescomdonini "M.")
+    (person.lastname   francescomdonini "Donini")
+
+    (person.instance   francoisbry)
+    (person.firstname  francoisbry "Francois")
+    (person.lastname   francoisbry "Bry")
+
+    (person.instance   francoislaburthe)
+    (person.firstname  francoislaburthe "Francois")
+    (person.lastname   francoislaburthe "Laburthe")
+
+    (person.instance   francoispachet)
+    (person.firstname  francoispachet "Francois")
+    (person.lastname   francoispachet "Pachet")
+
+    (person.instance   frank.pfenning)
+    (person.firstname  frank.pfenning "Frank")
+    (person.lastname   frank.pfenning "Pfenning")
+
+    (person.instance   frank.siebenlist)
+    (person.firstname  frank.siebenlist "Frank")
+    (person.lastname   frank.siebenlist "Siebenlist")
+
+    (person.instance   frankwolter)
+    (person.firstname  frankwolter "Frank")
+    (person.lastname   frankwolter "Wolter")
+
+    (person.instance   frederic.cuppens)
+    (person.firstname  frederic.cuppens "Frederic")
+    (person.lastname   frederic.cuppens "Cuppens")
+
+    (person.instance   friederstolzenburg)
+    (person.firstname  friederstolzenburg "Frieder")
+    (person.lastname   friederstolzenburg "Stolzenburg")
+
+    (person.instance   g.priest)
+    (person.firstname  g.priest "G.")
+    (person.lastname   g.priest "Priest")
+
+    (person.instance   gdegiacomo)
+    (person.firstname  gdegiacomo "G.")
+    (person.lastname   gdegiacomo "De Giacomo")
+
+    (person.instance   geetanjali.sampemane)
+    (person.firstname  geetanjali.sampemane "Geetanjali")
+    (person.lastname   geetanjali.sampemane "Sampemane")
+
+    (person.instance   geoffsutcliffe)
+    (person.firstname  geoffsutcliffe "Geoff")
+    (person.lastname   geoffsutcliffe "Sutcliffe")
+
+    (person.instance   george.loizou)
+    (person.firstname  george.loizou "George")
+    (person.lastname   george.loizou "Loizou")
+
+    (person.instance   georggottlob)
+    (person.firstname  georggottlob "Georg")
+    (person.lastname   georggottlob "Gottlob")
+
+    (person.instance   geraldjsussman)
+    (person.firstname  geraldjsussman "Gerald")
+    (person.middlename geraldjsussman "J.")
+    (person.lastname   geraldjsussman "Sussman")
+
+    (person.instance   gerard.j.holzmann)
+    (person.firstname  gerard.j.holzmann "Gerard")
+    (person.middlename gerard.j.holzmann "J.")
+    (person.lastname   gerard.j.holzmann "Holzmann")
+
+    (person.instance   gerardallwein)
+    (person.firstname  gerardallwein "Gerard")
+    (person.lastname   gerardallwein "Allwein")
+
+    (person.instance   gergely.lukacsy)
+    (person.firstname  gergely.lukacsy "Gergely")
+    (person.lastname   gergely.lukacsy "Lukacsy")
+
+    (person.instance   gertsmolka)
+    (person.firstname  gertsmolka "Gert")
+    (person.lastname   gertsmolka "Smolka")
+
+    (person.instance   gillesaudemard)
+    (person.firstname  gillesaudemard "Gilles")
+    (person.lastname   gillesaudemard "Audemard")
+
+    (person.instance   glenn.wasson)
+    (person.firstname  glenn.wasson "Glenn")
+    (person.lastname   glenn.wasson "Wasson")
+
+    (person.instance   glogemann)
+    (person.firstname  glogemann "G.")
+    (person.lastname   glogemann "Logemann")
+
+    (person.instance   gopal.gupta)
+    (person.firstname  gopal.gupta "Gopal")
+    (person.lastname   gopal.gupta "Gupta")
+
+    (person.instance   gpuebla)
+    (person.firstname  gpuebla "G.")
+    (person.lastname   gpuebla "Puebla")
+
+    (person.instance   greg.oshea)
+    (person.firstname  greg.oshea "Greg")
+    (person.lastname   greg.oshea "Oshea")
+
+    (person.instance   gregnelson)
+    (person.firstname  gregnelson "Greg")
+    (person.lastname   gregnelson "Nelson")
+
+    (person.instance   gunter.karjoth)
+    (person.firstname  gunter.karjoth "Gunter")
+    (person.lastname   gunter.karjoth "Karjoth")
+
+    (person.instance   gurayalsac)
+    (person.firstname  gurayalsac "Guray")
+    (person.lastname   gurayalsac "Alsac")
+
+    (person.instance   hal.lockhart)
+    (person.firstname  hal.lockhart "Hal")
+    (person.lastname   hal.lockhart "Lockhart")
+
+    (person.instance   hans-jurgenburckert)
+    (person.firstname  hans-jurgenburckert "Hans-Jurgen")
+    (person.lastname   hans-jurgenburckert "Burckert")
+
+    (person.instance   hansbjornsson)
+    (person.firstname  hansbjornsson "Hans")
+    (person.lastname   hansbjornsson "Bjornsson")
+
+    (person.instance   hansdieterburkhard)
+    (person.firstname  hansdieterburkhard "Hans-Dieter")
+    (person.lastname   hansdieterburkhard "Burkhard")
+
+    (person.instance   hansnivelle)
+    (person.firstname  hansnivelle "Hans")
+    (person.lastname   hansnivelle "Nivelle")
+
+    (person.instance   hanstompits)
+    (person.firstname  hanstompits "Hans")
+    (person.lastname   hanstompits "Tompits")
+
+    (person.instance   hantaozhang)
+    (person.firstname  hantaozhang "Hantao")
+    (person.lastname   hantaozhang "Zhang")
+
+    (person.instance   hao.chen)
+    (person.firstname  hao.chen "Hao")
+    (person.lastname   hao.chen "Chen")
+
+    (person.instance   haraldganzinger)
+    (person.firstname  haraldganzinger "Harald")
+    (person.lastname   haraldganzinger "Ganzinger")
+
+    (person.instance   haraldrueb)
+    (person.firstname  haraldrueb "Harald")
+    (person.lastname   haraldrueb "Rueb")
+
+    (person.instance   hasimon)
+    (person.firstname  hasimon "H.")
+    (person.middlename hasimon "A.")
+    (person.lastname   hasimon "Simon")
+
+    (person.instance   hassanait-kaci)
+    (person.firstname  hassanait-kaci "Hassan")
+    (person.lastname   hassanait-kaci "Ait-Kaci")
+
+    (person.instance   hectorjlevesque)
+    (person.firstname  hectorjlevesque "Hector")
+    (person.middlename hectorjlevesque "J.")
+    (person.lastname   hectorjlevesque "Levesque")
+
+    (person.instance   heikkimannila)
+    (person.firstname  heikkimannila "Heikki")
+    (person.lastname   heikkimannila "Mannila")
+
+    (person.instance   heinz-dieterebbinghaus)
+    (person.firstname  heinz-dieterebbinghaus "Heinz-Dieter")
+    (person.lastname   heinz-dieterebbinghaus "Ebbinghaus")
+
+    (person.instance   helen.nissenbaum)
+    (person.firstname  helen.nissenbaum "Helen")
+    (person.lastname   helen.nissenbaum "Nissenbaum")
+
+    (person.instance   henrykautz)
+    (person.firstname  henrykautz "Henry")
+    (person.lastname   henrykautz "Kautz")
+
+    (person.instance   herbertenderton)
+    (person.firstname  herbertenderton "Herbert")
+    (person.lastname   herbertenderton "Enderton")
+
+    (person.instance   heribertschutz)
+    (person.firstname  heribertschutz "Heribert")
+    (person.lastname   heribertschutz "Schutz")
+
+    (person.instance   hgelernter)
+    (person.firstname  hgelernter "H.")
+    (person.lastname   hgelernter "Gelernter")
+
+    (person.instance   hidehitogomi)
+    (person.firstname  hidehitogomi "Hidehito")
+    (person.lastname   hidehitogomi "Gomi")
+
+    (person.instance   hputnam)
+    (person.firstname  hputnam "H.")
+    (person.lastname   hputnam "Putnam")
+
+    (person.instance   hubertcomon)
+    (person.firstname  hubertcomon "Hubert")
+    (person.lastname   hubertcomon "Comon")
+
+    (person.instance   hubiechen)
+    (person.firstname  hubiechen "Hubie")
+    (person.lastname   hubiechen "Chen")
+
+    (person.instance   hugh.harney)
+    (person.firstname  hugh.harney "Hugh")
+    (person.lastname   hugh.harney "Harney")
+
+    (person.instance   hzhang)
+    (person.firstname  hzhang "H.")
+    (person.lastname   hzhang "Zhang")
+
+    (person.instance   ian.foster)
+    (person.firstname  ian.foster "Ian")
+    (person.lastname   ian.foster "Foster")
+
+    (person.instance   ianhorrocks)
+    (person.firstname  ianhorrocks "Ian")
+    (person.lastname   ianhorrocks "Horrocks")
+
+    (person.instance   ianniles)
+    (person.firstname  ianniles "Ian")
+    (person.lastname   ianniles "Niles")
+
+    (person.instance   ianunderwood)
+    (person.firstname  ianunderwood "Ian")
+    (person.lastname   ianunderwood "Underwood")
+
+    (person.instance   igorgammer)
+    (person.firstname  igorgammer "Igor")
+    (person.lastname   igorgammer "Gammer")
+
+    (person.instance   ilkka.niemela)
+    (person.firstname  ilkka.niemela "Ilkka")
+    (person.lastname   ilkka.niemela "Niemela")
+
+    (person.instance   insup.lee)
+    (person.firstname  insup.lee "Insup")
+    (person.lastname   insup.lee "Lee")
+
+    (person.instance   ioan.raicu)
+    (person.firstname  ioan.raicu "Ioan")
+    (person.lastname   ioan.raicu "Raicu")
+
+    (person.instance   j.y.hsu)
+    (person.firstname  j.y.hsu "J.")
+    (person.middlename j.y.hsu "Y.")
+    (person.lastname   j.y.hsu "Hsu")
+
+    (person.instance   jack.lacy)
+    (person.firstname  jack.lacy "Jack")
+    (person.lastname   jack.lacy "Lacy")
+
+    (person.instance   jackminker)
+    (person.firstname  jackminker "Jack")
+    (person.lastname   jackminker "Minker")
+
+    (person.instance   jallen)
+    (person.firstname  jallen "J.")
+    (person.lastname   jallen "Allen")
+
+    (person.instance   james.j.lu)
+    (person.firstname  james.j.lu "James")
+    (person.middlename james.j.lu "J.")
+    (person.lastname   james.j.lu "Lu")
+
+    (person.instance   jamesbmorris)
+    (person.firstname  jamesbmorris "James")
+    (person.middlename jamesbmorris "B.")
+    (person.lastname   jamesbmorris "Morris")
+
+    (person.instance   jamesborrett)
+    (person.firstname  jamesborrett "James")
+    (person.lastname   jamesborrett "Borrett")
+
+    (person.instance   jamesmasters)
+    (person.firstname  jamesmasters "James")
+    (person.lastname   jamesmasters "Masters")
+
+    (person.instance   janchomicki)
+    (person.firstname  janchomicki "Jan")
+    (person.lastname   janchomicki "Chomicki")
+
+    (person.instance   janet.a.cugini)
+    (person.firstname  janet.a.cugini "Janet")
+    (person.middlename janet.a.cugini "A")
+    (person.lastname   janet.a.cugini "Cugini")
+
+    (person.instance   jarek.gawor)
+    (person.firstname  jarek.gawor "Jarek")
+    (person.lastname   jarek.gawor "Gawor")
+
+    (person.instance   jarobinson)
+    (person.firstname  jarobinson "J.")
+    (person.middlename jarobinson "A.")
+    (person.lastname   jarobinson "Robinson")
+
+    (person.instance   jason.crampton)
+    (person.firstname  jason.crampton "Jason")
+    (person.lastname   jason.crampton "Crampton")
+
+    (person.instance   javierpinto)
+    (person.firstname  javierpinto "Javier")
+    (person.lastname   javierpinto "Pinto")
+
+    (person.instance   jbowen)
+    (person.firstname  jbowen "J.")
+    (person.lastname   jbowen "Bowen")
+
+    (person.instance   jean-pierrejouannaud)
+    (person.firstname  jean-pierrejouannaud "Jean-pierre")
+    (person.lastname   jean-pierrejouannaud "Jouannaud")
+
+    (person.instance   jeffreyullman)
+    (person.firstname  jeffreyullman "Jeffrey")
+    (person.lastname   jeffreyullman "Ullman")
+
+    (person.instance   jerome.carrere)
+    (person.firstname  jerome.carrere "Jerome")
+    (person.lastname   jerome.carrere "Carrere")
+
+    (person.instance   jgallagher)
+    (person.firstname  jgallagher "J.")
+    (person.lastname   jgallagher "Gallagher")
+
+    (person.instance   jhendler)
+    (person.firstname  jhendler "J.")
+    (person.lastname   jhendler "Hendler")
+
+    (person.instance   jhopcroft)
+    (person.firstname  jhopcroft "J.")
+    (person.lastname   jhopcroft "Hopcroft")
+
+    (person.instance   jiameng)
+    (person.firstname  jiameng "Jia")
+    (person.lastname   jiameng "Meng")
+
+    (person.instance   jimchristian)
+    (person.firstname  jimchristian "Jim")
+    (person.lastname   jimchristian "Christian")
+
+    (person.instance   jjaffar)
+    (person.firstname  jjaffar "J.")
+    (person.lastname   jjaffar "Jaffar")
+
+    (person.instance   jjalferes)
+    (person.firstname  jjalferes "J.J.")
+    (person.lastname   jjalferes "Alferes")
+
+    (person.instance   jllassez)
+    (person.firstname  jllassez "J.L.")
+    (person.lastname   jllassez "Lassez")
+
+    (person.instance   jlloyd)
+    (person.firstname  jlloyd "J.")
+    (person.lastname   jlloyd "Lloyd")
+
+    (person.instance   joan.feigenbaum)
+    (person.firstname  joan.feigenbaum "Joan")
+    (person.lastname   joan.feigenbaum "Feigenbaum")
+
+    (person.instance   johandekleer)
+    (person.firstname  johandekleer "Johan")
+    (person.middlename johandekleer "de")
+    (person.lastname   johandekleer "Kleer")
+
+    (person.instance   johanvanbenthem)
+    (person.firstname  johanvanbenthem "Johan")
+    (person.middlename johanvanbenthem "van")
+    (person.lastname   johanvanbenthem "Benthem")
+
+    (person.instance   john.bresnahan)
+    (person.firstname  john.bresnahan "John")
+    (person.lastname   john.bresnahan "Bresnahan")
+
+    (person.instance   john.c.mitchell)
+    (person.firstname  john.c.mitchell "John")
+    (person.middlename john.c.mitchell "C")
+    (person.lastname   john.c.mitchell "Mitchell")
+
+    (person.instance   john.detreville)
+    (person.firstname  john.detreville "John")
+    (person.lastname   john.detreville "DeTreville")
+
+    (person.instance   johnbell)
+    (person.firstname  johnbell "John")
+    (person.lastname   johnbell "Bell")
+
+    (person.instance   johnlloyd)
+    (person.firstname  johnlloyd "John")
+    (person.lastname   johnlloyd "Lloyd")
+
+    (person.instance   johnmccarthy)
+    (person.firstname  johnmccarthy "John")
+    (person.lastname   johnmccarthy "McCarthy")
+
+    (person.instance   johnschlipf)
+    (person.firstname  johnschlipf "John")
+    (person.lastname   johnschlipf "Schlipf")
+
+    (person.instance   johnslaney)
+    (person.firstname  johnslaney "John")
+    (person.lastname   johnslaney "Slaney")
+
+    (person.instance   jonbarwise)
+    (person.firstname  jonbarwise "Jon")
+    (person.lastname   jonbarwise "Barwise")
+
+    (person.instance   jondoyle)
+    (person.firstname  jondoyle "Jon")
+    (person.lastname   jondoyle "Doyle")
+
+    (person.instance   jorgelobo)
+    (person.firstname  jorgelobo "Jorge")
+    (person.lastname   jorgelobo "Lobo")
+
+    (person.instance   jorgflum)
+    (person.firstname  jorgflum "Jorg")
+    (person.lastname   jorgflum "Flum")
+
+    (person.instance   joseph.y.halpern)
+    (person.firstname  joseph.y.halpern "Joseph")
+    (person.middlename joseph.y.halpern "Y.")
+    (person.lastname   joseph.y.halpern "Halpern")
+
+    (person.instance   joshuaengel)
+    (person.firstname  joshuaengel "Joshua")
+    (person.lastname   joshuaengel "Engel")
+
+    (person.instance   juan.antonio.navarro)
+    (person.firstname  juan.antonio.navarro "Juan")
+    (person.middlename juan.antonio.navarro "Antonio")
+    (person.lastname   juan.antonio.navarro "Navarro")
+
+    (person.instance   judeapearl)
+    (person.firstname  judeapearl "Judea")
+    (person.lastname   judeapearl "Pearl")
+
+    (person.instance   jungungmin)
+    (person.firstname  jungungmin "Jung")
+    (person.middlename jungungmin "Ung")
+    (person.lastname   jungungmin "Min")
+
+    (person.instance   justin.rosenstein)
+    (person.firstname  justin.rosenstein "Justin")
+    (person.lastname   justin.rosenstein "Rosenstein")
+
+    (person.instance   jzhang)
+    (person.firstname  jzhang "J.")
+    (person.lastname   jzhang "Zhang")
+
+    (person.instance   kahlilhodgson)
+    (person.firstname  kahlilhodgson "Kahlil")
+    (person.lastname   kahlilhodgson "Hodgson")
+
+    (person.instance   karenmyers)
+    (person.firstname  karenmyers "Karen")
+    (person.lastname   karenmyers "Myers")
+
+    (person.instance   karl.czajkowski)
+    (person.firstname  karl.czajkowski "Karl")
+    (person.lastname   karl.czajkowski "Czajkowski")
+
+    (person.instance   kazuhisamakino)
+    (person.firstname  kazuhisamakino "Kazuhisa")
+    (person.lastname   kazuhisamakino "Makino")
+
+    (person.instance   kclaessen)
+    (person.firstname  kclaessen "K.")
+    (person.lastname   kclaessen "Claessen")
+
+    (person.instance   keith.irwin)
+    (person.firstname  keith.irwin "Keith")
+    (person.lastname   keith.irwin "Irwin")
+
+    (person.instance   kennethross)
+    (person.firstname  kennethross "Kenneth")
+    (person.lastname   kennethross "Ross")
+
+    (person.instance   kevin.borders)
+    (person.firstname  kevin.borders "Kevin")
+    (person.lastname   kevin.borders "Borders")
+
+    (person.instance   kevin.d.bowers)
+    (person.firstname  kevin.d.bowers "Kevin")
+    (person.middlename kevin.d.bowers "D")
+    (person.lastname   kevin.d.bowers "Bowers")
+
+    (person.instance   khenriksen)
+    (person.firstname  khenriksen "K.")
+    (person.lastname   khenriksen "Henriksen")
+
+    (person.instance   ksagonas)
+    (person.firstname  ksagonas "K.")
+    (person.lastname   ksagonas "Sagonas")
+
+    (person.instance   kyoheikawazoe)
+    (person.firstname  kyoheikawazoe "Kyohei")
+    (person.lastname   kyoheikawazoe "Kawazoe")
+
+    (person.instance   lakhdarsais)
+    (person.firstname  lakhdarsais "Lakhdar")
+    (person.lastname   lakhdarsais "Sais")
+
+    (person.instance   laura.pearlman)
+    (person.firstname  laura.pearlman "Laura")
+    (person.lastname   laura.pearlman "Pearlman")
+
+    (person.instance   laurence.cholvy)
+    (person.firstname  laurence.cholvy "Laurence")
+    (person.lastname   laurence.cholvy "Cholvy")
+
+    (person.instance   laurenthenocque)
+    (person.firstname  laurenthenocque "Laurent")
+    (person.lastname   laurenthenocque "Henocque")
+
+    (person.instance   lawrence.j.henschen)
+    (person.firstname  lawrence.j.henschen "Lawrence")
+    (person.middlename lawrence.j.henschen "J.")
+    (person.lastname   lawrence.j.henschen "Henschen")
+
+    (person.instance   lcpaulson)
+    (person.firstname  lcpaulson "L.")
+    (person.middlename lcpaulson "C.")
+    (person.lastname   lcpaulson "Paulson")
+
+    (person.instance   leobachmair)
+    (person.firstname  leobachmair "Leo")
+    (person.lastname   leobachmair "Bachmair")
+
+    (person.instance   leonardo.demoura)
+    (person.firstname  leonardo.demoura "Leonardo")
+    (person.lastname   leonardo.demoura "de Moura")
+
+    (person.instance   leopoldobertossi)
+    (person.firstname  leopoldobertossi "Leopoldo")
+    (person.lastname   leopoldobertossi "Bertossi")
+
+    (person.instance   leventorman)
+    (person.firstname  leventorman "Levent")
+    (person.lastname   leventorman "Orman")
+
+    (person.instance   lihua.yuan)
+    (person.firstname  lihua.yuan "Lihua")
+    (person.lastname   lihua.yuan "Yuan")
+
+    (person.instance   lintaozhang)
+    (person.firstname  lintaozhang "Lintao")
+    (person.lastname   lintaozhang "Zhang")
+
+    (person.instance   lisagilroy)
+    (person.firstname  lisagilroy "Lisa")
+    (person.lastname   lisagilroy "Gilroy")
+
+    (person.instance   lmpereira)
+    (person.firstname  lmpereira "L.M.")
+    (person.lastname   lmpereira "Pereira")
+
+    (person.instance   luigiaaiello)
+    (person.firstname  luigiaaiello "Luigia")
+    (person.lastname   luigiaaiello "Aiello")
+
+    (person.instance   lujo.bauer)
+    (person.firstname  lujo.bauer "Lujo")
+    (person.lastname   lujo.bauer "Bauer")
+
+    (person.instance   lyleramshaw)
+    (person.firstname  lyleramshaw "Lyle")
+    (person.lastname   lyleramshaw "Ramshaw")
+
+    (person.instance   mahesh.v.tripunitara)
+    (person.firstname  mahesh.v.tripunitara "Mahesh")
+    (person.middlename mahesh.v.tripunitara "V.")
+    (person.lastname   mahesh.v.tripunitara "Tripunitara")
+
+    (person.instance   manuelbodirsky)
+    (person.firstname  manuelbodirsky "Manuel")
+    (person.lastname   manuelbodirsky "Bodirsky")
+
+    (person.instance   marc.denecker)
+    (person.firstname  marc.denecker "Marc")
+    (person.lastname   marc.denecker "Denecker")
+
+    (person.instance   marc.vandongen)
+    (person.firstname  marc.vandongen "Marc")
+    (person.lastname   marc.vandongen "van Dongen")
+
+    (person.instance   marceloarenas)
+    (person.firstname  marceloarenas "Marcelo")
+    (person.lastname   marceloarenas "Arenas")
+
+    (person.instance   marcgyssens)
+    (person.firstname  marcgyssens "Marc")
+    (person.lastname   marcgyssens "Gyssens")
+
+    (person.instance   marco.ruzzi)
+    (person.firstname  marco.ruzzi "Marco")
+    (person.lastname   marco.ruzzi "Ruzzi")
+
+    (person.instance   marcocadoli)
+    (person.firstname  marcocadoli "Marco")
+    (person.lastname   marcocadoli "Cadoli")
+
+    (person.instance   marcoschaerf)
+    (person.firstname  marcoschaerf "Marco")
+    (person.lastname   marcoschaerf "Schaerf")
+
+    (person.instance   mareksuchenek)
+    (person.firstname  mareksuchenek "Marek")
+    (person.lastname   mareksuchenek "Suchenek")
+
+    (person.instance   maria.luisa.sapino)
+    (person.firstname  maria.luisa.sapino "Maria")
+    (person.middlename maria.luisa.sapino "Luisa")
+    (person.lastname   maria.luisa.sapino "Sapino")
+
+    (person.instance   mariabonacina)
+    (person.firstname  mariabonacina "Maria")
+    (person.lastname   mariabonacina "Bonacina")
+
+    (person.instance   marianne.winslett)
+    (person.firstname  marianne.winslett "Marianne")
+    (person.lastname   marianne.winslett "Winslett")
+
+    (person.instance   mariolenz)
+    (person.firstname  mariolenz "Mario")
+    (person.lastname   mariolenz "Lenz")
+
+    (person.instance   markstickel)
+    (person.firstname  markstickel "Mark")
+    (person.lastname   markstickel "Stickel")
+
+    (person.instance   markuskrotzsch)
+    (person.firstname  markuskrotzsch "Markus")
+    (person.lastname   markuskrotzsch "Krotzsch")
+
+    (person.instance   marsha.chechik)
+    (person.firstname  marsha.chechik "Marsha")
+    (person.lastname   marsha.chechik "Chechik")
+
+    (person.instance   martin.abadi)
+    (person.firstname  martin.abadi "Martin")
+    (person.lastname   martin.abadi "Abadi")
+
+    (person.instance   martin.casado)
+    (person.firstname  martin.casado "Martin")
+    (person.lastname   martin.casado "Casado")
+
+    (person.instance   martin.naedele)
+    (person.firstname  martin.naedele "Martin")
+    (person.lastname   martin.naedele "Naedele")
+
+    (person.instance   martinekstrom)
+    (person.firstname  martinekstrom "Martin")
+    (person.lastname   martinekstrom "Ekstrom")
+
+    (person.instance   martingrohe)
+    (person.firstname  martingrohe "Martin")
+    (person.lastname   martingrohe "Grohe")
+
+    (person.instance   marty.humphrey)
+    (person.firstname  marty.humphrey "Marty")
+    (person.lastname   marty.humphrey "Humphrey")
+
+    (person.instance   massimopaltrinieri)
+    (person.firstname  massimopaltrinieri "Massimo")
+    (person.lastname   massimopaltrinieri "Paltrinieri")
+
+    (person.instance   matt.blaze)
+    (person.firstname  matt.blaze "Matt")
+    (person.lastname   matt.blaze "Blaze")
+
+    (person.instance   matthewmoskewicz)
+    (person.firstname  matthewmoskewicz "Matthew")
+    (person.lastname   matthewmoskewicz "Moskewicz")
+
+    (person.instance   matthias.schunter)
+    (person.firstname  matthias.schunter "Matthias")
+    (person.lastname   matthias.schunter "Schunter")
+
+    (person.instance   mauricebruynooghe)
+    (person.firstname  mauricebruynooghe "Maurice")
+    (person.lastname   mauricebruynooghe "Bruynooghe")
+
+    (person.instance   maurizio.lenzerini)
+    (person.firstname  maurizio.lenzerini "Maurizio")
+    (person.lastname   maurizio.lenzerini "Lenzerini")
+
+    (person.instance   mdavis)
+    (person.firstname  mdavis "M.")
+    (person.lastname   mdavis "Davis")
+
+    (person.instance   mdymetman)
+    (person.firstname  mdymetman "M.")
+    (person.lastname   mdymetman "Dymetman")
+
+    (person.instance   mehmetdincbas)
+    (person.firstname  mehmetdincbas "Mehmet")
+    (person.lastname   mehmetdincbas "Dincbas")
+
+    (person.instance   melvinfitting)
+    (person.firstname  melvinfitting "Melvin")
+    (person.lastname   melvinfitting "Fitting")
+
+    (person.instance   mhermenegildo)
+    (person.firstname  mhermenegildo "M.")
+    (person.lastname   mhermenegildo "Hermenegildo")
+
+    (person.instance   mhohfeld)
+    (person.firstname  mhohfeld "M.")
+    (person.lastname   mhohfeld "Hohfeld")
+
+    (person.instance   michael.backes)
+    (person.firstname  michael.backes "Michael")
+    (person.lastname   michael.backes "Backes")
+
+    (person.instance   michael.burrows)
+    (person.firstname  michael.burrows "Michael")
+    (person.lastname   michael.burrows "Burrows")
+
+    (person.instance   michael.isard)
+    (person.firstname  michael.isard "Michael")
+    (person.lastname   michael.isard "Isard")
+
+    (person.instance   michael.j.may)
+    (person.firstname  michael.j.may "Michael")
+    (person.middlename michael.j.may "J.")
+    (person.lastname   michael.j.may "May")
+
+    (person.instance   michael.k.reiter)
+    (person.firstname  michael.k.reiter "Michael")
+    (person.middlename michael.k.reiter "K")
+    (person.lastname   michael.k.reiter "Reiter")
+
+    (person.instance   michael.wilde)
+    (person.firstname  michael.wilde "Michael")
+    (person.lastname   michael.wilde "Wilde")
+
+    (person.instance   michaelgelfond)
+    (person.firstname  michaelgelfond "Michael")
+    (person.lastname   michaelgelfond "Gelfond")
+
+    (person.instance   michaelkassoff)
+    (person.firstname  michaelkassoff "Michael")
+    (person.lastname   michaelkassoff "Kassoff")
+
+    (person.instance   michaelkearns)
+    (person.firstname  michaelkearns "Michael")
+    (person.lastname   michaelkearns "Kearns")
+
+    (person.instance   michaelleuschel)
+    (person.firstname  michaelleuschel "Michael")
+    (person.lastname   michaelleuschel "Leuschel")
+
+    (person.instance   michaellowry)
+    (person.firstname  michaellowry "Michael")
+    (person.lastname   michaellowry "Lowry")
+
+    (person.instance   michaelrgenesereth)
+    (person.firstname  michaelrgenesereth "Michael")
+    (person.middlename michaelrgenesereth "R.")
+    (person.lastname   michaelrgenesereth "Genesereth")
+
+    (person.instance   michaelsintek)
+    (person.firstname  michaelsintek "Michael")
+    (person.lastname   michaelsintek "Sintek")
+
+    (person.instance   michaelsipser)
+    (person.firstname  michaelsipser "Michael")
+    (person.lastname   michaelsipser "Sipser")
+
+    (person.instance   mihai.budiu)
+    (person.firstname  mihai.budiu "Mihai")
+    (person.lastname   mihai.budiu "Budiu")
+
+    (person.instance   mikhail.i.gofman)
+    (person.firstname  mikhail.i.gofman "Mikhail")
+    (person.middlename mikhail.i.gofman "I.")
+    (person.lastname   mikhail.i.gofman "Gofman")
+
+    (person.instance   mikhailsoutchanski)
+    (person.firstname  mikhailsoutchanski "Mikhail")
+    (person.lastname   mikhailsoutchanski "Soutchanski")
+
+    (person.instance   mleuschel)
+    (person.firstname  mleuschel "M.")
+    (person.lastname   mleuschel "Leuschel")
+
+    (person.instance   mohammedsqalli)
+    (person.firstname  mohammedsqalli "Mohammed")
+    (person.lastname   mohammedsqalli "Sqalli")
+
+    (person.instance   moritz.y.becker)
+    (person.firstname  moritz.y.becker "Moritz")
+    (person.middlename moritz.y.becker "Y.")
+    (person.lastname   moritz.y.becker "Becker")
+
+    (person.instance   moshetennenholtz)
+    (person.firstname  moshetennenholtz "Moshe")
+    (person.lastname   moshetennenholtz "Tennenholtz")
+
+    (person.instance   moshevardi)
+    (person.firstname  moshevardi "Moshe")
+    (person.lastname   moshevardi "Vardi")
+
+    (person.instance   mrkkrishnarao)
+    (person.firstname  mrkkrishnarao "M.R.K.")
+    (person.middlename mrkkrishnarao "Krishna")
+    (person.lastname   mrkkrishnarao "Rao")
+
+    (person.instance   msideri)
+    (person.firstname  msideri "M.")
+    (person.lastname   msideri "Sideri")
+
+    (person.instance   mukulprasad)
+    (person.firstname  mukulprasad "Mukul")
+    (person.lastname   mukulprasad "Prasad")
+
+    (person.instance   murayshanahan)
+    (person.firstname  murayshanahan "Muray")
+    (person.lastname   murayshanahan "Shanahan")
+
+    (person.instance   mwilson)
+    (person.firstname  mwilson "M.")
+    (person.lastname   mwilson "Wilson")
+
+    (person.instance   myungwonkim)
+    (person.firstname  myungwonkim "Myung")
+    (person.middlename myungwonkim "Won")
+    (person.lastname   myungwonkim "Kim")
+
+    (person.instance   nachumdershowitz)
+    (person.firstname  nachumdershowitz "Nachum")
+    (person.lastname   nachumdershowitz "Dershowitz")
+
+    (person.instance   nai-weilin)
+    (person.firstname  nai-weilin "Nai-Wei")
+    (person.lastname   nai-weilin "Lin")
+
+    (person.instance   natarajanshankar)
+    (person.firstname  natarajanshankar "Natarajan")
+    (person.lastname   natarajanshankar "Shankar")
+
+    (person.instance   natasha.gude)
+    (person.firstname  natasha.gude "Natasha")
+    (person.lastname   natasha.gude "Gude")
+
+    (person.instance   nathanielclove)
+    (person.firstname  nathanielclove "Nathaniel")
+    (person.middlename nathanielclove "C.")
+    (person.lastname   nathanielclove "Love")
+
+    (person.instance   neilmurray)
+    (person.firstname  neilmurray "Neil")
+    (person.lastname   neilmurray "Murray")
+
+    (person.instance   newton.c.a.da.costa)
+    (person.firstname  newton.c.a.da.costa "Newton")
+    (person.middlename newton.c.a.da.costa "C. A.")
+    (person.lastname   newton.c.a.da.costa "da Costa")
+
+    (person.instance   nicolaspeltier)
+    (person.firstname  nicolaspeltier "Nicolas")
+    (person.lastname   nicolaspeltier "Peltier")
+
+    (person.instance   nikhilswamy)
+    (person.firstname  nikhilswamy "Nikhil")
+    (person.lastname   nikhilswamy "Swamy")
+
+    (person.instance   nikolaj.bjorner)
+    (person.firstname  nikolaj.bjorner "Nikolaj")
+    (person.lastname   nikolaj.bjorner "Bjorner")
+
+    (person.instance   nilsnilsson)
+    (person.firstname  nilsnilsson "Nils")
+    (person.lastname   nilsnilsson "Nilsson")
+
+    (person.instance   ninghui.li)
+    (person.firstname  ninghui.li "Ninghui")
+    (person.lastname   ninghui.li "Li")
+
+    (person.instance   njnilsson)
+    (person.firstname  njnilsson "N.")
+    (person.middlename njnilsson "J.")
+    (person.lastname   njnilsson "Nilsson")
+
+    (person.instance   norberteisinger)
+    (person.firstname  norberteisinger "Norbert")
+    (person.lastname   norberteisinger "Eisinger")
+
+    (person.instance   normanfoo)
+    (person.firstname  normanfoo "Norman")
+    (person.lastname   normanfoo "Foo")
+
+    (person.instance   nsantoso)
+    (person.firstname  nsantoso "N.")
+    (person.lastname   nsantoso "Santoso")
+
+    (person.instance   nsorensson)
+    (person.firstname  nsorensson "N.")
+    (person.lastname   nsorensson "Sorensson")
+
+    (person.instance   ofer.arieli)
+    (person.firstname  ofer.arieli "Ofer")
+    (person.lastname   ofer.arieli "Arieli")
+
+    (person.instance   olivier.roussel)
+    (person.firstname  olivier.roussel "Olivier")
+    (person.lastname   olivier.roussel "Roussel")
+
+    (person.instance   omar.elkhatib)
+    (person.firstname  omar.elkhatib "Omar")
+    (person.lastname   omar.elkhatib "Elkhatib")
+
+    (person.instance   ornagrumberg)
+    (person.firstname  ornagrumberg "Orna")
+    (person.lastname   ornagrumberg "Grumberg")
+
+    (person.instance   owenastrachan)
+    (person.firstname  owenastrachan "Owen")
+    (person.lastname   owenastrachan "Astrachan")
+
+    (person.instance   palmiramarrafa)
+    (person.firstname  palmiramarrafa "Palmira")
+    (person.lastname   palmiramarrafa "Marrafa")
+
+    (person.instance   paolo.perlasca)
+    (person.firstname  paolo.perlasca "Paolo")
+    (person.lastname   paolo.perlasca "Perlasca")
+
+    (person.instance   paololiberatore)
+    (person.firstname  paololiberatore "Paolo")
+    (person.lastname   paololiberatore "Liberatore")
+
+    (person.instance   paolopecchiari)
+    (person.firstname  paolopecchiari "Paolo")
+    (person.lastname   paolopecchiari "Pecchiari")
+
+    (person.instance   paolotraverso)
+    (person.firstname  paolotraverso "Paolo")
+    (person.lastname   paolotraverso "Traverso")
+
+    (person.instance   pascalhitzler)
+    (person.firstname  pascalhitzler "Pascal")
+    (person.lastname   pascalhitzler "Hitzler")
+
+    (person.instance   pascalvanhentenryck)
+    (person.firstname  pascalvanhentenryck "Pascal")
+    (person.middlename pascalvanhentenryck "Van")
+    (person.lastname   pascalvanhentenryck "Hentenryck")
+
+    (person.instance   pasquale.rullo)
+    (person.firstname  pasquale.rullo "Pasquale")
+    (person.lastname   pasquale.rullo "Rullo")
+
+    (person.instance   patrick.lincoln)
+    (person.firstname  patrick.lincoln "Patrick")
+    (person.lastname   patrick.lincoln "Lincoln")
+
+    (person.instance   patrick.mcdaniel)
+    (person.firstname  patrick.mcdaniel "Patrick")
+    (person.lastname   patrick.mcdaniel "McDaniel")
+
+    (person.instance   patrick.nicholson)
+    (person.firstname  patrick.nicholson "Patrick")
+    (person.lastname   patrick.nicholson "Nicholson")
+
+    (person.instance   patrickblackburn)
+    (person.firstname  patrickblackburn "Patrick")
+    (person.lastname   patrickblackburn "Blackburn")
+
+    (person.instance   patrickjhayes)
+    (person.firstname  patrickjhayes "Patrick")
+    (person.middlename patrickjhayes "J.")
+    (person.lastname   patrickjhayes "Hayes")
+
+    (person.instance   patricklincoln)
+    (person.firstname  patricklincoln "Patrick")
+    (person.lastname   patricklincoln "Lincoln")
+
+    (person.instance   patricksaint-dizier)
+    (person.firstname  patricksaint-dizier "Patrick")
+    (person.lastname   patricksaint-dizier "Saint-Dizier")
+
+    (person.instance   paul.ashley)
+    (person.firstname  paul.ashley "Paul")
+    (person.lastname   paul.ashley "Ashley")
+
+    (person.instance   paul.e.sevinc)
+    (person.firstname  paul.e.sevinc "Paul")
+    (person.middlename paul.e.sevinc "E.")
+    (person.lastname   paul.e.sevinc "Sevinc")
+
+    (person.instance   paulhalmos)
+    (person.firstname  paulhalmos "Paul")
+    (person.lastname   paulhalmos "Halmos")
+
+    (person.instance   paulo.ferreira)
+    (person.firstname  paulo.ferreira "Paulo")
+    (person.lastname   paulo.ferreira "Ferreira")
+
+    (person.instance   paulo.guedes)
+    (person.firstname  paulo.guedes "Paulo")
+    (person.lastname   paulo.guedes "Guedes")
+
+    (person.instance   pereira)
+    (person.firstname  pereira "Pereira")
+    (person.lastname   pereira "Pereira")
+
+    (person.instance   peter.szeredi)
+    (person.firstname  peter.szeredi "Peter")
+    (person.lastname   peter.szeredi "Szeredi")
+
+    (person.instance   peterbaumgartner)
+    (person.firstname  peterbaumgartner "Peter")
+    (person.lastname   peterbaumgartner "Baumgartner")
+
+    (person.instance   peterhaase)
+    (person.firstname  peterhaase "Peter")
+    (person.lastname   peterhaase "Haase")
+
+    (person.instance   peterhammer)
+    (person.firstname  peterhammer "Peter")
+    (person.lastname   peterhammer "Hammer")
+
+    (person.instance   peterhart)
+    (person.firstname  peterhart "Peter")
+    (person.lastname   peterhart "Hart")
+
+    (person.instance   peterjeavons)
+    (person.firstname  peterjeavons "Peter")
+    (person.lastname   peterjeavons "Jeavons")
+
+    (person.instance   philip.t.cox)
+    (person.firstname  philip.t.cox "Philip")
+    (person.middlename philip.t.cox "T.")
+    (person.lastname   philip.t.cox "Cox")
+
+    (person.instance   philipjhayes)
+    (person.firstname  philipjhayes "Philip")
+    (person.middlename philipjhayes "J.")
+    (person.lastname   philipjhayes "Hayes")
+
+    (person.instance   pierangela.samarati)
+    (person.firstname  pierangela.samarati "Pierangela")
+    (person.lastname   pierangela.samarati "Samarati")
+
+    (person.instance   piero.a.bonatti)
+    (person.firstname  piero.a.bonatti "Piero")
+    (person.middlename piero.a.bonatti "A.")
+    (person.lastname   piero.a.bonatti "Bonatti")
+
+    (person.instance   pierremarquis)
+    (person.firstname  pierremarquis "Pierre")
+    (person.lastname   pierremarquis "Marquis")
+
+    (person.instance   pierreroy)
+    (person.firstname  pierreroy "Pierre")
+    (person.lastname   pierreroy "Roy")
+
+    (person.instance   ping.yang)
+    (person.firstname  ping.yang "Ping")
+    (person.lastname   ping.yang "Yang")
+
+    (person.instance   pjstuckey)
+    (person.firstname  pjstuckey "P.")
+    (person.middlename pjstuckey "J.")
+    (person.lastname   pjstuckey "Stuckey")
+
+    (person.instance   plopez-garcia)
+    (person.firstname  plopez-garcia "P.")
+    (person.lastname   plopez-garcia "Lopez-Garcia")
+
+    (person.instance   pnayak)
+    (person.firstname  pnayak "P.")
+    (person.lastname   pnayak "Nayak")
+
+    (person.instance   porto)
+    (person.firstname  porto "Porto")
+    (person.lastname   porto "Porto")
+
+    (person.instance   prcohen)
+    (person.firstname  prcohen "P.")
+    (person.middlename prcohen "R.")
+    (person.lastname   prcohen "Cohen")
+
+    (person.instance   predragjanicic)
+    (person.firstname  predragjanicic "Predrag")
+    (person.lastname   predragjanicic "Janicic")
+
+    (person.instance   qihua.wang)
+    (person.firstname  qihua.wang "Qihua")
+    (person.lastname   qihua.wang "Wang")
+
+    (person.instance   rachana.ananthakrishnan)
+    (person.firstname  rachana.ananthakrishnan "Rachana")
+    (person.lastname   rachana.ananthakrishnan "Ananthakrishnan")
+
+    (person.instance   radachirkova)
+    (person.firstname  radachirkova "Rada")
+    (person.lastname   radachirkova "Chirkova")
+
+    (person.instance   rainermanthey)
+    (person.firstname  rainermanthey "Rainer")
+    (person.lastname   rainermanthey "Manthey")
+
+    (person.instance   rameshpatil)
+    (person.firstname  rameshpatil "Ramesh")
+    (person.lastname   rameshpatil "Patil")
+
+    (person.instance   raphaelvolz)
+    (person.firstname  raphaelvolz "Raphael")
+    (person.lastname   raphaelvolz "Volz")
+
+    (person.instance   ravi.sandhu)
+    (person.firstname  ravi.sandhu "Ravi")
+    (person.lastname   ravi.sandhu "Sandhu")
+
+    (person.instance   rayreiter)
+    (person.firstname  rayreiter "Ray")
+    (person.lastname   rayreiter "Reiter")
+
+    (person.instance   refikes)
+    (person.firstname  refikes "Richard")
+    (person.middlename refikes "E.")
+    (person.lastname   refikes "Fikes")
+
+    (person.instance   reinerhahnle)
+    (person.firstname  reinerhahnle "Reiner")
+    (person.lastname   reinerhahnle "Hahnle")
+
+    (person.instance   reinhardpichler)
+    (person.firstname  reinhardpichler "Reinhard")
+    (person.lastname   reinhardpichler "Pichler")
+
+    (person.instance   riafollett)
+    (person.firstname  riafollett "Ria")
+    (person.lastname   riafollett "Follett")
+
+    (person.instance   riccardorosati)
+    (person.firstname  riccardorosati "Riccardo")
+    (person.lastname   riccardorosati "Rosati")
+
+    (person.instance   richardb)
+    (person.firstname  richardb "Richard")
+    (person.lastname   richardb "B.
+Scherl")
+
+    (person.instance   richardfikes)
+    (person.firstname  richardfikes "Richard")
+    (person.lastname   richardfikes "Fikes")
+
+    (person.instance   richardhull)
+    (person.firstname  richardhull "Richard")
+    (person.lastname   richardhull "Hull")
+
+    (person.instance   richardlee)
+    (person.firstname  richardlee "Richard")
+    (person.lastname   richardlee "Lee")
+
+    (person.instance   richardwaldinger)
+    (person.firstname  richardwaldinger "Richard")
+    (person.lastname   richardwaldinger "Waldinger")
+
+    (person.instance   richardweyhrauch)
+    (person.firstname  richardweyhrauch "Richard")
+    (person.lastname   richardweyhrauch "Weyhrauch")
+
+    (person.instance   rinadechter)
+    (person.firstname  rinadechter "Rina")
+    (person.lastname   rinadechter "Dechter")
+
+    (person.instance   rli)
+    (person.firstname  rli "R.")
+    (person.lastname   rli "Li")
+
+    (person.instance   rmuhammed)
+    (person.firstname  rmuhammed "R.")
+    (person.lastname   rmuhammed "Muhammed")
+
+    (person.instance   robertcmoore)
+    (person.firstname  robertcmoore "Robert")
+    (person.middlename robertcmoore "C.")
+    (person.lastname   robertcmoore "Moore")
+
+    (person.instance   robertkowalski)
+    (person.firstname  robertkowalski "Robert")
+    (person.lastname   robertkowalski "Kowalski")
+
+    (person.instance   robertmatzinger)
+    (person.firstname  robertmatzinger "Robert")
+    (person.lastname   robertmatzinger "Matzinger")
+
+    (person.instance   robertnieuwenhuis)
+    (person.firstname  robertnieuwenhuis "Robert")
+    (person.lastname   robertnieuwenhuis "Nieuwenhuis")
+
+    (person.instance   robertosebastiani)
+    (person.firstname  robertosebastiani "Roberto")
+    (person.lastname   robertosebastiani "Sebastiani")
+
+    (person.instance   robertshostak)
+    (person.firstname  robertshostak "Robert")
+    (person.lastname   robertshostak "Shostak")
+
+    (person.instance   robhoskins)
+    (person.firstname  robhoskins "Rob")
+    (person.lastname   robhoskins "Hoskins")
+
+    (person.instance   robmiller)
+    (person.firstname  robmiller "Rob")
+    (person.lastname   robmiller "Miller")
+
+    (person.instance   romanschindlauer)
+    (person.firstname  romanschindlauer "Roman")
+    (person.lastname   romanschindlauer "Schindlauer")
+
+    (person.instance   ron.vandermeyden)
+    (person.firstname  ron.vandermeyden "Ron")
+    (person.lastname   ron.vandermeyden "Vandermeyden")
+
+    (person.instance   ronald.l.rivest)
+    (person.firstname  ronald.l.rivest "Ronald")
+    (person.middlename ronald.l.rivest "L.")
+    (person.lastname   ronald.l.rivest "Rivest")
+
+    (person.instance   ronaldfagin)
+    (person.firstname  ronaldfagin "Ronald")
+    (person.lastname   ronaldfagin "Fagin")
+
+    (person.instance   ronaldjbrachman)
+    (person.firstname  ronaldjbrachman "Ronald")
+    (person.middlename ronaldjbrachman "J.")
+    (person.lastname   ronaldjbrachman "Brachman")
+
+    (person.instance   ronikhardon)
+    (person.firstname  ronikhardon "Roni")
+    (person.lastname   ronikhardon "Khardon")
+
+    (person.instance   ross.j.anderson)
+    (person.firstname  ross.j.anderson "Ross")
+    (person.middlename ross.j.anderson "J.")
+    (person.lastname   ross.j.anderson "Anderson")
+
+    (person.instance   roy.h.campbell)
+    (person.firstname  roy.h.campbell "Roy")
+    (person.middlename roy.h.campbell "H.")
+    (person.lastname   roy.h.campbell "Campbell")
+
+    (person.instance   rsherl)
+    (person.firstname  rsherl "R.")
+    (person.lastname   rsherl "Sherl")
+
+    (person.instance   rtopor)
+    (person.firstname  rtopor "R.")
+    (person.lastname   rtopor "Topor")
+
+    (person.instance   rudistuder)
+    (person.firstname  rudistuder "Rudi")
+    (person.lastname   rudistuder "Studer")
+
+    (person.instance   russellgreiner)
+    (person.firstname  russellgreiner "Russell")
+    (person.lastname   russellgreiner "Greiner")
+
+    (person.instance   ruthbyrne)
+    (person.firstname  ruthbyrne "Ruth")
+    (person.lastname   ruthbyrne "Byrne")
+
+    (person.instance   rvguha)
+    (person.firstname  rvguha "R.")
+    (person.middlename rvguha "V.")
+    (person.lastname   rvguha "Guha")
+
+    (person.instance   s.schwoon)
+    (person.firstname  s.schwoon "S.")
+    (person.lastname   s.schwoon "Schwoon")
+
+    (person.instance   s.stubblebine)
+    (person.firstname  s.stubblebine "S.")
+    (person.lastname   s.stubblebine "Stubblebine")
+
+    (person.instance   sabrina.decapitani.divimercati)
+    (person.firstname  sabrina.decapitani.divimercati "Sabrina")
+    (person.middlename sabrina.decapitani.divimercati "De Capitani")
+    (person.lastname   sabrina.decapitani.divimercati "di Vimercati")
+
+    (person.instance   sam.meder)
+    (person.firstname  sam.meder "Sam")
+    (person.lastname   sam.meder "Meder")
+
+    (person.instance   sanjayagrawal)
+    (person.firstname  sanjayagrawal "Sanjay")
+    (person.lastname   sanjayagrawal "Agrawal")
+
+    (person.instance   sanjaymittal)
+    (person.firstname  sanjaymittal "Sanjay")
+    (person.lastname   sanjaymittal "Mittal")
+
+    (person.instance   satoshi.hada)
+    (person.firstname  satoshi.hada "Satoshi")
+    (person.lastname   satoshi.hada "Hada")
+
+    (person.instance   saumyadebray)
+    (person.firstname  saumyadebray "Saumya")
+    (person.lastname   saumyadebray "Debray")
+
+    (person.instance   scott.d.stoller)
+    (person.firstname  scott.d.stoller "Scott")
+    (person.middlename scott.d.stoller "D.")
+    (person.lastname   scott.d.stoller "Stoller")
+
+    (person.instance   scott.shenker)
+    (person.firstname  scott.shenker "Scott")
+    (person.lastname   scott.shenker "Shenker")
+
+    (person.instance   scraig)
+    (person.firstname  scraig "S.")
+    (person.lastname   scraig "Craig")
+
+    (person.instance   sebastian.nanz)
+    (person.firstname  sebastian.nanz "Sebastian")
+    (person.lastname   sebastian.nanz "Nanz")
+
+    (person.instance   sergeabiteboul)
+    (person.firstname  sergeabiteboul "Serge")
+    (person.lastname   sergeabiteboul "Abiteboul")
+
+    (person.instance   sergeivorobyov)
+    (person.firstname  sergeivorobyov "Sergei")
+    (person.lastname   sergeivorobyov "Vorobyov")
+
+    (person.instance   sergeyberezin)
+    (person.firstname  sergeyberezin "Sergey")
+    (person.lastname   sergeyberezin "Berezin")
+
+    (person.instance   sergio.maffeis)
+    (person.firstname  sergio.maffeis "Sergio")
+    (person.lastname   sergio.maffeis "Maffeis")
+
+    (person.instance   sergiotessaris)
+    (person.firstname  sergiotessaris "Sergio")
+    (person.lastname   sergiotessaris "Tessaris")
+
+    (person.instance   seungyeobchoi)
+    (person.firstname  seungyeobchoi "Seungyeob")
+    (person.lastname   seungyeobchoi "Choi")
+
+    (person.instance   shameem.f.akhter)
+    (person.firstname  shameem.f.akhter "Shameem")
+    (person.middlename shameem.f.akhter "F.")
+    (person.lastname   shameem.f.akhter "Akhter")
+
+    (person.instance   sharada.sundaram)
+    (person.firstname  sharada.sundaram "Sharada")
+    (person.lastname   sharada.sundaram "Sundaram")
+
+    (person.instance   sharadmalik)
+    (person.firstname  sharadmalik "Sharad")
+    (person.lastname   sharadmalik "Malik")
+
+    (person.instance   sharadsinghal)
+    (person.firstname  sharadsinghal "Sharad")
+    (person.lastname   sharadsinghal "Singhal")
+
+    (person.instance   sheilamcilraith)
+    (person.firstname  sheilamcilraith "Sheila")
+    (person.lastname   sheilamcilraith "McIlraith")
+
+    (person.instance   sheymans)
+    (person.firstname  sheymans "S.")
+    (person.lastname   sheymans "Heymans")
+
+    (person.instance   sidneybailin)
+    (person.firstname  sidneybailin "Sidney")
+    (person.lastname   sidneybailin "Bailin")
+
+    (person.instance   someshjha)
+    (person.firstname  someshjha "Somesh")
+    (person.lastname   someshjha "Jha")
+
+    (person.instance   sowre)
+    (person.firstname  sowre "S.")
+    (person.lastname   sowre "Owre")
+
+    (person.instance   sranise)
+    (person.firstname  sranise "S.")
+    (person.lastname   sranise "Ranise")
+
+    (person.instance   stefandecker)
+    (person.firstname  stefandecker "Stefan")
+    (person.lastname   stefandecker "Decker")
+
+    (person.instance   stefanoparaboschi)
+    (person.firstname  stefanoparaboschi "Stefano")
+    (person.lastname   stefanoparaboschi "Paraboschi")
+
+    (person.instance   stephanmerz)
+    (person.firstname  stephanmerz "Stephan")
+    (person.lastname   stephanmerz "Merz")
+
+    (person.instance   stephanschulz)
+    (person.firstname  stephanschulz "Stephan")
+    (person.lastname   stephanschulz "Schulz")
+
+    (person.instance   stephencook)
+    (person.firstname  stephencook "Stephen")
+    (person.lastname   stephencook "Cook")
+
+    (person.instance   steve.barker)
+    (person.firstname  steve.barker "Steve")
+    (person.lastname   steve.barker "Barker")
+
+    (person.instance   steve.easterbrook)
+    (person.firstname  steve.easterbrook "Steve")
+    (person.lastname   steve.easterbrook "Easterbrook")
+
+    (person.instance   steven.tuecke)
+    (person.firstname  steven.tuecke "Steven")
+    (person.lastname   steven.tuecke "Tuecke")
+
+    (person.instance   sunkim)
+    (person.firstname  sunkim "Sun")
+    (person.lastname   sunkim "Kim")
+
+    (person.instance   surajitchaudhuri)
+    (person.firstname  surajitchaudhuri "Surajit")
+    (person.lastname   surajitchaudhuri "Chaudhuri")
+
+    (person.instance   sushil.jajodia)
+    (person.firstname  sushil.jajodia "Sushil")
+    (person.lastname   sushil.jajodia "Jajodia")
+
+    (person.instance   t.reps)
+    (person.firstname  t.reps "T.")
+    (person.lastname   t.reps "Reps")
+
+    (person.instance   takashihoriyama)
+    (person.firstname  takashihoriyama "Takashi")
+    (person.lastname   takashihoriyama "Horiyama")
+
+    (person.instance   taneltammet)
+    (person.firstname  taneltammet "Tanel")
+    (person.lastname   taneltammet "Tammet")
+
+    (person.instance   thomaseiter)
+    (person.firstname  thomaseiter "Thomas")
+    (person.lastname   thomaseiter "Eiter")
+
+    (person.instance   thomashillenbr)
+    (person.firstname  thomashillenbr "Thomas")
+    (person.lastname   thomashillenbr "Hillenbr")
+
+    (person.instance   thomaslukasiewicz)
+    (person.firstname  thomaslukasiewicz "Thomas")
+    (person.lastname   thomaslukasiewicz "Lukasiewicz")
+
+    (person.instance   thomaspressburger)
+    (person.firstname  thomaspressburger "Thomas")
+    (person.lastname   thomaspressburger "Pressburger")
+
+    (person.instance   thoshihideibaraki)
+    (person.firstname  thoshihideibaraki "Thoshihide")
+    (person.lastname   thoshihideibaraki "Ibaraki")
+
+    (person.instance   tiechengwang)
+    (person.firstname  tiechengwang "Tie")
+    (person.middlename tiechengwang "Cheng")
+    (person.lastname   tiechengwang "Wang")
+
+    (person.instance   tim.freeman)
+    (person.firstname  tim.freeman "Tim")
+    (person.lastname   tim.freeman "Freeman")
+
+    (person.instance   timfurche)
+    (person.firstname  timfurche "Tim")
+    (person.lastname   timfurche "Furche")
+
+    (person.instance   timothylhinrichs)
+    (person.firstname  timothylhinrichs "Timothy")
+    (person.middlename timothylhinrichs "L.")
+    (person.lastname   timothylhinrichs "Hinrichs")
+
+    (person.instance   ting.yu)
+    (person.firstname  ting.yu "Ting")
+    (person.lastname   ting.yu "Yu")
+
+    (person.instance   tobywalsh)
+    (person.firstname  tobywalsh "Toby")
+    (person.lastname   tobywalsh "Walsh")
+
+    (person.instance   tom.bylander)
+    (person.firstname  tom.bylander "Tom")
+    (person.lastname   tom.bylander "Bylander")
+
+    (person.instance   tomasuribe)
+    (person.firstname  tomasuribe "Tomas")
+    (person.lastname   tomasuribe "Uribe")
+
+    (person.instance   tomekstrzalkowski)
+    (person.firstname  tomekstrzalkowski "Tomek")
+    (person.lastname   tomekstrzalkowski "Strzalkowski")
+
+    (person.instance   tonimancini)
+    (person.firstname  tonimancini "Toni")
+    (person.lastname   tonimancini "Mancini")
+
+    (person.instance   toshihideibaraki)
+    (person.firstname  toshihideibaraki "Toshihide")
+    (person.lastname   toshihideibaraki "Ibaraki")
+
+    (person.instance   tran.cao.son)
+    (person.firstname  tran.cao.son "Tran")
+    (person.middlename tran.cao.son "Cao")
+    (person.lastname   tran.cao.son "Son")
+
+    (person.instance   tswift)
+    (person.firstname  tswift "T.")
+    (person.lastname   tswift "Swift")
+
+    (person.instance   ulrichfurbach)
+    (person.firstname  ulrichfurbach "Ulrich")
+    (person.lastname   ulrichfurbach "Furbach")
+
+    (person.instance   ulrikesattler)
+    (person.firstname  ulrikesattler "Ulrike")
+    (person.lastname   ulrikesattler "Sattler")
+
+    (person.instance   v.s.subrahmanian)
+    (person.firstname  v.s.subrahmanian "V")
+    (person.middlename v.s.subrahmanian "S")
+    (person.lastname   v.s.subrahmanian "Subrahmanian")
+
+    (person.instance   varolakman)
+    (person.firstname  varolakman "Varol")
+    (person.lastname   varolakman "Akman")
+
+    (person.instance   vicky.weissman)
+    (person.firstname  vicky.weissman "Vicky")
+    (person.lastname   vicky.weissman "Weissman")
+
+    (person.instance   victorvianu)
+    (person.firstname  victorvianu "Victor")
+    (person.lastname   victorvianu "Vianu")
+
+    (person.instance   vishalsikka)
+    (person.firstname  vishalsikka "Vishal")
+    (person.lastname   vishalsikka "Sikka")
+
+    (person.instance   viveknarasayya)
+    (person.firstname  viveknarasayya "Vivek")
+    (person.lastname   viveknarasayya "Narasayya")
+
+    (person.instance   vjdigricoli)
+    (person.firstname  vjdigricoli "V.")
+    (person.middlename vjdigricoli "J.")
+    (person.lastname   vjdigricoli "Digricoli")
+
+    (person.instance   vladimirlifschitz)
+    (person.firstname  vladimirlifschitz "Vladimir")
+    (person.lastname   vladimirlifschitz "Lifschitz")
+
+    (person.instance   von.welch)
+    (person.firstname  von.welch "Von")
+    (person.lastname   von.welch "Welch")
+
+    (person.instance   walid.bagga)
+    (person.firstname  walid.bagga "Walid")
+    (person.lastname   walid.bagga "Bagga")
+
+    (person.instance   walterhower)
+    (person.firstname  walterhower "Walter")
+    (person.lastname   walterhower "Hower")
+
+    (person.instance   waqarmohsin)
+    (person.firstname  waqarmohsin "Waqar")
+    (person.lastname   waqarmohsin "Mohsin")
+
+    (person.instance   weiningzhang)
+    (person.firstname  weiningzhang "Weining")
+    (person.lastname   weiningzhang "Zhang")
+
+    (person.instance   william.h.winsborough)
+    (person.firstname  william.h.winsborough "William")
+    (person.middlename william.h.winsborough "H")
+    (person.lastname   william.h.winsborough "Winsborough")
+
+    (person.instance   williamanderson)
+    (person.firstname  williamanderson "William")
+    (person.lastname   williamanderson "Anderson")
+
+    (person.instance   williammccune)
+    (person.firstname  williammccune "William")
+    (person.lastname   williammccune "McCune")
+
+    (person.instance   wimvanhoof)
+    (person.firstname  wimvanhoof "Wim")
+    (person.lastname   wimvanhoof "Vanhoof")
+
+    (person.instance   winfriedgraf)
+    (person.firstname  winfriedgraf "Winfried")
+    (person.lastname   winfriedgraf "Graf")
+
+    (person.instance   xin.zhao)
+    (person.firstname  xin.zhao "Xin")
+    (person.lastname   xin.zhao "Zhao")
+
+    (person.instance   yanzhang)
+    (person.firstname  yanzhang "Yan")
+    (person.lastname   yanzhang "Zhang")
+
+    (person.instance   yingzhao)
+    (person.firstname  yingzhao "Ying")
+    (person.lastname   yingzhao "Zhao")
+
+    (person.instance   yoavshoham)
+    (person.firstname  yoavshoham "Yoav")
+    (person.lastname   yoavshoham "Shoham")
+
+    (person.instance   yorammoses)
+    (person.firstname  yorammoses "Yoram")
+    (person.lastname   yorammoses "Moses")
+
+    (person.instance   yorksure)
+    (person.firstname  yorksure "York")
+    (person.lastname   yorksure "Sure")
+
+    (person.instance   yuan.yu)
+    (person.firstname  yuan.yu "Yuan")
+    (person.lastname   yuan.yu "Yu")
+
+    (person.instance   yunshanzhu)
+    (person.firstname  yunshanzhu "Yunshan")
+    (person.lastname   yunshanzhu "Zhu")
+
+    (person.instance   yurigurevich)
+    (person.firstname  yurigurevich "Yuri")
+    (person.lastname   yurigurevich "Gurevich")
+
+    (person.instance   yvescaseau)
+    (person.firstname  yvescaseau "Yves")
+    (person.lastname   yvescaseau "Caseau")
+
+    (person.instance   yveslesperance)
+    (person.firstname  yveslesperance "Yves")
+    (person.lastname   yveslesperance "Lesperance")
+
+    (person.instance   zelaigungordu)
+    (person.firstname  zelaigungordu "Zelai")
+    (person.lastname   zelaigungordu "Gungordu")
+
+    (person.instance   ziad.bizri)
+    (person.firstname  ziad.bizri "Ziad")
+    (person.lastname   ziad.bizri "Bizri")
+
+    (person.instance   zoharmanna)
+    (person.firstname  zoharmanna "Zohar")
+    (person.lastname   zoharmanna "Manna")
+
+    (person.instance   zsolt.nagy)
+    (person.firstname  zsolt.nagy "Zsolt")
+    (person.lastname   zsolt.nagy "Nagy")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

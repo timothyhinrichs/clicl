@@ -1,0 +1,9 @@
+set nocount on
+select distinct
+'(pedit-person', p.person_id as "---", '=', nam_first_mi as "----", '+ =', nam_last as "-----", '+ =',
+nam_friendly as "------", '+ =', homepage as "-------", '+)' 
+from people p, offices o
+where p.person_id = o.person_id
+and building = "GATES"
+go
+exit

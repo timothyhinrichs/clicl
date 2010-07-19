@@ -1,0 +1,129 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Creating an Infomaster Application
+;;;  (1) Load Infomaster as usual
+;;;  (2) Load this file
+;;;  (3) Load loop package
+;;;  (4) Open Save Application Dialog from Tools menu
+;;;       Set Application class --> Application
+;;;       Set Menubar --> *infomaster-menubar*
+;;;       Set Preferred size --> 20000
+;;;       Set Application signature --> info
+;;;       Click Save Image and supply name Infomaster <version>
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(setq *lisp-startup-functions*
+      (adjoin 'start-infomaster *lisp-startup-functions*))
+
+(defun start-infomaster ()
+  (let (title facilitator warehouse library manager)
+    (setq *long-site-name* (machine-instance))
+    (setq *host* (hostname))
+    (setq *background-event-ticks* 20)
+    (setq title (strappend "Infomaster version "
+                  (string-downcase (princ-to-string *infomaster-version*))))
+    (setq facilitator (strappend "facilitator@" (string-downcase *host*)))
+    (setq warehouse (strappend "warehouse@" (string-downcase *host*)))
+    (setq library (strappend "library@" (string-downcase *host*)))
+    (setq manager (strappend "manager@" (string-downcase *host*)))
+    (modal-dialog
+     (make-instance 'window
+       :window-type :document
+       :window-title title
+       :view-subviews (list (make-instance 'static-text-dialog-item
+                              :dialog-item-text "Facilitator Name:"
+                              :view-position #@(10 10))
+                            (make-instance 'editable-text-dialog-item
+                              :dialog-item-text facilitator
+                              :view-position #@(130 10)
+                              :view-size #@(260 12)
+                              :view-font '("Courier" 12))
+                            (make-instance 'static-text-dialog-item
+                              :dialog-item-text "Warehouse Name:"
+                              :view-position #@(10 30))
+                            (make-instance 'editable-text-dialog-item
+                              :dialog-item-text warehouse
+                              :view-position #@(130 30)
+                              :view-size #@(260 12)
+                              :view-font '("Courier" 12))
+                            (make-instance 'static-text-dialog-item
+                              :dialog-item-text "Library Name:"
+                              :view-position #@(10 50))
+                            (make-instance 'editable-text-dialog-item
+                              :dialog-item-text library
+                              :view-position #@(130 50)
+                              :view-size #@(260 12)
+                              :view-font '("Courier" 12))
+                            (make-instance 'static-text-dialog-item
+                              :dialog-item-text "Manager Name:"
+                              :view-position #@(10 70))
+                            (make-instance 'editable-text-dialog-item
+                              :dialog-item-text manager
+                              :view-position #@(130 70)
+                              :view-size #@(260 12)
+                              :view-font '("Courier" 12))
+                            (make-instance 'static-text-dialog-item
+                              :dialog-item-text "HTML Port:"
+                              :view-position #@(10 90))
+                            (make-instance 'editable-text-dialog-item
+                              :dialog-item-text "4800"
+                              :view-position #@(130 90)
+                              :view-font '("Courier" 12))
+                            (make-instance 'button-dialog-item
+                              :dialog-item-text "Start"
+                              :dialog-item-action #'start
+                              :view-position #@(10 120)))
+       :view-position (make-point (floor (- *screen-width* 400) 2)
+                                  (floor (- *screen-height* 148) 2))
+       :view-size #@(400 148)))))
+
+(defun start (item)
+  (let (items facilitator warehouse library manager html managers)
+    (setq items (view-subviews (view-container item)))
+    (setq facilitator (read-from-string (dialog-item-text (elt items 1)) nil))
+    (setq warehouse (read-from-string (dialog-item-text (elt items 3)) nil))
+    (setq library (read-from-string (dialog-item-text (elt items 5)) nil))
+    (setq manager (read-from-string (dialog-item-text (elt items 7)) nil))
+    (setq html (read-from-string (dialog-item-text (elt items 9)) nil))
+    (setq managers (contents *manager*))
+    (setq managers (subst facilitator (name *facilitator*) managers))
+    (setq managers (subst warehouse (name *warehouse*) managers))
+    (setq managers (subst library (name *library*) managers))
+    (setq managers (subst manager (name *manager*) managers))
+    (define-theory *manager* "" managers)
+    (set (setf (name *facilitator*) facilitator) *facilitator*)
+    (set (setf (name *warehouse*) warehouse) *warehouse*)
+    (set (setf (name *library*) library) *library*)
+    (set (setf (name *manager*) manager) *manager*)
+    (when html (setq *web-server-port* html))
+    (load (strappend (namestring (user-homedir-pathname)) "infomaster.init")
+          :if-does-not-exist nil)
+    (when *web-server-port*
+      (start-tcp-server-process #'http-handler *web-server-port*))
+    (return-from-modal-dialog 'done)))
+
+
+(defun listener ()
+  (make-instance 'listener))
+
+(defun restart ()
+  (stop)
+  (start-infomaster))
+
+(defun stop ()
+  (tcp-shutdown))
+
+(defparameter *infomaster-menubar*
+  (list *file-menu* *edit-menu*
+        (make-instance 'menu
+          :menu-title "Servers"
+          :menu-items (list (make-instance 'menu-item
+                              :menu-item-title "Restart"
+                              :menu-item-action #'restart)
+                            (make-instance 'menu-item
+                              :menu-item-title "Stop"
+                              :menu-item-action #'stop)))
+        *windows-menu*))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

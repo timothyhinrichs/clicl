@@ -1,0 +1,149 @@
+<html>
+<head>
+<title>Herbrand Logic -- First-order Syntax and Herbrand Semantics</title>
+<style>
+	body {
+		margin: 0px 0px 0px 0px;
+		padding: 0px 0px 0px 0px;
+		background: #DCCB8F;
+	}
+	#structure {
+		margin: 8px 8px 8px 8px;
+		border: 2px 2px 2px 2px;
+		border-style: solid;
+		border-color: gray;
+		background: white;
+		width: 98%
+	}
+	#navigation {
+		border: 0px 0px 0px 0px;
+	}
+	td.whiteongreen {padding: 2px 2px 2px 2px; }
+	#whiteongreen {background: #396F43; 
+					color: white;}
+	#whiteongreen a:link {color: white; text-decoration: none;}
+	#whiteongreen a:visited {color: white; text-decoration: none;}
+	#whiteongreen a:hover, a:active {color: white; text-decoration: underline;}
+	
+	#title {font: bold 30pt copperplate;
+			align: center;}
+	#nav { padding: 2px 4px 2px 4px;
+		   	border-right: 2px solid white;}
+	#nav1 { padding: 2px 4px 2px 4px;
+		   	border-right: 2px solid white;
+			border-left: 2px solid white; }
+	#line { width: 70%;
+			border-bottom: 1px solid white; }
+	#overline { width: 70%;
+				border-top: 1px solid gray;
+				font-size: small; }
+</style>
+</head>
+<body>
+<table id="structure">
+<tr><td id="whiteongreen">
+	<div id="title">Herbrand Logic</div>
+	<center>
+	<table class="navigation">
+	<tr>
+	<td id="nav1"><a href="index.html">Overview</a></div>
+	<td id="nav"><a href="herbrandlogic.html">Syntax and Semantics</a></div>
+	<td id="nav"><a href="modeltheory-prooftheory.html">Proof and Model Theory</a></div>
+	<td id="nav"><a href="goedel.html">Goedel</a></div>
+	<td id="nav"><a href="applications.html">Applications</a></div>
+	</tr></table></center>
+</td></tr>
+<tr><td>  
+
+<h2>Goedel's Theorem</h2>
+
+<p>One of the benefits of Herbrand logic is that some theories that do not have finite axiomatizations, or even recursively enumerable axiomatizations, in first-order logic are finitely axiomatizable in Herbrand logic.  In particular, the theory of integer arithmetic is finitely axiomatizable.  
+
+<p>Herbrand logic is therefore more more expressive than FOL.  In FOL, we can encode a Diophantine, but because it is semi-decidable, we are ensured that there is no r.e. axiomatization of the negation of an arbitrary diophantine since otherwise FOL would decide Diophantines, which clearly it can't.  But, in Herbrand logic, we can encode both the Diophantine and its negation; obviously, the downside is that we lose semi-decidability of entailment.
+
+<p>Goedel's first incompleteness proof shows that with multiplication, addition, and an ordering on integers, it is possible to encode the true sentence "this sentence is unprovable".  One consequence of this result is that in every complete logic, arithmetic has no recursively enumerable axiomatization.  
+
+<p>For the purpose of contradiction, suppose there were a recursively enumerable axiomatization of arithmetic in a complete logic.  Then by completeness of the logic there must be a proof of every true sentence from that axiomatization.  That contradicts the truth of the sentence "this sentence is unprovable".  Hence there can be no such recursively enumerable axiomatization.
+
+<p>In an incomplete logic that proof no longer works.  Suppose in some incomplete logic there were a finite axiomatization of arithmetic.  The sentence "this sentence is unprovable" is still true, but a more accurate translation of it is "this sentence is finitely unprovable".  That is, because Goedel's result relies on representing proofs as integers, his notion of unprovable is limited to finite proofs.  Thus, "this sentence is finitely unprovable" is true, but its proof is infinite.    
+
+<p><b>To summarize, in an incomplete logic that admits a recursively enumerable axiomatization of arithmetic, every proof of Goedel's sentence is infinite (assuming that checking whether a proof proves a given conjecture is decidable).  Herbrand logic appears to be such a logic.</b>
+
+<p>Here is an outline for how to finitely axiomatize arithmetic over the natural numbers in Herbrand logic.
+
+<p>Let the vocabulary be {0, s, <, Add, Mult}.  First we exhibit axioms that are strong enough to capture arithmetic over the natural numbers.  Then we argue that these axioms are consistent.
+
+<p><b>Theorem (Axioms for &lt;)</b>: Let A be the model of arithmetic &lt;N,&lt;,+,*&gt;, where N = {0, s(0), ...}.  Let <img src="images/Delta.gif"> be the following set of sentences.
+<ul>1.	x &lt; s(x)<br>
+	2.	x &lt; s(y) <img src="images/Leftarrow.gif"> x &lt; y<br>
+	3.  <img src="images/neg.gif"> s(x) &lt; x<br>
+	4. <img src="images/neg.gif"> s(x) &lt; y <img src="images/Leftarrow.gif"> <img src="images/neg.gif"> x &lt; y</ul>
+Then  <img src="images/forall.gif"> xy. if A <img src="images/models.gif"> [<img src="images/neg.gif">]x&lt;y then <img src="images/Delta.gif"> <img src="images/models.gif"> [<img src="images/neg.gif">]x&lt;y
+
+
+<p><b>Theorem (Axioms for +)</b>: Let A be the model of arithmetic &lt;N,&lt;,+,*&gt;, where N = {0, s(0), ...}.  Let <img src="images/Delta.gif"> be the following set of sentences.
+<ul>1. Add(x,y,z) <img src="images/wedge.gif"> Add(x,y,w) <img src="images/Rightarrow.gif"> z=w<br>
+	2. Add(s(x), y, s(z)) <img src="images/Leftarrow.gif"> Add(x, y, z)<br>
+	3. Add(0, x, x)<br>
+	4. Add(x, s(y), s(z)) <img src="images/Leftarrow.gif"> Add(x, y, z)</ul>
+Then <img src="images/forall.gif"> xyz. if A <img src="images/models.gif"> [<img src="images/neg.gif">]x+y=z then <img src="images/Delta.gif"> <img src="images/models.gif"> [<img src="images/neg.gif">]Add(x,y,z).
+
+<p><b>Theorem (Axioms for *)</b>: Let A be the model of arithmetic &lt;N,&lt;,+,*&gt;, where N = {0, s(0), ...}.  Let <img src="images/Delta.gif"> be the following set of sentences.
+<ul>0. Axioms of addition from above.<br>
+	1. Mult(x,y,z) <img src="images/wedge.gif"> Mult(x,y,w) <img src="images/Rightarrow.gif"> z=w<br>
+	2. Mult(s(x), y, w) <img src="images/Leftarrow.gif"> Mult(x,y,z) <img src="images/wedge.gif"> Add(z, y, w)<br>
+	3. Mult(x,y,z) <img src="images/Leftarrow.gif"> Mult(y,x,z)<br>
+	4. Mult(0,y,0)</ul>
+Then <img src="images/forall.gif"> xyz. if A <img src="images/models.gif"> [<img src="images/neg.gif">]x*y=z then <img src="images/Delta.gif"> <img src="images/models.gif"> [<img src="images/neg.gif">]Mult(x,y,z).
+
+<p>The above three theorems ensure the axioms given entail the theory of arithmetic; it is left to show that the axioms are consistent. The difficulty with showing the axioms are consistent is that we would need to demonstrate the model that satisfies it, which is infinite and therefore cannot be demonstrated.  Instead, we argue that if the rules of algebra taught in high school are consistent, so are the axioms above.
+
+<dl>
+<dt>x < s(x)</dt>
+	<dd>obviously x < x+1 is true</dd>
+<dt>x &lt; s(y) <img src="images/Leftarrow.gif"> x &lt; y</dt>
+	<dd>x &lt; y  (add 1 to y since x is already smaller than y) x &lt; y+1</dd>
+<dt><img src="images/neg.gif"> s(x) &lt; x</dt>
+	<dd>(just rewrite with &gt;=) x + 1 &gt;= x</dd>
+<dt><img src="images/neg.gif"> s(x) &lt; y <img src="images/Leftarrow.gif"> <img src="images/neg.gif"> x &lt; y</dt>
+	<dd>(rewrite with &gt;=) x &gt;= y (add 1 to x since x is already larger than y)  x+1 &gt;= y</dd>
+<dt>Add(x,y,z) <img src="images/wedge.gif"> Add(x,y,w) <img src="images/Rightarrow.gif"> z=w</dt>
+	<dd>functionality of addition: x+y=z and x+y=w means z=w</dd>
+<dt>Add(s(x), y, s(z)) <img src="images/Leftarrow.gif"> Add(x, y, z)</dt>
+	<dd>x + y = z (add 1 to both sides) x + y + 1 = z + 1 (grouping) (x+1) + y = (z+1)</dd>
+<dt>Add(0, x, x)</dt>
+	<dd>0 + x = x</dd>
+<dt>Add(x, s(y), s(z)) <img src="images/Leftarrow.gif"> Add(x, y, z)</dt>
+	<dd>x + y = z (add 1 to both sides) x + y + 1 = z + 1 (group) x + (y+1) = (z+1)</dd>
+<dt>Mult(x,y,z) <img src="images/wedge.gif"> Mult(x,y,w) <img src="images/Rightarrow.gif"> z=w</dt>
+	<dd>x*y = z and x*y = w ensures z=w</dd>
+<dt>Mult(s(x), y, w) <img src="images/Leftarrow.gif"> Mult(x,y,z) <img src="images/wedge.gif"> Add(z, y, w)</dt>
+	<dd> x*y=z and z+y=w (substitute x+y for z in second equation) x*y+y=w (factor out the y) (x+1) * y = w</dd>
+<dt>Mult(x,y,z) <img src="images/Leftarrow.gif"> Mult(y,x,z)</dt>
+	<dd>y * x = z (symmetry of *) x * y = z</dd>
+<dt>Mult(0,y,0)</dt>
+	<dd>0 * y = 0</dt>
+</dl>
+
+This does not constitute a proof that the axioms are consistent, but it does give us some confidence that they are.  It remains to be seen whether having this finite axiomatization allows for finite proofs of interesting theorems in arithmetic or whether all the interesting theorems require infinite proofs.  
+
+
+
+<p><center>
+<div id="overline">
+&copy; Copyright 2006 by 
+<SCRIPT LANGUAGE="JavaScript" type="text/javascript">
+<!--
+var addr1 = "mailto:"
+var addr2 = "thinrich"
+var addr3 = "@"
+var addr4 = "stanford.edu"
+document.write( ' <A HREF=" ' + addr1 + addr2 + addr3 + addr4 + ' "> ' )
+document.write ( ' Tim Hinrichs</A> ' )
+//-->
+</SCRIPT>
+ and the Stanford Logic Group</div>
+</center>
+</td></tr></table>
+</body>
+</html>

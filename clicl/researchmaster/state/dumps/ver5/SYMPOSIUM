@@ -1,0 +1,64 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; symposium
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    (symposium.instance aaai-reasoningwithdiagrammaticrepresentations)
+    (prettyname         aaai-reasoningwithdiagrammaticrepresentations "AAAI Symposium on Reasoning with Diagrammatic Representations ")
+
+    (symposium.instance csf)
+    (prettyname         csf "IEEE Computer Security Foundations Symposium")
+
+    (symposium.instance esorics)
+    (prettyname         esorics "European Symposium on Research in Computer Security")
+
+    (symposium.instance foiks)
+    (prettyname         foiks "Symposium on Foundations of Information and Knowledge Systems ")
+
+    (symposium.instance frocos)
+    (prettyname         frocos "International Symposium on Frontiers of Combining Systems")
+
+    (symposium.instance hpdc)
+    (prettyname         hpdc "ACM/IEEE International Symposium on High Performance Distributed Computing")
+
+    (symposium.instance ieee-nca)
+    (prettyname         ieee-nca "IEEE International Symposium on Network Computing and Applications")
+
+    (symposium.instance ieeesap)
+    (prettyname         ieeesap "IEEE Symposium on Security and Privacy")
+
+    (symposium.instance ieeesymposiumonvisuallanguages)
+    (prettyname         ieeesymposiumonvisuallanguages "IEEE Symposium on Visual Languages")
+
+    (symposium.instance isaac)
+    (prettyname         isaac "International Symposium on Symbolic and Algebraic Computation")
+
+    (symposium.instance lics)
+    (prettyname         lics "Symposium on Logic in Computer Science")
+
+    (symposium.instance ndss)
+    (prettyname         ndss "Network and Distributed System Security Symposium")
+
+    (symposium.instance padl)
+    (prettyname         padl "Symposium on Practical Aspects of Declarative Languages")
+
+    (symposium.instance pods)
+    (prettyname         pods "ACM Symposium on Principles of Database Systems")
+
+    (symposium.instance popl)
+    (prettyname         popl "ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages")
+
+    (symposium.instance sac)
+    (prettyname         sac "ACM Symposium on Applied Computing")
+
+    (symposium.instance sara)
+    (prettyname         sara "Symposium of Abstraction, Reformulation, and Approximation")
+
+    (symposium.instance stacs)
+    (prettyname         stacs "Symposium on Theoretical Aspects of Computer Science")
+
+    (symposium.instance stoc)
+    (prettyname         stoc "Symposium on the Theory of Computing")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

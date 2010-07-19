@@ -1,0 +1,9 @@
+set nocount on
+select distinct
+'(pedit-phone', p.person_id as "---", phone_id as "----", '=', phone_number as "-----", '+ =', phone_type as "------", '+)' 
+from people p, phones ph
+where p.person_id = ph.person_id
+and phone_visible = 'Y'
+and exists (select office_id from offices o where p.person_id = o.person_id and building = 'GATES')
+go
+exit

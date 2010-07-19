@@ -1,0 +1,9 @@
+(=> (paper.topic ?X firstorder) (paper.topic ?x classical))
+(=> (paper.topic ?x propositional) (paper.topic ?x classical))
+(=> (paper.topic ?x herbrandlogic) (paper.topic ?x classical))
+(=> (paper.topic ?x descriptionlogic) (paper.topic ?x classical))
+
+(=> (paper.topic ?x authorization) (paper.topic ?x security))
+(=> (paper.topic ?x privacy) (paper.topic ?x security))
+(=> (paper.topic ?x trustmanagement) (paper.topic ?x security))
+

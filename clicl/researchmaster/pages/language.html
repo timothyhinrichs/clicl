@@ -1,0 +1,121 @@
+<html>
+<head>
+	<title>Jack</title>
+	<link rel="stylesheet" href="/docserver/infoserver/examples/researchmaster/style/main.css" type="text/css" title="normal" />
+	<link rel="stylesheet" href="/docserver/infoserver/examples/researchmaster/style/jack.css" type="text/css" title="normal" />
+</head>
+
+<body>
+
+<div class="structure">
+<div class="whiteongray">
+	<div class="header">
+		<div class="title">Reformulation</div>
+		&nbsp;
+		<span class="nav1"><a href="/examples/">Examples</a></span>
+		<span class="nav"><a href="/references/">References</a></span>
+		<span class="nav"><a href="/jack/">Jack</a></span>
+	<div class="navigation">
+		<span class="nav1"><a href="/jack/reformulate?">Reformulate</a></span>
+		<span class="nav"><a href="/jack/classical?">Classical</a></span>
+		<span class="nav"><a href="/jack/lp?">Logic Programming</a></span>
+		<span class="nav"><a href="/pages/language.htm">Language</a></span>
+	</div>
+</div></div>
+
+<div style="padding-left: 5px; padding-right: 5px;">
+	<p>The language used in all the Jack reasoning tools is KIF, though there are 
+	plans to also support a more natural infix language as well.  Descriptions of
+	both languages as well as a comparison of the two are provided below.
+	
+
+	<div class="languagedesc">
+		<div class="subtitle">KIF (Knowledge Interchange Format)</div>
+		<p>KIF is a prefix first-order language; its spec is 
+		<a href="http://logic.stanford.edu/kif/specification.html">here</a>.  Case does not
+		matter in KIF.
+		
+		<table class="languagespec" cellspacing="0" cellpadding="0">
+		<tr><th>Element</th><th>KIF</th><th>Examples</th></tr>
+		<tr><td>Variable</td><td>Start with ?</td><td>?y, ?xavier, ?name, ?123</td></tr>
+		<tr><td>Object constant</td><td>Standard</td><td>a, 123, lavender</td></tr>
+		<tr><td>Functional term</td><td>Prefix</td><td>(f ?x 123 (g ?y))</td></tr>
+		<tr><td>Atomic Sentence</td><td>Prefix</td><td>(p ?x (g ?y) 7)</td></tr>
+		<tr><td>Quantifiers</td><td>forall , exists</td><td>(forall ?x (p ?x))<br>(forall (?x ?y) (p ?x ?y))<br>(forall ?x (exists ?y (q ?x ?y)))</td></tr>
+		<tr><td>Conjunction</td><td>n-ary: and</td><td>(and p q r s)</td></tr>
+		<tr><td>Disjunction</td><td>n-ary: or </td><td>(or p q r s)</td></tr>
+		<tr><td>Negation</td><td>unary: not </td><td>(not p)</td></tr>
+		<tr><td>Implication</td><td>n-ary: =&gt; </td><td> (=&gt; p q r)</td></tr>
+		<tr><td>Reduction</td><td>n-ary: &lt;= </td><td> (&lt;= p q r)</td></tr>
+		<tr><td>Biconditional</td><td>binary: &lt;=&gt; </td><td> (&lt;=&gt; p q)</td></tr>
+		</table>
+		
+		<p>Note that the implication and reduction connectives are n-ary.
+		<ul>
+		<li><tt>(=> p q r)</tt> is equivalent to <tt>(=> (and p q) r)</tt>.
+		<li><tt>(<= p q r)</tt> is equivalent to <tt>(<= p (and q r))</tt>.
+		</ul>
+
+	</div>
+	
+	<div class="languagedesc">
+		<div class="subtitle">Infix Language</div>
+		<p>The Infix language is a common one for expressing logical sentences in barebones
+		ASCII text.  Free variables begin with a <tt>?</tt>.
+		Quantified variables can be any alphanumeric sequence.  Note that if <tt>?x</tt> appears within the
+		scope of a universally quantifier for variable <tt>x</tt>, they are the same variable.
+		Case does not matter.
+		
+		<table class="languagespec" cellspacing="0" cellpadding="0">
+		<tr><th>Element</th><th>Infix</th><th>Examples</th></tr>
+		<tr><td>Free variables</td><td>Start with ?</td><td>?name, ?123</td></tr>
+		<tr><td>Object constant</td><td>Standard</td><td>a, 123, lavender</td></tr>
+		<tr><td>Functional term</td><td>Standard</td><td>f(x, 123, g(y))</td></tr>
+		<tr><td>Atomic Sentence</td><td>Standard</td><td>p(x, g(?d), 7)</td></tr>
+		<tr><td>Quantifiers</td><td>Ax., Ex.</td><td>Ax.p(x), Ax.Ek.q(x,k)</td></tr>
+		<tr><td>Quantified variables</td><td>Any alphanumeric <br>between a<br> quantifier and .</td><td>Aname., E123.</td></tr>
+		<tr><td>Conjunction</td><td>&amp;</td><td>p & q</td></tr>
+		<tr><td>Disjunction</td><td> | </td><td> p | q</td></tr>
+		<tr><td>Negation</td><td> ~ </td><td> ~p</td></tr>
+		<tr><td>Implication</td><td> =&gt; </td><td> p =&gt; q</td></tr>
+		<tr><td>Reduction</td><td> &lt;= </td><td> p &lt;= q</td></tr>
+		<tr><td>Biconditional</td><td> &lt;=&gt; </td><td> p &lt;=&gt; q</td></tr>
+		</table>
+		
+		To avoid requiring proper parenthesization, the infix language uses the following
+		operator precedence, ranked highest to lowest.  Thus <tt>Ax.p(x) =&gt; q(x)</tt>
+		is equivalent to <tt>(Ax.p(x)) =&gt; q(x)</tt>.
+		
+		<table class="languagespec" cellspacing="0" cellpadding="0">
+		<tr><th>Precedence</th></tr>
+		<tr><td>=</td></tr>
+		<tr><td>~, A, E</td></tr>
+		<tr><td>&</td></tr>
+		<tr><td>|</td></tr>
+		<tr><td>=&gt;, &lt;=, &lt;=&gt;</td></tr>
+		</table>
+		Note that <tt>=&gt;</tt> associates to the right.  Thus <tt>p =&gt; q =&gt; r</tt> is equivalent 
+		to <tt>(p =&gt; (q =&gt; r))</tt>.  <tt>&lt;=</tt> associates to the left. 
+	</div>
+	
+		
+	<div class="languagedesc">
+		<div class="subtitle">Infix and KIF Comparison</div>
+
+		<table class="languagespec" cellspacing="0" cellpadding="0">
+		<tr><th>Infix</th><th>KIF</th></tr>
+		<tr><td>r(a,b,c)</td><td>(r a b c)</td></tr>
+		<tr><td>~p</td><td>(not p)</td></tr>
+		<tr><td>p &amp; q &amp; r</td><td>(and p q r)</td></tr>
+		<tr><td>p | q | r</td><td>(or p q r)</td></tr>
+		<tr><td>(p &amp; r) => q</td><td>(=> p r q)</td></tr>
+		<tr><td>p <= (r &amp; q)</td><td>(<= p r q)</td></tr>
+		<tr><td>Ax.Ey.p(x,y)</td><td>(forall ?x (exists ?y (p ?x ?y)))</td></tr>
+		<tr><td>Ax.Ay.p(x,y)</td><td>(forall (?x ?y) (p ?x ?y))</td></tr>
+		</table>
+
+	</div>
+</div>
+
+</body>
+</html>

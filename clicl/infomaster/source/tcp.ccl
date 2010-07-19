@@ -1,0 +1,111 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; (c) Copyright 1992-2007 Michael Genesereth.  All rights reserved.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(setq *long-site-name* (machine-instance))
+
+(defparameter *host* *long-site-name*)
+
+(defparameter *ip* "0.0.0.0")
+
+(defparameter *port* 4800)
+
+(defun tcp-listener (port)
+  (make-socket :type :stream :connect :passive :local-port port))
+
+(defun tcp-server (function port)
+  (with-open-stream (listener (tcp-listener port))
+    (let ((s (accept-connection listener)))
+      (process-run-function "TCP Handler" function s port (tcp-hostname s)))))
+
+(defun tcp-servers (function port)
+  (with-open-stream (listener (tcp-listener port))
+    (do ((s (accept-connection listener)  (accept-connection listener)))
+	(nil)
+        (process-run-function "TCP Handler" function s port (tcp-hostname s)))))
+
+(defun tcp-handlers (function port)
+  (with-open-stream (listener (tcp-listener port))
+    (do ((s (accept-connection listener)  (accept-connection listener)))
+	(nil)
+        (funcall function s port (tcp-hostname s)))))
+
+(defun tcp-shutdown ()
+  (dolist (process (all-processes))
+    (when (equalp (process-name process) "TCP Handler")
+      (process-kill process))))
+
+(defun tcp-hostname (socket)
+  (ipaddr-to-dotted (remote-host socket)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Stream operations for tcp connections.
+;;; Also, remember the following stream subroutine:
+;;;   (clear-input stream)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defparameter *trace* nil)
+
+(defun tcp-speaker (host port)
+  (make-socket :type :stream :connect :active :remote-host host :remote-port port))
+
+(defun send (msg stream)
+  (when *trace*
+    (fresh-line *trace*) (prin1 msg *trace*) (force-output *trace*))
+  (let ((*print-pretty* nil)) (prin1 msg stream))
+  (write-char #\return stream)
+  (finish-output stream)
+  'done)
+
+(defun receive (stream)
+  (do ((msg (accept stream) (accept stream)))
+      (msg msg)))
+
+(defun accept (stream)
+  (let (msg)
+    (when (listen stream)
+      (setq msg (read stream))
+      (when *trace* (fresh-line *trace*)
+            (prin1 msg *trace*) (force-output *trace*))
+      msg)))
+
+(defun ip-to-number (a b c d)
+  (+ (* (expt 256 3) a)
+     (* (expt 256 2) b)
+     (* (expt 256 1) c)
+     d))
+
+(defun number-to-ip (n)
+  (list (floor n (expt 256 3))
+        (floor (mod n (expt 256 3)) (expt 256 2))
+        (floor (mod n (expt 256 2)) 256)
+        (mod n 256)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Mailers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun mail (from to subject body server)
+  (with-open-stream (s (tcp-speaker server 25))
+    (sendmsg "helo sequel" s)
+    (sendmsg (format nil "mail from: ~a" from)  s)
+    (sendmsg (format nil "rcpt to: ~a" to) s)
+    (sendmsg "data" s)
+    (sendmsg (format nil "Subject: ~a" subject) s)
+    (sendmsg (format nil "Errors-To: ~a" from) s)
+    (sendmsg (format nil "Reply-To: ~a"  from) s)
+    (sendmsg (format nil "~a" body)  s)
+    (sendmsg "." s)
+    (sleep 1)
+    (clear-input s)
+    (close s :abort t)
+    'done))
+
+(defun sendmsg (msg stream)
+  (format stream "~a~a~a" msg #\Return #\linefeed)
+  (finish-output stream)
+  t)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

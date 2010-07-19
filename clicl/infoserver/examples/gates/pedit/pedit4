@@ -1,0 +1,9 @@
+set nocount on
+select distinct
+'(pedit-email', p.person_id as "---", cs_name as "----", ')' 
+from people p, csaliases a
+where p.person_id = a.person_id
+and primary_alias = 'Y'
+and exists (select office_id from offices o where p.person_id = o.person_id and building = 'GATES')
+go
+exit

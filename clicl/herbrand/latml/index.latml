@@ -1,0 +1,45 @@
+
+<h2>Synopsis of Herbrand Logic</h2>
+<center>Herbrand Logic = First-order syntax + Herbrand semantics</center>
+<ul>
+<li>Without functions, entailment is decidable.
+<li>With functions, entailment is not semi-decidable and satisfiability is not semi-decidable.
+<li>With functions, premises in the \forall* fragment, query in the \exists* fragment, entailment is semi-decidable.
+<li>The theory of integer arithmetic, i.e. &lt;N, &lt;, +, *&gt;, is finitely axiomatizable.
+<li>Four very successful applications of logic in computer science, deductive databases, constraint satisfaction, logic programming, and formal verification, all make assumptions that are embodied in Herbrand logic: a domain closure axiom and unique names axioms.
+<li>Inductive Theorem Proving is defined as theorem proving in Herbrand logic.
+</ul>
+
+
+<h2>Another Logic?</h2>
+<!--
+<p>Logic has not had the success in computer science (CS) that it was once prophesied to have.  Logic programming was supposed to usher in the next generation of computers, but it has yet to fulfill those expectations.  Moreover, students trying to learn the logic foundational to the subfields of CS employing logic often have significant difficulties understanding even the most basic concepts.   A brief look back at the genesis of logic will help to shed some light on why these difficulties exist. -->
+
+<p>Logic was invented in an attempt to understand the foundations of mathematics.  What does it mean for a theorem to be true?  Does x*y really equal y*x?  Paradoxes are sentences that are neither true nor false, yet they creep into mathematics; is that bad, good, or is it irrelevant?  How can we prove that a mathematical proof is correct?  How do we even make sense of these questions?
+
+<p>First-order logic (FOL) is one answer to the last question.  If some theorem of a mathematical system can be proven from the axioms of that system written in first-order logic, the theorem holds.  Because of this commitment to mathematical truth in general, FOL was defined so that it can be used across a broad spectrum of mathematics.  It is not tailored to the study of integers, real numbers, geometry, topology, or any particular branch of mathematics.  
+
+<p>FOL was certainly not designed to model or manipulate finite machines, the central activities in computer science.  More than that, at times it is ill-suited for the purpose.  Consider a detailed model of a computer which shows how its state, e.g. memory contents and program counter, changes over time.  Because time in a computer is discrete, state can only change on each clock tick.  A finite memory modeled for countably many time steps would require a model of countably infinite size.  But in first-order logic, there is no way to constrain such a model to one of countable size; if a set of first-order sentences has a model of infinite size, it has a model of every infinite size (Lowenheim-Skolem-Tarski).  Thus, in first-order logic, the query, "is the program counter positive at every time step?" is not even expressible.
+
+<p>Nevertheless logic is used throughout computer science, most notably in deductive database theory, constraint satisfaction, logic programming, and formal verification.  Often, the foundations of these fields of study are taught as special cases of first-order logic.  Here we depart from that practice (after having repeatedly taught first-order semantics only to see even the good students misunderstand the very notion of a model), and begin with a logic tailored for computer scientists, whose main interests are modeling and manipulating computers.  We have employed the name Herbrand logic, to reflect its first-order syntax and Herbrand semantics.
+
+<p>Part of the motivation for building this website was the frustration brought about by looking for and failing to find general results on this logic.  Herbrand semantics appears repeatedly in the literature of logic programming, but the only results we were able to find in that community are for the fragment of Herbrand logic that  coincides with first-order logic, i.e. \forall* premises and \exists* queries.  After constructing the site, we realized that all the results here have been well known in the inductive theorem proving (ITP) community, where the central concern turns out to be proving theorems in Herbrand logic.  The nonmonotonic community has also studied this logic in at least two forms, both of which fall under the umbrella of minimal entailment: Domain Circumscription and Herbrand entailment.
+
+<p>Our aims are slightly different than the aims of researchers in the ITP and Nonmon communities.  We are looking for ways to unify the work on deductive databases, constraint satisfaction, logic programming, and formal verification so that systems given problems stated in Herbrand logic can employ the results from these four areas to efficiently solve those problems.  On this site, we have attempted to explain some of Herbrand Logic's model theory and proof theory without slanting analysis toward one application or another.  By treating it as a logic in its own right, we hope to achieve two goals: (1) provide a simple framework for building machines that can efficiently reason throughout the space of Herbrand logic and (2) improve how logic is taught to computer scientists.
+
+  
+<h2>Reading Guide</h2>	
+<ul>
+	<li><a href="herbrandlogic.html">Syntax and Semantics</a>: Definitions for the syntax and semantics of Herbrand logic, along with syntax and semantics of first-order logic, for comparison.
+	<li><a href="modeltheory-prooftheory.html">Proof and Model Theory</a>: Some (un)decidability results for entailment and some finite axiomatizability results.
+	<li><a href="goedel.html">Goedel</a>: A discussion of Goedel's incompleteness proof and results showing how to finitely encode integer arithmetic in Herbrand logic.
+	<li><a href="applications.html">Applications</a>: Definitions for deductive databases, constraint satisfaction problems, a couple of logic programming languages, and formal verification, all rooted in Herbrand logic.
+</ul>
+
+<h2>On Symbology</h2>	
+Because this website's central concern is logic, it uses many logical symbols.  Unfortunately, browsers support these symbols to differing degrees.  Whenever possible we have used HTML 4.0 codes, then employed Unicode, and finally used  text as a last resort.  IE is particularly limited and appears to be the only major browser that does not support some of the most basic symbols: quantifiers and &lt;=.  Text, especially when used to represent quantifiers, is especially hard to read, and so we have decided to wait to construct another version of the site until we have been prompted to do so.  Please let us know if some of the symbols we have chosen either do not work or are hard to read.
+<a href="symboltest.html">Here</a> is a page for checking which symbols your browser supports (though it is not updated regularly).  Also, the <a href="http://plato.stanford.edu/">Stanford Encyclopedia of Philosophy</a> includes a <a href="http://plato.stanford.edu/special-characters.html">guide for viewing special characters</a>.
+
+
+
+

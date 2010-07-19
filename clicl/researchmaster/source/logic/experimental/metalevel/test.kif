@@ -1,0 +1,119 @@
+
+; standard unsat
+(metaresolution '((p q) ((not p) (not q)) (p (not q)) ((not p) q)) '())
+
+; remove tr first
+(metaresolution '(((tr ?x) (p ?y))) '(((not (tr a)) (not (p a)))))
+
+; factoring
+(metaresolution '(((p ?x) (p ?y))) '(((not (p ?u)) (not (p ?t)))))
+
+; factoring is unnecessary
+(metaresolution '((p) ((not p))) '(((not (p ?u)) (not (p ?t)))))
+
+; cspslast
+(metaresolution '((varr p q) ((not p)) ((not q)) ((not varr))) nil)
+
+; cspslast and trfirst
+(metaresolution '((varr p q) ((not p) tr) ((not q)) ((not tr)) ((not varr))) nil)
+
+; metaresolve inside trs
+(metaresolution '(((tr (cons_not (listof 'p 'a))))) '(((tr (listof 'p 'a)))))
+(metaresolution '(((tr (cons_not (listof 'p 'a))))) '(((tr (listof 'p '?x)))))
+(metaresolution '(((tr (cons_not (listof 'p (listof 'f ?y)))))) '(((r ?x) (tr (listof 'p ?x)))))
+
+; mgu-tr2-arg
+(mgu-tr2-arg '?x '?y)
+  ; (#S(METAUNIFIER :MGU #S(BINDINGLIST :THELIST ((?X CONS_NOT ?49) (T . T))) :DISJUNCTION ((NOT (UNIFY ?Y ?49)))))
+(mgu-tr2-arg '?x '(cons_not (listof 'p 'a)))
+  ; (#S(METAUNIFIER :MGU #S(BINDINGLIST :THELIST ((?X LISTOF 'P ?48) (T . T))) :DISJUNCTION ((NOT (UNIFY ?48 'A)))))
+(mgu-tr2-arg '?x '(listof 'p 'a))
+  ; (#S(METAUNIFIER :MGU #S(BINDINGLIST :THELIST ((?X CONS_NOT (LISTOF 'P ?46)) (T . T) (?45 LISTOF 'P ?46))) :DISJUNCTION ((NOT (UNIFY ?46 'A)))))
+(mgu-tr2-arg '(cons_not (listof 'p)) '(listof ?x))
+  ;(#S(METAUNIFIER :MGU #S(BINDINGLIST :THELIST ((T . T))) :DISJUNCTION ((NOT (UNIFY ?X 'P)))))
+(mgu-tr2-arg '(cons_not ?y) '(cons_not ?z))     
+  ; nil
+(mgu-tr2-arg '(listof ?x) '(listof ?y))    
+  ; nil
+(mgu-tr2-arg '(cons_not (listof 'p '?x 'a '?x)) '(listof 'p 'b '?y '?z))
+  ; (#S(METAUNIFIER :MGU #S(BINDINGLIST :THELIST ((T . T) ('?X QUOTE B) ('?Y QUOTE A) ('?Z QUOTE B))) :DISJUNCTION NIL))
+
+; mgu-tr2-disjunction
+(mgu-tr2-disjunction '(or ?x) '(or (cons_not (listof 'p 'a))))
+  ; (#S(METAUNIFIER :MGU #S(BINDINGLIST :THELIST ((?X LISTOF 'P ?85) (T . T))) :DISJUNCTION ((NOT (UNIFY ?85 'A)))))
+(mgu-tr2-disjunction '(or ?x ?y) '(or (cons_not (listof 'p 'a))))
+  ; (#S(METAUNIFIER :MGU #S(BINDINGLIST :THELIST ((?Y LISTOF 'P ?89) (T . T))) :DISJUNCTION ((TR (OR ?X)) (NOT (UNIFY ?89 'A)))) #S(METAUNIFIER :MGU #S(BINDINGLIST :THELIST ((?X LISTOF 'P ?87) (T . T))) :DISJUNCTION ((TR (OR ?Y)) (NOT (UNIFY ?87 'A)))))
+(mgu-tr2-disjunction '(or ?x (listof 'q 'a)) '(or (cons_not (listof 'p 'a))))
+  ; (#S(METAUNIFIER :MGU #S(BINDINGLIST :THELIST ((?X LISTOF 'P ?91) (T . T))) :DISJUNCTION ((TR (OR (LISTOF 'Q 'A))) (NOT (UNIFY ?91 'A)))))
+(mgu-tr2-disjunction '(or (cons_not ?x) (listof 'q ?x)) '(or (listof 'p 'a)))
+  ; (#S(METAUNIFIER :MGU #S(BINDINGLIST :THELIST ((?X LISTOF 'P ?99) (T . T))) :DISJUNCTION ((TR (OR (LISTOF 'Q (LISTOF 'P ?99)))) (NOT (UNIFY ?99 'A)))))
+
+;metaresolution
+(setq *tautology-elim* t *subsumption* t)
+(metaresolution '(((tr (or (listof 'p) (listof 'q)))))
+                '(((tr (or (cons_not (listof 'p)) (listof 'q))))
+                  ((tr (or (listof 'p) (cons_not (listof 'q)))))
+                  ((tr (or (cons_not (listof 'p)) (cons_not (listof 'q)))))))
+(metaresolution '(((p ?u) (p ?v))) '(((not (p ?w)) (not (p ?t)))))
+
+; for comparison
+(setq *tautology-elim* nil *subsumption* nil)
+(metaresolution '((p q))  '(((not p) (not q)) (p (not q)) ((not p) q)))
+
+(define-theory 'test10 "" '(((d (listof 'p (listof 'f 'a)))) ))
+(metafind '(((not (p ?x)))) 'test10)
+(define-theory 'test11 "" '(((tr (listof 'p ?x)) (not (varr ?x)))))
+(metafind '(((not (p a)))) 'test11 1)
+(define-theory 'test12 "" '(((d (or (listof 'p 'a) (listof 'q 'a)))) ((not (d ?y)) (tr ?y))))
+(metafind '(((not (p a))) ((not (q a)))) 'test12 2)
+
+
+(metaresolution '(((not r))) '((p r) (p)))
+
+(metaresolution '(  ((tr (or (listof 'p) (listof 'q))))
+                      ((tr (or (cons_not (listof 'p)) (listof 'q))))
+                      ((tr (or (listof 'p) (cons_not (listof 'q)))))
+                      ((tr (or (cons_not (listof 'p)) (cons_not (listof 'q))))))
+
+                  '())
+
+(metaresolution (mapcar #'(lambda (x) (list (list 'tr (cons 'or (cdr (enquote x)))))) '(
+                  ((p) (q) (r))
+                  ((p) (q) (not (r)))
+                  ((p) (not (q)) (r))
+                  ((p) (not (q)) (not (r)))
+                  ((not (p)) (q) (r))
+                  ((not (p)) (q) (not (r)))
+                  ((not (p)) (not (q)) (r))
+                  ((not (p)) (not (q)) (not (r)))
+                  ))
+                '())
+                  
+(metaresolution (mapcar #'(lambda (x) (list (list 'tr (cons 'or (cdr (enquote x)))))) '(
+;                  ((p ?x) (not (q ?x)) (not (r ?x)) (not (s ?x)) (not (t ?x)) (not (u ?x)))
+;                  ((q ?y) (not (r ?y)) (not (s ?y)) (not (t ?y)) (not (u ?y)))
+;                  ((r ?z) (not (s ?z)) (not (t ?z)) (not (u ?z)))
+                  ((s ?w) (not (t ?w)) (not (u ?w)))
+                  ((t ?1) (not (u ?1)))
+;                  ((not (p ?2)) (q ?2) (r ?2) (s ?2) (t ?2) (u ?2))
+;                  ((not (q ?3)) (r ?3) (s ?3) (t ?3) (u ?3))
+;                  ((not (r ?4)) (s ?4) (t ?4) (u ?4))
+                  ((not (s ?5)) (t ?5) (u ?5))
+                  ((not (t ?6)) (u ?6))
+                  ((u a))
+                  ((not (s a)))
+                  ))
+                '())
+
+(metaresolution '((p q) ((not p) q) (p (not q)) ((not p) (not q))) '())
+
+
+DROP THE SOS AND THE TR FIRST.  JUST LEAVE THE UNIFY, RELATION, VARIABLE, ETC. TO THE END.
+MAYBE WE CAN AVOID GENERATING ALL THOSE STUPID DISJUNCTIONS AND AT THE SAME TIME AVOID ENUMERATING AXIOM SCHEMATA.
+
+
+
+FACTORING STILL NEEDS TO BE IMPLEMENTED, I.E. METAFACTORING AND CROSSFACTORING.
+
+
+(trace MGU-TR2-ARG MGU-TR2-RES MGU-TR2-ALL-DISJUNCTIONS MGU-TR2-DISJUNCTION ALL-DISJUNCTS METARESOLVE-FULL-TR)

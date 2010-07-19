@@ -1,0 +1,54 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Creating an Infomaster Application
+;;;  (1) Load Infomaster as usual
+;;;  (2) Load this file
+;;;  (3) Load loop package
+;;;  (4) Open Save Application Dialog from Tools menu
+;;;       Set Application class --> Application
+;;;       Set Menubar --> *infomaster-menubar*
+;;;       Set Minimum size --> 20000
+;;;       Set Preferred size --> 60000
+;;;       Set Application signature --> info
+;;;       Click Save Image and supply name Infomaster
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defparameter *infomaster-window* nil)
+
+(defun restart ()
+  (stop)
+  (tcp-servers #'http-handler 3000 10)
+  (print "Infomaster running on port 3000." *infomaster-window*))
+
+(defun stop ()
+  (tcp-shutdown)
+  (print "Infomaster stopped." *infomaster-window*))
+
+(defparameter *infomaster-menubar*
+  (list *file-menu* *edit-menu* *lisp-menu* *tools-menu*
+        (make-instance 'menu
+          :menu-title "Servers"
+          :menu-items (list (make-instance 'menu-item
+                              :menu-item-title "Restart"
+                              :menu-item-action #'restart)
+                            (make-instance 'menu-item
+                              :menu-item-title "Stop"
+                              :menu-item-action #'stop)))
+        *windows-menu*))
+
+(defun start-infomaster ()
+  (setq *background-event-ticks* 30)
+  (setq *host* (hostname))
+  (setq *port* 3000)
+  (setq *homedir* (choose-file-default-directory))
+  (setq *infomaster-window*
+        (make-instance 'window :window-title "Infomaster" :view-size 28050246))
+  (tcp-servers #'http-handler 3000 10)
+  (print "Infomaster running on port 3000." *infomaster-window*)
+  'done)
+
+(setq *lisp-startup-functions*
+      (adjoin 'start-infomaster *lisp-startup-functions*))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

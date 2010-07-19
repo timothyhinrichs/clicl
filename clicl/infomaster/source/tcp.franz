@@ -1,0 +1,57 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; (c) Copyright Epistemics Inc.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(require :socket) ; load the socket code
+
+(defun open-tcp-stream (host port)
+        (declare (type string host))
+        (declare (type (integer 0 *) port))
+        (cond (host (format t "~%connecting to ~A on port ~A~%" host
+port)
+                    (socket:make-socket :remote-host host :remote-port
+port))
+                  (t (format t "~%listening on port ~A~%" port)
+                     (socket:make-socket :connect :passive :local-port
+port))))
+
+(defun tcp-server (function port)
+  (let ((websocket (open-tcp-stream nil port))(ip))
+    (unwind-protect
+        (loop
+          (let ((s (socket:accept-connection websocket)))
+            (unwind-protect
+               (setq ip (socket:ipaddr-to-dotted (socket:remote-host
+s)))
+              (mp:process-run-function "TCP Handler" function s port
+ip)))))))   
+     
+
+(defun start-tcp-server-process (function port)
+  (mp:process-run-function "TCP Server" #'tcp-server function port))
+
+
+
+(defun make-lock ()
+  (mp::make-process-lock))
+
+(defmacro with-lock-grabbed (lock &rest body)
+  `(mp::with-process-lock ,lock . ,body))
+(eval-when (compile load eval)
+  (cltl1::require :process)
+  (cltl1::require :foreign))
+
+(defun processp (x) (typep x 'mp::process))
+
+
+(defun process-run-function (&rest args)
+  (apply #'mp::process-run-function args))
+
+(defun process-kill (x) (mp::process-kill x))
+
+(defun process-msecs () (mp::process-cpu-msec-used
+mp::*current-process*))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

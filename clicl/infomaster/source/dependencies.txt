@@ -1,0 +1,512 @@
+Welcome to Macintosh Common Lisp Version 5.0!
+? 
+;Loading #P"gullible:logicalc:loader.mcl"...
+;Loading #P"gullible:infomaster:source:loader.mcl"...
+;Loading #P"gullible:mcl:library:loop.cfsl"...
+;Loading #P"gullible:mcl:library:opentransport.lisp"...
+;Loading #4P"ccl:library;IO-BUFFER.lisp"...
+;Loading #P"gullible:epilog:source:base.lisp"...
+;Loading #P"gullible:epilog:source:true.lisp"...
+;Loading #P"gullible:epilog:source:fact.lisp"...
+;Loading #P"gullible:epilog:source:fast.lisp"...
+;Loading #P"gullible:epilog:source:data.lisp"...
+;Loading #P"gullible:epilog:source:view.lisp"...
+;Loading #P"gullible:epilog:source:full.lisp"...
+;Loading #P"gullible:epilog:source:find.lisp"...
+;Loading #P"gullible:infomaster:source:magenta.lisp"...
+;Loading #P"gullible:infomaster:source:factserver.lisp"...
+;Loading #P"gullible:infomaster:source:viewserver.lisp"...
+;Loading #P"gullible:infomaster:source:fullserver.lisp"...
+;Loading #P"gullible:infomaster:source:dataserver.lisp"...
+;Loading #P"gullible:infomaster:source:diffserver.lisp"...
+;Loading #P"gullible:infomaster:source:ruleserver.lisp"...
+;Loading #P"gullible:infomaster:source:fastserver.lisp"...
+;Loading #P"gullible:infomaster:source:translator.lisp"...
+;Loading #P"gullible:infomaster:source:transformer.lisp"...
+;Loading #P"gullible:infomaster:source:integrator.lisp"...
+;Loading #P"gullible:infomaster:source:facilitator.lisp"...
+;Loading #P"gullible:infomaster:source:interface.lisp"...
+;Loading #P"gullible:infomaster:source:preprocessor.lisp"...
+;Loading #P"gullible:infomaster:source:logic.lisp"...
+;Loading #P"gullible:infomaster:source:sequel.lisp"...
+;Loading #P"gullible:infomaster:source:formats.lisp"...
+;Loading #P"gullible:infomaster:source:tcp.lisp"...
+;Loading #P"gullible:infomaster:source:remote.lisp"...
+;Loading #P"gullible:infomaster:source:http.lisp"...
+;Loading #P"gullible:infomaster:source:html.lisp"...
+;Loading #P"gullible:infomaster:source:proforma.lisp"...
+;Loading #P"gullible:infomaster:source:docserver.lisp"...
+;Loading #P"gullible:infomaster:source:miscellaneous.lisp"...
+;Loading #P"gullible:logicalc:websheets.lisp"...
+;Compiler warnings :
+;   Undefined function READ-SENTENCES, in PROCESS-EDITCONTENTS-CHANGE.
+;   Undefined function READ-USER-STRING, in PROCESS-EDITCONTENTS-CHANGE.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-EDITCONTENTS-START.
+;   Undefined function OUTPUT-HEADER, in PROCESS-EDITCONTENTS-START.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-EDITCONTENTS-START.
+;   Undefined function READ-USER-STRING, in PROCESS-EDITCONTENTS-START.
+;   Undefined function READ-USER-STRING, in (PROCESS (T (EQL 'CONTENTS) T)) inside an anonymous lambda form.
+;   Undefined function OUTPUT-PROLOG, in (PROCESS (T (EQL 'CONTENTS) T)) inside an anonymous lambda form.
+;   Undefined function OUTPUT-HEADER, in (PROCESS (T (EQL 'CONTENTS) T)) inside an anonymous lambda form.
+;   Undefined function OUTPUT-FOOTER, in (PROCESS (T (EQL 'CONTENTS) T)) inside an anonymous lambda form.
+;   Undefined function READ-USER-STRING, in (PROCESS (T (EQL 'CONSTRAINTS) T)) inside an anonymous lambda form.
+;   Undefined function OUTPUT-PROLOG, in (PROCESS (T (EQL 'CONSTRAINTS) T)) inside an anonymous lambda form.
+;   Undefined function READ-USER-STRING (2 references), in (PROCESS (T (EQL 'INTERPRET) T)) inside an anonymous lambda form.
+;   Undefined function OUTPUT-PROLOG, in (PROCESS (T (EQL 'INTERPRET) T)) inside an anonymous lambda form.
+;   Undefined function PRETTIFY, in GETCELLVALUE.
+;   Undefined function OUTPUT-PROLOG, in (PROCESS (T (EQL 'REFRESH) T)) inside an anonymous lambda form.
+;   Undefined function READ-USER-STRING (2 references), in (PROCESS (T (EQL 'PROPAGATE) T)) inside an anonymous lambda form.
+;   Undefined function OUTPUT-PROLOG, in (PROCESS (T (EQL 'PROPAGATE) T)) inside an anonymous lambda form.
+;   Undefined function OUTPUT-PROLOG, in (PROCESS (T (EQL 'GINRMS) T)) inside an anonymous lambda form.
+;   Undefined function GETF-POST, in (PROCESS (T (EQL 'DOC) T)) inside an anonymous lambda form.
+;   Undefined function READ-USER-STRING (3 references), in (PROCESS (T (EQL 'TRIPLE) T)) inside an anonymous lambda form.
+;   Undefined function PROREQUEST (2 references), in (PROCESS (T (EQL 'TRIPLE) T)) inside an anonymous lambda form.
+;   Undefined function OUTPUT-PROLOG, in (PROCESS (T (EQL 'TRIPLE) T)) inside an anonymous lambda form.
+;   Undefined function OUTPUT-CREATOR-STRUCTURE, in OUTPUT-CREATE-STRUCTURE.
+;   Undefined function OUTPUT-SQUARE-BUTTON (2 references), in OUTPUT-CREATE-STRUCTURE.
+;   Undefined function OUTPUT-TRASH-BUTTON (2 references), in OUTPUT-CREATE-STRUCTURE.
+;   Undefined function OUTPUT-SNOW-BUTTON (2 references), in OUTPUT-CREATE-STRUCTURE.
+;   Undefined function OUTPUT-UPDATER-STRUCTURE, in OUTPUT-CREATE-STRUCTURE.
+;   Undefined function PROREQUEST, in OUTPUT-CREATE-STRUCTURE.
+;   Undefined function OUTPUT-REMOVAL-BUTTON (2 references), in OUTPUT-CREATE-STRUCTURE.
+;   Undefined function OUTPUT-ANOTHER-BUTTON (2 references), in OUTPUT-CREATE-STRUCTURE.
+;   Undefined function FIND-CREATELABEL, in OUTPUT-CREATE-STRUCTURE.
+;   Undefined function FIND-CREATESTYLE, in OUTPUT-CREATE-STRUCTURE.
+;   Undefined function FIND-MULTIVALUED, in OUTPUT-CREATE-STRUCTURE.
+;   Undefined function OUTPUT-PROLOG, in OUTPUT-CREATE-PAGE.
+;   Undefined function REVNEW, in PROCESS-CREATE-REVISION.
+;   Undefined function PARSESTRUCTURE, in PROCESS-CREATE-REVISION.
+;   Undefined function DIFFERENTIATOR, in PROCESS-CREATE-ACL.
+;   Undefined function GENERATE-ACL, in PROCESS-CREATE-ACL.
+;   Undefined function PARSESTRUCTURE, in PROCESS-CREATE-ACL.
+;   Undefined function OUTPUT-CREATOR-REVISION, in PROCESS-CREATE-CREATOR.
+;   Undefined function PARSESTRUCTURE, in PROCESS-CREATE-CREATOR.
+;   Undefined function CREATEITEM, in PROCESS-CREATE-START.
+;   Undefined function NEWINSTANCE, in PROCESS-CREATE-START.
+;   Undefined function READ-VALUE-STRING, in PROCESS-CREATE-START.
+;   Undefined function GETF-POST, in (PROCESS (T (EQL 'CREATE) T)) inside an anonymous lambda form.
+;   Undefined function OUTPUT-VALUE, in OUTPUT-CHANGE-GLYPH.
+;   Undefined function DATEP, in OUTPUT-CHANGE-DATESTYLE.
+;   Undefined function FIND-OPTIONS, in OUTPUT-CHANGE-RADIOBUTTON.
+;   Undefined function FIND-OPTIONS, in OUTPUT-CHANGE-CHECKBOX.
+;   Undefined function FIND-COMPONENTS, in OUTPUT-CHANGE-MULTISELECTOR.
+;   Undefined function FIND-OPTIONS, in OUTPUT-CHANGE-MULTISELECTOR.
+;   Undefined function FIND-REFERENCES, in OUTPUT-CHANGE-MULTISELECTOR.
+;   Undefined function FIND-ALTERNATIVES, in OUTPUT-CHANGE-SELECTOR.
+;   Undefined function FIND-OPTIONS, in OUTPUT-CHANGE-MENU.
+;   Undefined function OUTPUT-CREATOR-STRUCTURE, in OUTPUT-CHANGE-STRUCTURE.
+;   Undefined function OUTPUT-SQUARE-BUTTON (2 references), in OUTPUT-CHANGE-STRUCTURE.
+;   Undefined function OUTPUT-TRASH-BUTTON (2 references), in OUTPUT-CHANGE-STRUCTURE.
+;   Undefined function OUTPUT-SNOW-BUTTON (2 references), in OUTPUT-CHANGE-STRUCTURE.
+;   Undefined function OUTPUT-UPDATER-STRUCTURE, in OUTPUT-CHANGE-STRUCTURE.
+;   Undefined function PROREQUEST, in OUTPUT-CHANGE-STRUCTURE.
+;   Undefined function OUTPUT-REMOVAL-BUTTON (2 references), in OUTPUT-CHANGE-STRUCTURE.
+;   Undefined function OUTPUT-ANOTHER-BUTTON (2 references), in OUTPUT-CHANGE-STRUCTURE.
+;   Undefined function FIND-CHANGELABEL, in OUTPUT-CHANGE-STRUCTURE.
+;   Undefined function FIND-CHANGESTYLE, in OUTPUT-CHANGE-STRUCTURE.
+;   Undefined function FIND-MULTIVALUED, in OUTPUT-CHANGE-STRUCTURE.
+;   Undefined function FORMAT-TOP-BUTTON (2 references), in OUTPUT-CHANGE-PAGE.
+;   Undefined function OUTPUT-PROLOG, in OUTPUT-CHANGE-PAGE.
+;   Undefined function REVNEW, in PROCESS-CHANGE-REVISION.
+;   Undefined function PARSESTRUCTURE, in PROCESS-CHANGE-REVISION.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-CHANGE-DROP.
+;   Undefined function OUTPUT-VALUE, in PROCESS-CHANGE-DROP.
+;   Undefined function OUTPUT-HEADER, in PROCESS-CHANGE-DROP.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-CHANGE-DROP.
+;   Undefined function GETF-POST, in PROCESS-CHANGE-DROP.
+;   Undefined function READ-USER-STRING, in PROCESS-CHANGE-DROP.
+;   Undefined function PARSESTRUCTURE, in PROCESS-CHANGE-DROP.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-CHANGE-SAVE.
+;   Undefined function OUTPUT-VALUE, in PROCESS-CHANGE-SAVE.
+;   Undefined function OUTPUT-HEADER, in PROCESS-CHANGE-SAVE.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-CHANGE-SAVE.
+;   Undefined function GETF-POST, in PROCESS-CHANGE-SAVE.
+;   Undefined function READ-USER-STRING, in PROCESS-CHANGE-SAVE.
+;   Undefined function ATTRIBUTES, in PROCESS-CHANGE-SAVE.
+;   Undefined function PARSESTRUCTURE, in PROCESS-CHANGE-SAVE.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-CHANGE-DIFFERENCE.
+;   Undefined function DIFFERENTIATOR, in PROCESS-CHANGE-DIFFERENCE.
+;   Undefined function PRINT-ACL, in PROCESS-CHANGE-DIFFERENCE.
+;   Undefined function OUTPUT-HEADER, in PROCESS-CHANGE-DIFFERENCE.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-CHANGE-DIFFERENCE.
+;   Undefined function PARSESTRUCTURE, in PROCESS-CHANGE-DIFFERENCE.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-CHANGE-CONTENT.
+;   Undefined function CONVERTER, in PROCESS-CHANGE-CONTENT.
+;   Undefined function PRINT-ACL, in PROCESS-CHANGE-CONTENT.
+;   Undefined function OUTPUT-HEADER, in PROCESS-CHANGE-CONTENT.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-CHANGE-CONTENT.
+;   Undefined function PARSESTRUCTURE, in PROCESS-CHANGE-CONTENT.
+;   Undefined function OUTPUT-CHANGER-PAGE, in PROCESS-CHANGE-TEXTUAL.
+;   Undefined function PARSESTRUCTURE, in PROCESS-CHANGE-TEXTUAL.
+;   Undefined function ERRORP, in PROCESS-CHANGE-DELETE.
+;   Undefined function PROREQUEST (2 references), in PROCESS-CHANGE-DELETE.
+;   Undefined function PARSESTRUCTURE, in PROCESS-CHANGE-DELETE.
+;   Undefined function NEWINSTANCE, in PROCESS-CHANGE-COPY.
+;   Undefined function PARSESTRUCTURE, in PROCESS-CHANGE-COPY.
+;   Undefined function DIFFERENTIATOR, in PROCESS-CHANGE-ACL.
+;   Undefined function GENERATE-ACL, in PROCESS-CHANGE-ACL.
+;   Undefined function PARSESTRUCTURE, in PROCESS-CHANGE-ACL.
+;   Undefined function REVISEITEM, in PROCESS-CHANGE-CHANGE.
+;   Undefined function ERRORP, in PROCESS-CHANGE-CHANGE.
+;   Undefined function PROREQUEST, in PROCESS-CHANGE-CHANGE.
+;   Undefined function DIFFERENTIATOR, in PROCESS-CHANGE-CHANGE.
+;   Undefined function PARSESTRUCTURE, in PROCESS-CHANGE-CHANGE.
+;   Undefined function REVISENEWITEM, in PROCESS-CHANGE-START.
+;   Undefined function READ-VALUE-STRING, in PROCESS-CHANGE-START.
+;   Undefined function GETF-POST, in PROCESS-CHANGE.
+;   Undefined function PROCESS-CHANGER, in (PROCESS (T (EQL 'CHANGE) T)) inside an anonymous lambda form.
+;   Undefined function OUTPUT-VALUE, in OUTPUT-VALUE-IN-STYLE.
+;   Undefined function FIND-INSPECTSTYLE, in OUTPUT-MULTIPLE-CELL.
+;   Undefined function REVISEITEM, in OLD-INSPECT.
+;   Undefined function LESSP, in GETBASKETS.
+;   Undefined function FORMAT-TOP-BUTTON (3 references), in OUTPUT-INSPECT-PAGE.
+;   Undefined function OUTPUT-PROLOG, in OUTPUT-INSPECT-PAGE.
+;   Undefined function READ-VALUE-STRING, in GETREVISION.
+;   Undefined function REVISION, in PROCESS-INSPECT-REVISION.
+;   Undefined function READ-USER-STRING, in PROCESS-INSPECT-REVISION.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-INSPECT-PIPE.
+;   Undefined function OUTPUT-HEADER, in PROCESS-INSPECT-PIPE.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-INSPECT-PIPE.
+;   Undefined function CREATEPIPE, in PROCESS-INSPECT-PIPE.
+;   Undefined function GETF-POST, in PROCESS-INSPECT-PIPE.
+;   Undefined function READ-USER-STRING (2 references), in PROCESS-INSPECT-PIPE.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-INSPECT-DROP.
+;   Undefined function OUTPUT-VALUE, in PROCESS-INSPECT-DROP.
+;   Undefined function OUTPUT-HEADER, in PROCESS-INSPECT-DROP.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-INSPECT-DROP.
+;   Undefined function GETF-POST, in PROCESS-INSPECT-DROP.
+;   Undefined function READ-USER-STRING (2 references), in PROCESS-INSPECT-DROP.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-INSPECT-SAVE.
+;   Undefined function OUTPUT-VALUE, in PROCESS-INSPECT-SAVE.
+;   Undefined function OUTPUT-HEADER, in PROCESS-INSPECT-SAVE.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-INSPECT-SAVE.
+;   Undefined function GETF-POST, in PROCESS-INSPECT-SAVE.
+;   Undefined function READ-USER-STRING (2 references), in PROCESS-INSPECT-SAVE.
+;   Undefined function ATTRIBUTES, in PROCESS-INSPECT-SAVE.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-INSPECT-XML.
+;   Undefined function CBLIFY, in PROCESS-INSPECT-XML.
+;   Undefined function OUTPUT-HEADER, in PROCESS-INSPECT-XML.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-INSPECT-XML.
+;   Undefined function READ-USER-STRING, in PROCESS-INSPECT-XML.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-INSPECT-EPILOG.
+;   Undefined function CR, in PROCESS-INSPECT-EPILOG.
+;   Undefined function CONVERTER, in PROCESS-INSPECT-EPILOG.
+;   Undefined function OUTPUT-HEADER, in PROCESS-INSPECT-EPILOG.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-INSPECT-EPILOG.
+;   Undefined function READ-USER-STRING, in PROCESS-INSPECT-EPILOG.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-INSPECT-KIF.
+;   Undefined function CR, in PROCESS-INSPECT-KIF.
+;   Undefined function PRINT-ACL, in PROCESS-INSPECT-KIF.
+;   Undefined function CONVERTER, in PROCESS-INSPECT-KIF.
+;   Undefined function OUTPUT-HEADER, in PROCESS-INSPECT-KIF.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-INSPECT-KIF.
+;   Undefined function READ-USER-STRING, in PROCESS-INSPECT-KIF.
+;   Undefined function ERRORP, in PROCESS-INSPECT-DELETE.
+;   Undefined function PROREQUEST (2 references), in PROCESS-INSPECT-DELETE.
+;   Undefined function READ-USER-STRING, in PROCESS-INSPECT-DELETE.
+;   Undefined function NEWINSTANCE, in PROCESS-INSPECT-COPY.
+;   Undefined function CONVERT-TO-UPDATE, in PROCESS-INSPECT-COPY.
+;   Undefined function READ-USER-STRING, in PROCESS-INSPECT-COPY.
+;   Undefined function CONVERT-TO-UPDATE, in PROCESS-INSPECT-CHANGE.
+;   Undefined function READ-USER-STRING, in PROCESS-INSPECT-CHANGE.
+;   Undefined function REVISEITEM, in PROCESS-INSPECT-START.
+;   Undefined function READ-VALUE-STRING, in PROCESS-INSPECT-START.
+;   Undefined function GETF-POST, in (PROCESS (T (EQL 'INSPECT) T)) inside an anonymous lambda form.
+;   Undefined function PROCESS-INSPECTOR-REVISION, in (PROCESS (T (EQL 'INSPECT) T)) inside an anonymous lambda form.
+;   Undefined function FORMAT-TOP-BUTTON, in OUTPUT-UPDATECLASS-COMMANDS.
+;   Undefined function KERCHUNK, in OUTPUT-UPDATECLASS-COMMANDS.
+;   Undefined function HTMLIFY, in OUTPUT-UPDATECLASS-COMMANDS.
+;   Undefined function FIND-ALTERNATIVES, in OUTPUT-UPDATECLASS-SELECTOR.
+;   Undefined function FIND-COMPARESTYLE, in OUTPUT-UPDATECLASS-WIDGETS.
+;   Undefined function OUTPUT-VALUE, in OUTPUT-UPDATECLASS-ROWTABLE.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-UPDATECLASS-KERCHUNK.
+;   Undefined function OUTPUT-HEADER, in PROCESS-UPDATECLASS-KERCHUNK.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-UPDATECLASS-KERCHUNK.
+;   Undefined function TRIM, in PROCESS-UPDATECLASS-KERCHUNK.
+;   Undefined function PROREQUEST, in PROCESS-UPDATECLASS-KERCHUNK.
+;   Undefined function MODIFIABLE-SLOTS, in PROCESS-UPDATECLASS-KERCHUNK.
+;   Undefined function GETF-POST (3 references), in PROCESS-UPDATECLASS-KERCHUNK.
+;   Undefined function READ-VALUE-STRING (3 references), in PROCESS-UPDATECLASS-KERCHUNK.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-UPDATECLASS-START.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-UPDATECLASS-START.
+;   Undefined function TRIM, in PROCESS-UPDATECLASS-START.
+;   Undefined function PROREQUEST, in PROCESS-UPDATECLASS-START.
+;   Undefined function MODIFIABLE-SLOTS, in PROCESS-UPDATECLASS-START.
+;   Undefined function READ-VALUE-STRING, in PROCESS-UPDATECLASS-START.
+;   Undefined function GETF-POST, in (PROCESS (T (EQL 'UPDATECLASS) T)) inside an anonymous lambda form.
+;   Undefined function FORMAT-TOP-BUTTON (2 references), in OUTPUT-DISPLAYCLASS-COMMANDS.
+;   Undefined function KERCHUNK, in OUTPUT-DISPLAYCLASS-COMMANDS.
+;   Undefined function PROREQUEST, in OUTPUT-DISPLAYCLASS.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-DISPLAYCLASS-EDIT.
+;   Undefined function OUTPUT-HEADER, in PROCESS-DISPLAYCLASS-EDIT.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-DISPLAYCLASS-EDIT.
+;   Undefined function SORTEM, in PROCESS-DISPLAYCLASS-EDIT.
+;   Undefined function FIND-SORTER, in PROCESS-DISPLAYCLASS-EDIT.
+;   Undefined function TRIM, in PROCESS-DISPLAYCLASS-EDIT.
+;   Undefined function PROREQUEST, in PROCESS-DISPLAYCLASS-EDIT.
+;   Undefined function MODIFIABLE-SLOTS, in PROCESS-DISPLAYCLASS-EDIT.
+;   Undefined function GETF-POST (3 references), in PROCESS-DISPLAYCLASS-EDIT.
+;   Undefined function READ-VALUE-STRING (3 references), in PROCESS-DISPLAYCLASS-EDIT.
+;   Undefined function GETF-POST, in PROCESS-DISPLAYCLASS-CREATE.
+;   Undefined function READ-VALUE-STRING, in PROCESS-DISPLAYCLASS-CREATE.
+;   Undefined function GETF-POST, in PROCESS-DISPLAYCLASS-FIND.
+;   Undefined function READ-VALUE-STRING, in PROCESS-DISPLAYCLASS-FIND.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-DISPLAYCLASS-DISPLAY.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-DISPLAYCLASS-DISPLAY.
+;   Undefined function TRIM, in PROCESS-DISPLAYCLASS-DISPLAY.
+;   Undefined function SORTEM, in PROCESS-DISPLAYCLASS-DISPLAY.
+;   Undefined function FIND-SORTER, in PROCESS-DISPLAYCLASS-DISPLAY.
+;   Undefined function PROREQUEST, in PROCESS-DISPLAYCLASS-DISPLAY.
+;   Undefined function DISPLAYABLE-SLOTS, in PROCESS-DISPLAYCLASS-DISPLAY.
+;   Undefined function GETF-POST (3 references), in PROCESS-DISPLAYCLASS-DISPLAY.
+;   Undefined function READ-VALUE-STRING (3 references), in PROCESS-DISPLAYCLASS-DISPLAY.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-DISPLAYCLASS-START.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-DISPLAYCLASS-START.
+;   Undefined function TRIM, in PROCESS-DISPLAYCLASS-START.
+;   Undefined function SORTEM, in PROCESS-DISPLAYCLASS-START.
+;   Undefined function FIND-SORTER, in PROCESS-DISPLAYCLASS-START.
+;   Undefined function PROREQUEST, in PROCESS-DISPLAYCLASS-START.
+;   Undefined function DISPLAYABLE-SLOTS, in PROCESS-DISPLAYCLASS-START.
+;   Undefined function READ-VALUE-STRING, in PROCESS-DISPLAYCLASS-START.
+;   Undefined function GETF-POST, in (PROCESS (T (EQL 'DISPLAYCLASS) T)) inside an anonymous lambda form.
+;   Undefined function FORMAT-TOP-BUTTON, in OUTPUT-UPDATE-COMMANDS.
+;   Undefined function KERCHUNK, in OUTPUT-UPDATE-COMMANDS.
+;   Undefined function FIND-COMPARESTYLE, in OUTPUT-UPDATE-INNER.
+;   Undefined function OUTPUT-VALUE, in OUTPUT-UPDATE-INNER.
+;   Undefined function OUTPUT-VALUE, in OUTPUT-UPDATE-TABLE.
+;   Undefined function PROREQUEST, in OUTPUT-UPDATE-TABLE.
+;   Undefined function OUTPUT-PROLOG, in OUTPUT-UPDATE-PAGE.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-UPDATE-DOWNLOAD.
+;   Undefined function OUTPUT-HEADER, in PROCESS-UPDATE-DOWNLOAD.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-UPDATE-DOWNLOAD.
+;   Undefined function ATTRIBUTES (2 references), in PROCESS-UPDATE-DOWNLOAD.
+;   Undefined function READ-VALUE-STRING, in PROCESS-UPDATE-DOWNLOAD.
+;   Undefined function GETSLOTS, in PROCESS-UPDATE-DOWNLOAD.
+;   Undefined function GETF-POST (2 references), in PROCESS-UPDATE-DOWNLOAD.
+;   Undefined function READ-USER-STRING (2 references), in PROCESS-UPDATE-DOWNLOAD.
+;   Undefined function DISPLAYABLE-SLOTS, in PROCESS-UPDATE-DISPLAY.
+;   Undefined function TRIM, in PROCESS-UPDATE-DISPLAY.
+;   Undefined function SORTEM, in PROCESS-UPDATE-DISPLAY.
+;   Undefined function FIND-SORTER, in PROCESS-UPDATE-DISPLAY.
+;   Undefined function PROREQUEST, in PROCESS-UPDATE-DISPLAY.
+;   Undefined function GETF-POST (5 references), in PROCESS-UPDATE-DISPLAY.
+;   Undefined function READ-USER-STRING (5 references), in PROCESS-UPDATE-DISPLAY.
+;   Undefined function GETF-POST, in PROCESS-UPDATE-FIND.
+;   Undefined function READ-VALUE-STRING, in PROCESS-UPDATE-FIND.
+;   Undefined function GETF-POST, in (PROCESS (T (EQL 'UPDATE) T)) inside an anonymous lambda form.
+;   Undefined function FORMAT-TOP-BUTTON, in OUTPUT-DISPLAY-COMMANDS.
+;   Undefined function KERCHUNK, in OUTPUT-DISPLAY-COMMANDS.
+;   Undefined function FIND-COMPARESTYLE, in OUTPUT-DISPLAY-INNER.
+;   Undefined function OUTPUT-VALUE, in OUTPUT-DISPLAY-INNER.
+;   Undefined function OUTPUT-VALUE, in OUTPUT-DISPLAY-TABLE.
+;   Undefined function PROREQUEST, in OUTPUT-DISPLAY-TABLE.
+;   Undefined function OUTPUT-PROLOG, in OUTPUT-DISPLAY-PAGE.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-DISPLAY-DOWNLOAD.
+;   Undefined function OUTPUT-HEADER, in PROCESS-DISPLAY-DOWNLOAD.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-DISPLAY-DOWNLOAD.
+;   Undefined function ATTRIBUTES (2 references), in PROCESS-DISPLAY-DOWNLOAD.
+;   Undefined function READ-VALUE-STRING, in PROCESS-DISPLAY-DOWNLOAD.
+;   Undefined function GETSLOTS, in PROCESS-DISPLAY-DOWNLOAD.
+;   Undefined function GETF-POST (2 references), in PROCESS-DISPLAY-DOWNLOAD.
+;   Undefined function READ-USER-STRING (2 references), in PROCESS-DISPLAY-DOWNLOAD.
+;   Undefined function DISPLAYABLE-SLOTS, in PROCESS-DISPLAY-DISPLAY.
+;   Undefined function TRIM, in PROCESS-DISPLAY-DISPLAY.
+;   Undefined function SORTEM, in PROCESS-DISPLAY-DISPLAY.
+;   Undefined function FIND-SORTER, in PROCESS-DISPLAY-DISPLAY.
+;   Undefined function PROREQUEST, in PROCESS-DISPLAY-DISPLAY.
+;   Undefined function GETF-POST (5 references), in PROCESS-DISPLAY-DISPLAY.
+;   Undefined function READ-USER-STRING (5 references), in PROCESS-DISPLAY-DISPLAY.
+;   Undefined function GETF-POST, in PROCESS-DISPLAY-FIND.
+;   Undefined function READ-VALUE-STRING, in PROCESS-DISPLAY-FIND.
+;   Undefined function GETF-POST, in (PROCESS (T (EQL 'DISPLAY) T)) inside an anonymous lambda form.
+;   Undefined function HTMLIFY (2 references), in OUTPUT-LIST-PAGE.
+;   Undefined function OUTPUT-VALUE, in OUTPUT-LIST-PAGE.
+;   Undefined function TRIM, in OUTPUT-LIST-PAGE.
+;   Undefined function SORTEM, in OUTPUT-LIST-PAGE.
+;   Undefined function FIND-SORTER, in OUTPUT-LIST-PAGE.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-LIST-NEXT.
+;   Undefined function GETF-POST (2 references), in PROCESS-LIST-NEXT.
+;   Undefined function READ-VALUE-STRING (4 references), in PROCESS-LIST-NEXT.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-LIST-PREVIOUS.
+;   Undefined function KEECHUNK, in PROCESS-LIST-PREVIOUS.
+;   Undefined function GETF-POST (2 references), in PROCESS-LIST-PREVIOUS.
+;   Undefined function READ-VALUE-STRING (4 references), in PROCESS-LIST-PREVIOUS.
+;   Undefined function UNIQUEP, in PROCESS-LIST-DISPLAY.
+;   Undefined function DISPLAY-FAILURE, in PROCESS-LIST-DISPLAY.
+;   Undefined function DISPLAYABLE-SLOTS, in PROCESS-LIST-DISPLAY.
+;   Undefined function TRIM, in PROCESS-LIST-DISPLAY.
+;   Undefined function SORTEM, in PROCESS-LIST-DISPLAY.
+;   Undefined function FIND-SORTER, in PROCESS-LIST-DISPLAY.
+;   Undefined function GETF-POST (2 references), in PROCESS-LIST-DISPLAY.
+;   Undefined function READ-VALUE-STRING (4 references), in PROCESS-LIST-DISPLAY.
+;   Undefined function GETF-POST (3 references), in (PROCESS (T (EQL 'LIST) T)) inside an anonymous lambda form.
+;   Undefined function MENU-SIZE, in OUTPUT-MENU-RESULT.
+;   Undefined function OUTPUT-VALUE, in OUTPUT-FIND-GLYPH.
+;   Undefined function FIND-VALUES, in OUTPUT-FIND-RADIOBUTTON.
+;   Undefined function FIND-VALUES, in OUTPUT-FIND-CHECKBOX.
+;   Undefined function FIND-COMPONENTS, in OUTPUT-FIND-MULTISELECTOR.
+;   Undefined function FIND-OPTIONS, in OUTPUT-FIND-MULTISELECTOR.
+;   Undefined function FIND-REFERENCES, in OUTPUT-FIND-MULTISELECTOR.
+;   Undefined function FIND-POSSIBILITIES, in OUTPUT-FIND-SELECTOR.
+;   Undefined function FIND-VALUES, in OUTPUT-FIND-MENU.
+;   Undefined function OUTPUT-EMPTY-BUTTON, in FORMAT-REMOVAL-BUTTON.
+;   Undefined function OUTPUT-EMPTY-BUTTON, in FORMAT-ANOTHER-BUTTON.
+;   Undefined function ICONIFY, in OUTPUT-SLOTLINK.
+;   Undefined function ARTICLE, in OUTPUT-FIND-STRUCTURE.
+;   Undefined function FIND-SEARCHSTYLE, in OUTPUT-FIND-STRUCTURE.
+;   Undefined function FIND-MULTIVALUED, in OUTPUT-FIND-STRUCTURE.
+;   Undefined function OUTPUT-PROLOG, in OUTPUT-FIND-PAGE.
+;   Undefined function REVISESEARCH, in PROCESS-FIND-REVISION.
+;   Undefined function PARSESTRUCTURE, in PROCESS-FIND-REVISION.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-FIND-DISPLAY.
+;   Undefined function RECONVERTER, in PROCESS-FIND-DISPLAY.
+;   Undefined function PARSESTRUCTURE, in PROCESS-FIND-DISPLAY.
+;   Undefined function MAKSEARCHSTRUCTURE, in PROCESS-FIND-START.
+;   Undefined function READ-USER-STRING, in PROCESS-FIND-START.
+;   Undefined function GETF-POST, in (PROCESS (T (EQL 'FIND) T)) inside an anonymous lambda form.
+;   Undefined function ICONIFY, in OUTPUT-TREE-LONE.
+;   Undefined function ICONIFY, in OUTPUT-TREE-CLOSED.
+;   Undefined function ICONIFY, in OUTPUT-TREE-OPEN.
+;   Undefined function FIND-SUBCLASS, in OUTPUT-TREE.
+;   Undefined function FRONT-TOGGLE, in OUTPUT-TREE-REISSUE.
+;   Undefined function READ-USER-STRING (2 references), in OUTPUT-TREE-REISSUE.
+;   Undefined function OUTPUT-PROLOG, in OUTPUT-TREE-START.
+;   Undefined function FIND-FRAMES, in OUTPUT-TREE-START.
+;   Undefined function OUTPUT-PROLOG, in (PROCESS (T (EQL 'SEEK) T)) inside an anonymous lambda form.
+;   Undefined function OUTPUT-PROLOG, in (PROCESS (T (EQL 'FRONTFIELD) T)) inside an anonymous lambda form.
+;   Undefined function FIND-FRAMES, in (PROCESS (T (EQL 'FRONTFIELD) T)) inside an anonymous lambda form.
+;   Undefined function OUTPUT-FOOTER, in OUTPUT-PROBLEMS.
+;   Undefined function OUTPUT-HEADER, in OUTPUT-PROBLEMS.
+;   Undefined function OUTPUT-PROLOG, in OUTPUT-PROBLEMS.
+;   Undefined function OUTPUT-FOOTER, in HTTP-PROBLEM.
+;   Undefined function OUTPUT-HEADER, in HTTP-PROBLEM.
+;   Undefined function OUTPUT-PROLOG, in HTTP-PROBLEM.
+;   Undefined function OUTPUT-FOOTER, in HTML-MESSAGE.
+;   Undefined function OUTPUT-HEADER, in HTML-MESSAGE.
+;   Undefined function OUTPUT-PROLOG, in HTML-MESSAGE.
+;   Undefined function MENU-SIZE, in OUTPUT-MENU.
+;   Undefined function FIND-FOOTER, in WIDGET-FOOTER.
+;   Undefined function FIND-HEADER, in WIDGET-HEADER.
+;   Undefined function OUTPUT-VALUE, in OUTPUT-ARGUMENT-GLYPH.
+;   Undefined function DATEP, in OUTPUT-ARGUMENT-DATESTYLE.
+;   Undefined function FIND-COMPONENTS, in OUTPUT-ARGUMENT-MULTISELECTOR.
+;   Undefined function FIND-REFERENCES, in OUTPUT-ARGUMENT-MULTISELECTOR.
+;   Undefined function OUTPUT-FOOTER, in OUTPUT-ACTION-PAGE.
+;   Undefined function OUTPUT-HEADER, in OUTPUT-ACTION-PAGE.
+;   Undefined function OUTPUT-PROLOG, in OUTPUT-ACTION-PAGE.
+;   Undefined function LESSP, in FIND-CHOICES.
+;   Undefined function FIND-RANGE, in CONVERT-TEMPLATE.
+;   Undefined function READAS, in CONVERT-TEMPLATE.
+;   Undefined function READ-VALUE-STRING (2 references), in CONVERT-TEMPLATE.
+;   Undefined function FIND-RANGE, in CONVERT-ACTION-ARGS.
+;   Undefined function READAS, in CONVERT-ACTION-ARGS.
+;   Undefined function READ-VALUE-STRING (2 references), in CONVERT-ACTION-ARGS.
+;   Undefined function DEVAL, in FIND-ARGUMENTDEFAULT.
+;   Undefined function OUTPUT-FOOTER, in PROCESS-EXECUTE-ANSWER.
+;   Undefined function PRINT-ACL, in PROCESS-EXECUTE-ANSWER.
+;   Undefined function OUTPUT-HEADER, in PROCESS-EXECUTE-ANSWER.
+;   Undefined function OUTPUT-PROLOG, in PROCESS-EXECUTE-ANSWER.
+;   Undefined function GETF-POST, in PROCESS-EXECUTE.
+;   Undefined function READ-USER-STRING, in (PROCESS (T (EQL 'RUN) T)) inside an anonymous lambda form.
+;   Undefined function FIND-FRONTPAGE, in (PROCESS (T (EQL 'TOPLEVEL) T)) inside an anonymous lambda form.
+;   Undefined function OUTPUT-PROLOG, in (PROCESS (T (EQL 'TOPLEVEL) T)) inside an anonymous lambda form.
+;   Undefined function READ-VALUE-STRING (3 references), in HTML-HANDLER.
+;   Undefined function READ-VALUE-STRING, in PARSE-HEADER.
+;   Undefined function READ-USER-STRING, in PARSE-HEADER.
+;   Undefined function SOAP-HANDLER, in PROCESS-HTTP.
+;   Undefined function SQL-HANDLER, in PROCESS-HTTP.
+;   Undefined function ACL-HANDLER, in PROCESS-HTTP.
+;   Undefined function FIND-PREDICATE, in GETPREDICATE.
+;   Undefined function READ-USER-STRING (2 references), in READSEGMENT.
+;   Undefined function READ-VALUE-STRING, in XMLNAME.
+;   Undefined function FIND-PREDICATE, in PREDICATES.
+;   Undefined function ATTRIBUTES, in OUTPUTCLASSTDC.
+;   Undefined function READ-USER-STRING (5 references), in READ-TABLE.
+;   Undefined function READ-VALUE-STRING, in SXMLNAME.
+;   Undefined function STRING-SLOT-P, in OUTPUTCLASSSXML.
+;   Undefined function ATTRIBUTES, in OUTPUTCLASSSXML.
+;   Undefined function STRING-SLOT-P, in (DUMPAGENT (THEORY T (EQL 'SXML))) inside an anonymous lambda form.
+;   Undefined function LESSP, in GET-INSTANCES.
+;   Undefined function FIND-PREDICATE, in GET-INSTANCES.
+;   Undefined function ATTRIBUTES, in OUTPUTCLASSOOKIF.
+;   Undefined function FIND-PREDICATE, in OUTPUTCLASSOOKIF.
+;   Undefined function FIND-PREDICATE, in (DUMPAGENT (THEORY T (EQL 'OOKIF))) inside an anonymous lambda form.
+;   Undefined function COLUMNS, in SQLEXPATOM.
+;   Undefined function READ-VALUE-STRING (3 references), in INTERNALIZE.
+;   Undefined function READ-USER-STRING, in HEARACL.
+;   Undefined function RPCSOAP, in (MESSAGE-HANDLER (T T SOAPSERVER)) inside an anonymous lambda form.
+;   Undefined function FIND-SUBCLASSES, in GETSUBCLASSES.
+;   Undefined function FIND-DOMAIN, in FIND-TOTAL-VIOLATIONS.
+;   Undefined function DATEP, in FIND-RANGE-VIOLATIONS.
+;   Undefined function FIND-RANGE, in FIND-RANGE-VIOLATIONS.
+;   Undefined function DATEP, in FIND-DOMAIN-VIOLATIONS.
+;   Undefined function FIND-DOMAIN, in FIND-DOMAIN-VIOLATIONS.
+;   Undefined function FIND-PREDICATE, in (CHECKCLASS (T T)) inside an anonymous lambda form.
+;   Undefined function SLOTS-OF-CLASS, in (CHECKCLASS (T T)) inside an anonymous lambda form.
+;   Undefined function UNIQUEP, in (CHECKATTRIBUTE (T T)) inside an anonymous lambda form.
+;   Undefined function PRINT-STRING, in (CHECKRULES (THEORY)) inside an anonymous lambda form.
+;   Undefined function GENVAR (3 references), in NONUNIQUES.
+;   Undefined function SPECIALISHP, in (MATERIALIZETABLE (T T FULLSERVER)) inside an anonymous lambda form.
+;   Undefined function SPECIALISHP, in (MATERIALIZETABLE (T T RULESERVER)) inside an anonymous lambda form.
+;   Undefined function SPECIALISHP, in (MATERIALIZETABLE (T T DATASERVER)) inside an anonymous lambda form.
+;   Undefined function SPECIALISHP, in (MATERIALIZETABLE (T T FASTSERVER)) inside an anonymous lambda form.
+;   Undefined function SPECIALISHP, in (MATERIALIZETABLE (T T T)) inside an anonymous lambda form.
+;   Undefined function FIND-PREDICATE, in (DEMATERIALIZECLASS (T T)) inside an anonymous lambda form.
+;   Undefined function ATTRIBUTES, in (DEMATERIALIZECLASS (T T)) inside an anonymous lambda form.
+;   Undefined function FIND-PREDICATE, in (MATERIALIZECLASS (T T T)) inside an anonymous lambda form.
+;   Undefined function ATTRIBUTES, in (MATERIALIZECLASS (T T T)) inside an anonymous lambda form.
+;   Undefined function FIND-PREDICATE, in (DEMATERIALIZETREE (T T)) inside an anonymous lambda form.
+;   Undefined function FIND-SUBCLASSES, in (DEMATERIALIZETREE (T T)) inside an anonymous lambda form.
+;   Undefined function FIND-SUBCLASSES, in (MATERIALIZETREE (T T T)) inside an anonymous lambda form.
+;   Undefined function FIND-PREDICATE, in (MATERIALIZETREE (T T T)) inside an anonymous lambda form.
+;   Undefined function FIND-SUBCLASSES, in (DEMATERIALIZESCHEMA (T T)) inside an anonymous lambda form.
+;   Undefined function FIND-SUBCLASSES, in (MATERIALIZESCHEMA (T T T)) inside an anonymous lambda form.
+;   Undefined function USERVAR, in STANDARDIZE.
+;   Undefined function FIND-PREDICATE, in MAKPRED.
+;   Undefined function SPECVAR, in SPECVARS.
+;   Undefined function FIND-PREDICATE, in (TABULATEDATA (T T DATASERVER DATASERVER)) inside an anonymous lambda form.
+;   Undefined function ATTRIBUTES, in (TABULATEDATA (T T DATASERVER DATASERVER)) inside an anonymous lambda form.
+;   Undefined function SPECVAR, in (TABULATEDATA (T T DATASERVER DATASERVER)) inside an anonymous lambda form.
+;   Undefined function FIND-PREDICATE, in (TABULATERULES (T T (EQL NIL))) inside an anonymous lambda form.
+;   Undefined function ATTRIBUTES, in (TABULATERULES (T T (EQL NIL))) inside an anonymous lambda form.
+;   Undefined function SPECVAR, in (TABULATERULES (T T (EQL NIL))) inside an anonymous lambda form.
+;   Undefined function ATTRIBUTES, in (TABULATE (T)) inside an anonymous lambda form.
+;   Undefined function COLUMNS, in (TABULATE (T)) inside an anonymous lambda form.
+;   Undefined function FIND-PREDICATE, in (REIFYDATA (T T DATASERVER DATASERVER)) inside an anonymous lambda form.
+;   Undefined function ATTRIBUTES, in (REIFYDATA (T T DATASERVER DATASERVER)) inside an anonymous lambda form.
+;   Undefined function FIND-RANGE, in (REIFYDATA (T T DATASERVER DATASERVER)) inside an anonymous lambda form.
+;   Undefined function SPECVAR (4 references), in REIFYRELATION.
+;   Undefined function FIND-RANGE, in REIFYRELATION.
+;   Undefined function ATTRIBUTES, in REIFYRELATION.
+;   Undefined function FIND-PREDICATE, in REIFYRELATION.
+;   Undefined function FIND-PREDICATE, in (REIFY (T)) inside an anonymous lambda form.
+;   Undefined function ATTRIBUTES, in (REIFY (T)) inside an anonymous lambda form.
+;   Undefined function SPECVAR (2 references), in (CONSOLIDATEDATA (T T DATASERVER)) inside an anonymous lambda form.
+;   Undefined function SPECVAR (2 references), in (CONSOLIDATERULES (T (EQL NIL))) inside an anonymous lambda form.
+;   Undefined function SPECVAR (2 references), in SEPARATERELATION.
+;   Undefined function FIND-PREDICATE, in (DROPCLASSDATA (T T)) inside an anonymous lambda form.
+;   Undefined function ATTRIBUTES, in (DROPCLASSDATA (T T)) inside an anonymous lambda form.
+;   Undefined function FIND-PREDICATE, in (COPYCLASSDATA (T T T)) inside an anonymous lambda form.
+;   Undefined function ATTRIBUTES, in (COPYCLASSDATA (T T T)) inside an anonymous lambda form.
+;   Undefined function READ-VALUE-STRING, in (DUPLICATE (T STRING THEORY)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (ASKTABLE (T T T INTERFACE)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (ASKS (T T T INTERFACE)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (ASKX (T T T INTERFACE)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (ASKP (T T INTERFACE)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (REACTIONS (T INTERFACE)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (NOTIFICATIONS (T INTERFACE)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (MATERIALIZATIONS (T INTERFACE)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (ERRORS (T INTERFACE)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (REVISIONS (T INTERFACE)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (REVISE (T T INTERFACE)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (ASKABOUT (T T INTERFACE)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (RETRACT (T T INTERFACE)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (AFFIRM (T T INTERFACE)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (MESSAGE-HANDLER (T T INTERFACE)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (DROP (T DIFFSERVER)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (SAVE (T DIFFSERVER)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (ASKS (T T T DIFFSERVER)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in (ASKX (T T T DIFFSERVER)) inside an anonymous lambda form.
+;   Undefined function FIND-RECIPIENT, in GET-RECIPIENT.
+;   Undefined function FIND-RECIPIENT, in GET-DATABASE.
+? 

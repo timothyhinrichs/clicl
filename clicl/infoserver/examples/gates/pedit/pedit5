@@ -1,0 +1,8 @@
+set nocount on
+select distinct
+p.nam_first_mi, p.nam_last, r.relation_name, r.relation_id
+from people p, relmap rm, relations r
+where p.person_id = rm.person_id and rm.relation_id = r.relation_id
+order by p.nam_first_mi, p.nam_last, r.relation_name
+go
+exit

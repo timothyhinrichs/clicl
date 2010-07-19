@@ -1,0 +1,24 @@
+; everyone can see the documents they wrote
+(<= (allow ?user ?doc) 
+    (paper.author ?doc ?user))
+
+; people without an interest in security are denied access to documents about security. (This requires tags, denoted here by paper.topic.)
+;(<= (deny ?user ?doc) 
+;    (paper.topic ?doc security) 
+;    (not (interest ?user security)))
+
+; This info should be included in the database rather than the policy file, but currently we don't  have attributes for users.
+(interest john.c.mitchell security)
+(interest adam.j.lee security)
+(interest marianne.winslett security)
+(interest timothylhinrichs security)
+
+; deny an unpublished document for anyone not a collaborator with an author on the document
+(<= (deny ?user ?doc) 
+    (paper.bibtex ?doc unpublished)
+    (not (collaborator ?user ?doc)))
+(<= (collaborator ?user ?doc)
+    (paper.author ?doc ?author)
+    (paper.author ?doc2 ?author)
+    (paper.author ?doc2 ?user))
+

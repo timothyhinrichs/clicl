@@ -1,0 +1,81 @@
+<html>
+<head><title>Plato: A Form Generation System</title>
+<link rel="stylesheet" type="text/css" href="/docserver/infoserver/examples/researchmaster/style/main.css">
+<link rel="stylesheet" type="text/css" href="/docserver/infoserver/examples/researchmaster/style/jack.css">
+<link rel="stylesheet" type="text/css" href="/docserver/infoserver/examples/researchmaster/style/websheet.css">
+<script src="/docserver/infoserver/examples/researchmaster/javascript/browser.js"></script>
+<script src="/docserver/infoserver/examples/researchmaster/javascript/logic.js"></script>
+<script src="/docserver/infoserver/examples/researchmaster/javascript/spreadsheet.js"></script>
+<script src="/docserver/infoserver/examples/researchmaster/javascript/ds.js"></script>
+</head>
+
+<body leftmargin='0' topmargin='0' marginwidth='0' marginheight='0' bgcolor='WHITE'>
+<div class="structure">
+<div class="whiteongray">
+	<div class="header">
+		<div class="title">Plato</div>
+	<div class="navigation">
+	
+		<span class="nav1"><a href="/plato/">Home</a></span>
+		<span class="nav"><a href="/plato/editwebsheet?">New Form</a></span>
+		<span class="nav"><a href="/plato/openwebsheet?">Open Form</a></span>		
+		<span class="nav"><a href="/docserver/infoserver/examples/researchmaster/pages/plato-gallery.html">Gallery</a></span>
+	</div>
+</div></div>
+
+<div class="bodytext">
+<h2>Gallery</h2>
+Each of the examples below were built both test as well as illustrate Plato's generality and ease-of-use.  For each example, you may (1) compile and view the Plato form and (2) edit the declarative description of that form.  For those examples drawn from real-world applications, you can also (3) view the original.  You may also (4) collaboratively contribute data to the resulting forms (for some of the examples).
+
+<p>For some examples, compilation may take 5-10 seconds, during which the browser's status line will read "Contacting &lt;server&gt;".
+
+<ol>
+<li>A bite-sized example, small enough for perusing the generated code.  There are two widgets, p and q, and the only constraint says that p(x) implies q(x).<br><br>
+<a href="/plato/compilewebsheet?file=infoserver/examples/researchmaster/wsgallery/pq.plato">Compile</a> |
+<a href="/plato/editwebsheet?file=infoserver/examples/researchmaster/wsgallery/pq.plato">Edit</a> 
+<br><span class="details">With selector widgets.</span><br><br>
+<a href="/plato/compilewebsheet?file=infoserver/examples/researchmaster/wsgallery/pqtext.plato">Compile</a>
+|
+<a href="/plato/editwebsheet?file=infoserver/examples/researchmaster/wsgallery/pqtext.plato">Edit</a>
+<!-- |
+<a href="/plato/commitform?formname=pqtext">Collaborate</a>
+-->
+<br><span class="details">With multi-value textboxes</span><br><br>
+
+
+<li>On its website, Toyota allows customers to investigate the various options available for each of its cars. This Plato example encapsulates that functionality for the 2009 Toyota Sequoia.  (Toyota recently updated their website for the 2010 models, so the Original link below no longer has the same content as the Plato example.)<br><br>
+<a href="/plato/compilewebsheet?file=infoserver/examples/researchmaster/wsgallery/toyota.plato">Compile</a> |
+<a href="/plato/editwebsheet?file=infoserver/examples/researchmaster/wsgallery/toyota.plato">Edit</a> |
+<a href="http://www.toyota.com/byt4/pub/init.do?zip_code=60637&series_id=&seriesCategory=13">Original</a> 
+<br><span class="details">Whereas the original forces users to choose a repair strategy when choosing an invalid option combination, the Plato version allows users to choose arbitrary options and then highlights the combinations that are invalid.</span><br><br>
+<a href="/plato/compilewebsheet?file=infoserver/examples/researchmaster/wsgallery/toyotasmall.plato">Compile</a> |
+<a href="/plato/editwebsheet?file=infoserver/examples/researchmaster/wsgallery/toyotasmall.plato">Edit</a> 
+<br><span class="details">The small version from the introductory page.</span><br><br>
+
+
+<li>Many shopping cart applications ask for shipping and billing addresses, and many offer the ability to automatically populate the billing address with the already-entered shipping address.   This example illustrates such functionality.<br><br>
+<a href="/plato/compilewebsheet?file=infoserver/examples/researchmaster/wsgallery/addresses.plato">Compile</a> |
+<a href="/plato/editwebsheet?file=infoserver/examples/researchmaster/wsgallery/addresses.plato">Edit</a>  
+<!--|
+<a href="/plato/commitform?formname=addresses">Collaborate</a> -->
+<br><span class="details">This example was developed to illustrate (1) the use of text fields in place of selectors (which at first seem problematic because of their infinite domains) and (2) the automatic population of widget values.
+</span><br><br>
+
+<li>Feature-based programming involves code modules that can be combined only in certain ways.  Plato can be used to generate an interface that allows customers to choose among modules and be informed whether or not the selected modules can be combined. <a href="http://ttic.uchicago.edu/~wchae/SmartForm/">More Info</a><br><br>
+<a href="/plato/compilewebsheet?file=infoserver/examples/researchmaster/wsgallery/plfeature.plato">Compile</a> |
+<a href="/plato/editwebsheet?file=infoserver/examples/researchmaster/wsgallery/plfeature.plato">Edit</a> 
+<br><span class="details">This version uses checkboxes and radio buttons, ensuring all widgets have values at all times.  It illustrates the benefits and drawbacks of using GUI elements with no 'undefined' value.</span><br><br>
+<a href="/plato/compilewebsheet?file=infoserver/examples/researchmaster/wsgallery/plfeature2.plato">Compile</a> |
+<a href="/plato/editwebsheet?file=infoserver/examples/researchmaster/wsgallery/plfeature2.plato">Edit</a> 
+|
+<a href="/plato/commitform?formname=plfeature2">Collaborate</a>
+<br><span class="details">This version was designed to enable people to collaboratively make a feature selection. In place of checkboxes and radio buttons, it employs selectors.</span><br><br>
+
+</ol>
+
+<center><div style="font-size: 70%; margin-top: 30px; border-top: 1px solid gray; width: 80%; padding-top: 4px;">
+Comments and suggestions to &#116;&#108;&#104;&#64;&#117;&#99;&#104;&#105;&#99;&#97;&#103;&#111;&#46;&#101;&#100;&#117;
+</div></center>
+</div></div>
+</body>
+</html>

@@ -1,0 +1,73 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; workshop
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    (workshop.instance aaai-configurations)
+    (prettyname        aaai-configurations "AAAI Workshop on Configurations")
+
+    (workshop.instance aspworkshop)
+    (prettyname        aspworkshop "Answer Set Programming Workshop")
+
+    (workshop.instance cade-esarlt)
+    (prettyname        cade-esarlt "CADE Workshop on Empirically Successful Automated Reasoning in Large Theories")
+
+    (workshop.instance cade-modelcomputation)
+    (prettyname        cade-modelcomputation "CADE Workshop on Model Computation")
+
+    (workshop.instance cade-strategies)
+    (prettyname        cade-strategies "CADE Workshop on Theorem Proving Strategies")
+
+    (workshop.instance csfw)
+    (prettyname        csfw "IEEE Computer Security Foundations Workshop")
+
+    (workshop.instance dsom)
+    (prettyname        dsom "IFIP/IEEE International Workshop on Distributed Systems: Operations and Management")
+
+    (workshop.instance ecai-kr)
+    (prettyname        ecai-kr "ECAI Workshop on Knowledge Representation ")
+
+    (workshop.instance gridworkshop)
+    (prettyname        gridworkshop "International Workshop on Grid Computing")
+
+    (workshop.instance ijcaiwkspincons)
+    (prettyname        ijcaiwkspincons "IJCAI Workshop on Inconsistency in Data and Knowledge")
+
+    (workshop.instance lopstr)
+    (prettyname        lopstr "International Workshop on Logic-based Program Synthesis and Transformation")
+
+    (workshop.instance netdb)
+    (prettyname        netdb "International Workshop on Networking meets Databases")
+
+    (workshop.instance owled)
+    (prettyname        owled "OWL: Experiences and Directions")
+
+    (workshop.instance pdk)
+    (prettyname        pdk "International Workshop on Processing Declarative Knowledge")
+
+    (workshop.instance policy)
+    (prettyname        policy "IEEE Workshop on Policies for Distributed Systems and Networks")
+
+    (workshop.instance ppswr)
+    (prettyname        ppswr "Principles and Practice of Semantic Web Reasoning")
+
+    (workshop.instance sdkb)
+    (prettyname        sdkb "International Workshop on Semantics in Data and Knowledge Bases")
+
+    (workshop.instance wits)
+    (prettyname        wits "Workshop on Issues in the Theory of Security")
+
+    (workshop.instance workshoponad)
+    (prettyname        workshoponad "Workshop on Automated Deduction")
+
+    (workshop.instance workshoponempiricallysuccessfulfirstorderingreasoning)
+    (prettyname        workshoponempiricallysuccessfulfirstorderingreasoning "Workshop on Empirically Successful First Order Reasoning")
+
+    (workshop.instance workshoponfirstordertheoremproving)
+    (prettyname        workshoponfirstordertheoremproving "Workshop on First Order Theorem Proving")
+
+    (workshop.instance wpes)
+    (prettyname        wpes "ACM Workshop on Privacy in the Electronic Society")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

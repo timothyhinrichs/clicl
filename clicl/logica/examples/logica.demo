@@ -1,0 +1,1 @@
+*schemata**transforms**rules**eliminations**methods*(trace-expression '?x)(prove '((or p q) (or p (not q)) (or (not p) q) (or (not p) (not q))) 'false)

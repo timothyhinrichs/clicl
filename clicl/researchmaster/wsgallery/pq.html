@@ -1,0 +1,375 @@
+<html>
+<head><title>PQ</title>
+<link rel="stylesheet" type="text/css" href="/docserver/infoserver/examples/researchmaster/style/main.css">
+<link rel="stylesheet" type="text/css" href="/docserver/infoserver/examples/researchmaster/style/jack.css">
+<link rel="stylesheet" type="text/css" href="/docserver/infoserver/examples/researchmaster/style/websheet.css">
+<script type="text/javascript" src="/docserver/infoserver/examples/researchmaster/javascript/browser.js"></script>
+<script type="text/javascript" src="/docserver/infoserver/examples/researchmaster/javascript/util.js"></script>
+<script type="text/javascript" src="/docserver/infoserver/examples/researchmaster/javascript/spreadsheet.js"></script>
+<script type="text/javascript" src="/docserver/infoserver/examples/researchmaster/javascript/ds.js"></script>
+<script type="text/javascript">
+var univ;
+
+var component_q = new set("q", "p");
+
+var prettynames = new Object();
+prettynames[undefined] = '';
+prettynames[0] = '';
+prettynames[1] = '1';
+prettynames[2] = 'false';
+prettynames[3] = 'true';
+prettynames[4] = 'a';
+prettynames[5] = 'b';
+
+var uglynames = new Object();
+uglynames[''] = 0;
+uglynames['1'] = 1;
+uglynames['false'] = 2;
+uglynames['true'] = 3;
+uglynames['a'] = 4;
+uglynames['b'] = 5;
+
+function init () { 
+   allowconflicts = true;
+   valuecount = 6;
+   init_index();
+   univ = ds.get(datastore, "univ");
+   var mycellarray = new Array();
+   mycellarray[0] = new cell('p', ds.get(datastore, "ab"), "selector", negs_p, undefined, negsupps_p, undefined, negsuppx_p, undefined, component_q, true, undefined, false);
+   mycellarray[1] = new cell('q', ds.get(datastore, "ab"), "selector", negs_q, poss_q, negsupps_q, possupps_q, negsuppx_q, possuppx_q, component_q, true, undefined, true);
+   initspread(mycellarray); }
+
+function external_init () {  }
+
+function submitprep () { 
+   var s = new set();
+   if (!(findcell("p").conflictset.empty())) {
+      s.adjoin("p");}
+   if (!(findcell("q").conflictset.empty())) {
+      s.adjoin("q");}
+   if (!(s.empty())) {
+      alert('Errors remain.  You must fix them before submitting.');
+      return false;}
+   clear_forced_gui();
+   return true; }
+
+var datastore;
+
+function init_index () { 
+   datastore = new dictionary();
+   ds.set(datastore, "univ", new hashbag(new expr(0), new expr(1), new expr(2), new expr(3), new expr(4), new expr(5)));
+   ds.set(datastore, "ab", new set(new expr(4), new expr(5)));
+   ds.set(datastore, "boolean", new set(new expr(2), new expr(3))); }
+
+function check_univ (x0) { return ds.member(ds.get(datastore, "univ"), new expr(x0), equalp); }
+
+function check_boolean (x0) { return ds.member(ds.get(datastore, "boolean"), new expr(x0), equalp); }
+
+function check_ab (x0) { return ds.member(ds.get(datastore, "ab"), new expr(x0), equalp); }
+
+function enum_univ (x0) { 
+   
+   return ds.get(datastore, "univ"); }
+
+function enum_boolean (x0) { 
+   
+   return ds.get(datastore, "boolean"); }
+
+function enum_ab (x0) { 
+   
+   return ds.get(datastore, "ab"); }
+
+function negx_q (x0) { return neg_q(function (newval, support, sofar) { 
+
+return new pair(true, newval); }, x0); }
+
+function negs_q (x0) { return neg_q(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+
+function negsuppx_q (x0) { return neg_q(function (newval, support, sofar) { 
+
+return new pair(true, new pair(newval, support)); }, x0); }
+
+function negsupps_q (x0) { return neg_q(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
+
+function neg_q (onsuccess, x0) { 
+   if (varp(x0)) {
+      if (!(neg_q_f === undefined)) return neg_q_f(onsuccess, x0);
+      else return undefined;}
+   else {
+      if (!(neg_q_b === undefined)) return neg_q_b(onsuccess, x0);
+      else return undefined;} }
+
+function neg_q_b (onsuccess, nsh9) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh9;
+   if (hascellvalue("p")) {
+      var tlh0 = "tlh0";
+      var arh9 = cellvalues("p");
+      for (var key in ds.data(arh9)) {
+         tlh0 = ds.element(arh9, key);
+         if (!(tlh0 === x0)) {
+            tmp = onsuccess(new expr(x0), new set("p"), sofar);
+            if (ds.first(tmp) === true) return ds.second(tmp);
+            else sofar = ds.second(tmp);}}
+      x0 = nsh9;
+      var tlh0 = "tlh0";
+      var arh10 = cellvalues("p");
+      for (var key in ds.data(arh10)) {
+         tlh0 = ds.element(arh10, key);
+         if (!(x0 === tlh0)) {
+            tmp = onsuccess(new expr(x0), new set("p"), sofar);
+            if (ds.first(tmp) === true) return ds.second(tmp);
+            else sofar = ds.second(tmp);}}
+      x0 = nsh9;}
+   if (!(x0 === x0)) {
+      tmp = onsuccess(new expr(x0), new set(), sofar);
+      if (ds.first(tmp) === true) return ds.second(tmp);
+      else sofar = ds.second(tmp);
+      x0 = nsh9;}
+   return sofar; }
+
+function neg_q_f (onsuccess, nsh10) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh10;
+   if (hascellvalue("p")) {
+      var tlh0 = "tlh0";
+      var arh13 = cellvalues("p");
+      for (var key in ds.data(arh13)) {
+         tlh0 = ds.element(arh13, key);
+         var arh12 = enum_ab(x0);
+         for (var key in ds.data(arh12)) {
+            x0 = ds.element(ds.element(arh12, key), 0);
+            if (!(tlh0 === x0)) {
+               tmp = onsuccess(new expr(x0), new set("p"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}}
+      x0 = nsh10;
+      var tlh0 = "tlh0";
+      var arh15 = cellvalues("p");
+      for (var key in ds.data(arh15)) {
+         tlh0 = ds.element(arh15, key);
+         var arh14 = enum_ab(x0);
+         for (var key in ds.data(arh14)) {
+            x0 = ds.element(ds.element(arh14, key), 0);
+            if (!(x0 === tlh0)) {
+               tmp = onsuccess(new expr(x0), new set("p"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}}
+      x0 = nsh10;}
+   var arh16 = enum_ab(x0);
+   for (var key in ds.data(arh16)) {
+      x0 = ds.element(ds.element(arh16, key), 0);
+      if (!(x0 === x0)) {
+         tmp = onsuccess(new expr(x0), new set(), sofar);
+         if (ds.first(tmp) === true) return ds.second(tmp);
+         else sofar = ds.second(tmp);}}
+   x0 = nsh10;
+   return sofar; }
+
+function posx_q (x0) { return pos_q(function (newval, support, sofar) { 
+
+return new pair(true, newval); }, x0); }
+
+function poss_q (x0) { return pos_q(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+
+function possuppx_q (x0) { return pos_q(function (newval, support, sofar) { 
+
+return new pair(true, new pair(newval, support)); }, x0); }
+
+function possupps_q (x0) { return pos_q(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
+
+function pos_q (onsuccess, x0) { 
+   if (varp(x0)) {
+      if (!(pos_q_f === undefined)) return pos_q_f(onsuccess, x0);
+      else return undefined;}
+   else {
+      if (!(pos_q_b === undefined)) return pos_q_b(onsuccess, x0);
+      else return undefined;} }
+
+function pos_q_b (onsuccess, nsh16) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh16;
+   if (hascellvalue("p")) {
+      if (ds.member(cellvalues("p"), x0)) {
+         tmp = onsuccess(new expr(x0), new set("p"), sofar);
+         if (ds.first(tmp) === true) return ds.second(tmp);
+         else sofar = ds.second(tmp);
+         x0 = nsh16;}}
+   return sofar; }
+
+function pos_q_f (onsuccess, nsh17) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh17;
+   if (hascellvalue("p")) {
+      var arh17 = cellvalues("p");
+      for (var key in ds.data(arh17)) {
+         x0 = ds.element(arh17, key);
+         tmp = onsuccess(new expr(x0), new set("p"), sofar);
+         if (ds.first(tmp) === true) return ds.second(tmp);
+         else sofar = ds.second(tmp);}
+      x0 = nsh17;}
+   return sofar; }
+
+function negx_p (x0) { return neg_p(function (newval, support, sofar) { 
+
+return new pair(true, newval); }, x0); }
+
+function negs_p (x0) { return neg_p(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+
+function negsuppx_p (x0) { return neg_p(function (newval, support, sofar) { 
+
+return new pair(true, new pair(newval, support)); }, x0); }
+
+function negsupps_p (x0) { return neg_p(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
+
+function neg_p (onsuccess, x0) { 
+   if (varp(x0)) {
+      if (!(neg_p_f === undefined)) return neg_p_f(onsuccess, x0);
+      else return undefined;}
+   else {
+      if (!(neg_p_b === undefined)) return neg_p_b(onsuccess, x0);
+      else return undefined;} }
+
+function neg_p_b (onsuccess, nsh18) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh18;
+   if (hascellvalue("p")) {
+      var tlh1 = "tlh1";
+      var arh18 = cellvalues("p");
+      for (var key in ds.data(arh18)) {
+         tlh1 = ds.element(arh18, key);
+         if (!(x0 === tlh1)) {
+            tmp = onsuccess(new expr(x0), new set("p"), sofar);
+            if (ds.first(tmp) === true) return ds.second(tmp);
+            else sofar = ds.second(tmp);}}
+      x0 = nsh18;
+      var tlh0 = "tlh0";
+      var arh19 = cellvalues("p");
+      for (var key in ds.data(arh19)) {
+         tlh0 = ds.element(arh19, key);
+         if (!(tlh0 === x0)) {
+            tmp = onsuccess(new expr(x0), new set("p"), sofar);
+            if (ds.first(tmp) === true) return ds.second(tmp);
+            else sofar = ds.second(tmp);}}
+      x0 = nsh18;}
+   if (hascellvalue("q")) {
+      var tlh1 = "tlh1";
+      tlh1 = cellvalue("q");
+      if (!(x0 === tlh1)) {
+         tmp = onsuccess(new expr(x0), new set("q"), sofar);
+         if (ds.first(tmp) === true) return ds.second(tmp);
+         else sofar = ds.second(tmp);}
+      x0 = nsh18;
+      var tlh1 = "tlh1";
+      tlh1 = cellvalue("q");
+      if (!(tlh1 === x0)) {
+         tmp = onsuccess(new expr(x0), new set("q"), sofar);
+         if (ds.first(tmp) === true) return ds.second(tmp);
+         else sofar = ds.second(tmp);}
+      x0 = nsh18;
+      if (!(cellvalue("q") === x0)) {
+         tmp = onsuccess(new expr(x0), new set("q"), sofar);
+         if (ds.first(tmp) === true) return ds.second(tmp);
+         else sofar = ds.second(tmp);
+         x0 = nsh18;}}
+   return sofar; }
+
+function neg_p_f (onsuccess, nsh19) { 
+   var sofar = new set();
+   var tmp;
+   var x0 = nsh19;
+   if (hascellvalue("p")) {
+      var tlh1 = "tlh1";
+      var arh24 = cellvalues("p");
+      for (var key in ds.data(arh24)) {
+         tlh1 = ds.element(arh24, key);
+         var arh23 = enum_ab(x0);
+         for (var key in ds.data(arh23)) {
+            x0 = ds.element(ds.element(arh23, key), 0);
+            if (!(x0 === tlh1)) {
+               tmp = onsuccess(new expr(x0), new set("p"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}}
+      x0 = nsh19;
+      var tlh0 = "tlh0";
+      var arh26 = cellvalues("p");
+      for (var key in ds.data(arh26)) {
+         tlh0 = ds.element(arh26, key);
+         var arh25 = enum_ab(x0);
+         for (var key in ds.data(arh25)) {
+            x0 = ds.element(ds.element(arh25, key), 0);
+            if (!(tlh0 === x0)) {
+               tmp = onsuccess(new expr(x0), new set("p"), sofar);
+               if (ds.first(tmp) === true) return ds.second(tmp);
+               else sofar = ds.second(tmp);}}}
+      x0 = nsh19;}
+   if (hascellvalue("q")) {
+      var tlh1 = "tlh1";
+      tlh1 = cellvalue("q");
+      var arh27 = enum_ab(x0);
+      for (var key in ds.data(arh27)) {
+         x0 = ds.element(ds.element(arh27, key), 0);
+         if (!(x0 === tlh1)) {
+            tmp = onsuccess(new expr(x0), new set("q"), sofar);
+            if (ds.first(tmp) === true) return ds.second(tmp);
+            else sofar = ds.second(tmp);}}
+      x0 = nsh19;
+      var tlh1 = "tlh1";
+      tlh1 = cellvalue("q");
+      var arh28 = enum_ab(x0);
+      for (var key in ds.data(arh28)) {
+         x0 = ds.element(ds.element(arh28, key), 0);
+         if (!(tlh1 === x0)) {
+            tmp = onsuccess(new expr(x0), new set("q"), sofar);
+            if (ds.first(tmp) === true) return ds.second(tmp);
+            else sofar = ds.second(tmp);}}
+      x0 = nsh19;
+      var arh29 = enum_ab(x0);
+      for (var key in ds.data(arh29)) {
+         x0 = ds.element(ds.element(arh29, key), 0);
+         if (!(cellvalue("q") === x0)) {
+            tmp = onsuccess(new expr(x0), new set("q"), sofar);
+            if (ds.first(tmp) === true) return ds.second(tmp);
+            else sofar = ds.second(tmp);}}
+      x0 = nsh19;}
+   return sofar; }
+
+</script>
+</head><body leftmargin='0' topmargin='0' marginwidth='0' marginheight='0' bgcolor='WHITE' onLoad='init()'>
+<div class="autoform">
+<span id="status"></span><center>
+<form method="post" action="/plato/commitform?" onsubmit="return submitprep()">
+<table>
+<tr><td class="description"><span class="description">P</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><div id="pbox" class="databox" onMouseOver="selector_mouseover('p')" onMouseOut="selector_mouseout('p')" >
+<select name='p' onChange="selector_change('p')" onFocus="selector_focus('p')" multiple><option value='4'>a</option>
+<option value='5'>b</option>
+</select></div></td></tr>
+<tr><td class="description"><span class="description">Q</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><div id="qbox" class="databox" onMouseOver="selector_mouseover('q')" onMouseOut="selector_mouseout('q')" >
+<select name='q' onChange="selector_change('q')" onFocus="selector_focus('q')"><option value='undefined'></option>
+<option value='4'>a</option>
+<option value='5'>b</option>
+</select></div></td></tr>
+</table>
+<p><input type="submit" value="Submit"><input type="hidden" name="time" id="time"><input type="hidden" name="formname" id="formname" value="PQ"></form></center></div></body>
+</html>

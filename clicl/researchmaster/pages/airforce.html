@@ -1,0 +1,82 @@
+<html>
+<head><title>Tag-based Authorization</title>
+<style type="text/css" media="all">
+		@import "/docserver/infoserver/examples/researchmaster/style/main.css";
+	</style>
+</head>
+
+<body>
+
+<div class="structure">
+<div class="whiteongray">
+	<div class="header">
+		<div class="title">Tag-based Authorization</div>
+	<div class="navigation">
+	
+		<span class="nav1"><a href="/airforce/">Home</a></span>
+		<span class="nav"><a href="displayreferences?">Search Docs</a></span>
+		<span class="nav"><a href="fastcreatepage?class=paper">Add Doc</a></span>
+		<span class="nav"><a href="updateauthpolicy?">Authorization Policy</a></span>
+		<span class="nav"><a href="updatetagtheory?">Tag Ontology</a></span>
+<!--		<span class="nav"><a href="displayfancyreferencehierarchy?start=dspobj.root">Hierarchy</a></span> -->
+<!--		<span class="nav"><a href="fastshowpage?class=paper">Database</a></span> -->
+<!--		<span class="nav"><a href="displaybibtex?">Bibtex</a></span> -->
+	</div>
+</div></div>
+
+<div class="bodytext">
+<h2>Introduction</h2>
+Tag-based authorization is a recent paradigm for controlling which users are granted access to which documents.  In tag-based authorization, when a document is contributed to the system, it is labeled with a set of metadata tags describing its content, and when a user is added to the system, she is assigned a set of attributes describing her salient features. The document-release policy for the system is codified by an administrator who writes logical sentences describing the user attributes necessary for accessing documents with particular tags.  To address problems with large tag sets, an administrator may also codify the relationships among tags in an ontology.
+
+<p>This site embodies a primitive, web-accessible system demonstrating the key issues in tag-based authorization.  
+<ul>
+<li><a href="/airforce/">Home</a>: This page.
+<li><a href="displayreferences?">Search Docs</a>: Search for documents based on their tags.  Results are limited by the authorization policy, though for demonstration purposes you can choose to be whomever you like.<br>
+A simple exercise.
+<ol>
+<li>Use the Require Tag drop-down list to select "First Order". 
+<li>Use the Require Tag list again to select "Reasoning". The displayed documents are tagged with both "First Order" and "Reasoning".
+<li>Clear the selected tags using the minus symbols.
+<li>Use the Require Tag list to select "Security".  Notice there are 0 results.
+<li>Change the Login ID to "Timothy L. Hinrichs".  Notice there are over 70 results.
+</ol>
+<li><a href="fastcreatepage?class=paper">Add Doc</a>: Add a new tagged document to the system.
+<li><a href="updateauthpolicy?">Authorization Policy</a>: Update the authorization policy.  Notice that besides "Timothy L. Hinrichs", several other Login IDs have access to documents tagged with "Security".
+<li><a href="updatetagtheory?">Tag Ontology</a>: Update how tags are related to one another. For example, a search for "Security" in the Tag interface includes papers not labeled explicitly with "Security" but are rather labeled with "Authorization", "Trust Management", or "Privacy".
+
+
+<!-- <li><a href="displaybibtex?">Bibtex</a>: View bibtex listing of all documents. -->
+</ul>
+
+
+<h2>Technical Issues</h2>
+
+<ul>
+<li>Everyone using this site will see changes made to the Authorization Policy and Tag Ontology.
+<li>There is absolutely no syntax-checking for either of the Authorization Policy or Tag Ontology interfaces.
+<li>When selecting items in large drop-down lists, try typing.
+</ul>
+
+
+
+<!--
+<h2>Supporting data</h2>
+<p>Everyone also has access to edit he meta-information about documents, e.g. the authors, the place of publication, and the year.  Before entering a new document into the repository, first check that all of the authors belong to the People database table, that the publication venue belongs to the Workshop, Symposium, Conference, Magazine, Journal, or Misc tables, that the publisher (if applicable) is included in the Publisher table, and that all tags you would like to use are included in the Topic table.
+
+<p>If you forget, you can always update a document entry after it has been created.
+<ul>
+<li><a href="fastshowpage?class=person">People</a>
+<li><a href="fastshowpage?class=workshop">Workshops</a>, 
+<a href="fastshowpage?class=symposium">Symposiums</a>,
+<a href="fastshowpage?class=conference">Conferences</a>,
+<a href="fastshowpage?class=magazine">Magazines</a>,
+<a href="fastshowpage?class=journal">Journals</a>,
+<a href="fastshowpage?class=miscpub">Misc</a>
+<li><a href="fastshowpage?class=publisher">Publishers</a>
+<li><a href="fastshowpage?class=topic">Topics</a>
+</ul>
+-->
+
+</div></div>
+
+</body></html>

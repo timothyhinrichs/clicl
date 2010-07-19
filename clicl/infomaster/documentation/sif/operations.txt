@@ -1,0 +1,1 @@
+(assert <sentence> [<theory>])(retract <sentence> [<theory>])(askp <sentence> [<theory>])(askx <term> <sentence> [<theory>])(asks <term> <sentence> [<theory>])(words [<theory>])(sentences <expression> [<theory>])

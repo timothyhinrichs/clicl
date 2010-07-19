@@ -1,0 +1,234 @@
+<html>
+<head>
+<title>Herbrand Logic -- First-order Syntax and Herbrand Semantics</title>
+<style>
+	a:active, a:visited, a:link {color: #09641A; text-decoration: none;}
+	a:hover {color: #09641A; text-decoration: underline;}
+	body {
+		margin: 0px 0px 0px 0px;
+		padding: 0px 0px 0px 0px;
+		background: #DCCB8F;
+	}
+	#structure {
+		margin: 8px 8px 8px 8px;
+		border: 2px 2px 2px 2px;
+		border-style: solid;
+		border-color: gray;
+		background: white;
+		width: 98%
+	}
+	#navigation {
+		border: 0px 0px 0px 0px;
+	}
+	td.whiteongreen {padding: 2px 2px 2px 2px; }
+	#whiteongreen {background: #396F43; 
+					color: white;}
+	#whiteongreen a:link {color: white; text-decoration: none;}
+	#whiteongreen a:visited {color: white; text-decoration: none;}
+	#whiteongreen a:hover, a:active {color: white; text-decoration: underline;}
+	
+	#title {font: bold 30pt copperplate;
+			align: center;}
+	#nav { padding: 2px 4px 2px 4px;
+		   	border-right: 2px solid white;}
+	#nav1 { padding: 2px 4px 2px 4px;
+		   	border-right: 2px solid white;
+			border-left: 2px solid white; }
+	#line { width: 70%;
+			border-bottom: 1px solid white; }
+	#overline { width: 70%;
+				border-top: 1px solid gray;
+				font-size: small; }
+
+</style>
+</head>
+<body>
+<table id="structure">
+<tr><td id="whiteongreen">
+	<div id="title">Herbrand Logic</div>
+	<center>
+	<table class="navigation">
+	<tr>
+	<td id="nav1"><a href="index.html">Overview</a></div>
+	<td id="nav"><a href="herbrandlogic.html">Syntax and Semantics</a></div>
+	<td id="nav"><a href="modeltheory-prooftheory.html">Proof and Model Theory</a></div>
+	<td id="nav"><a href="goedel.html">Goedel</a></div>
+	<td id="nav"><a href="applications.html">Applications</a></div>
+	</tr></table></center>
+</td></tr>
+<tr><td>  
+
+<h1>Proof Theory</h1>
+
+The Proof theory for Herbrand logic is much different than the proof theory for first-order logic.  The Model theory is also quite different.  The proof theory is more complicated, and the model theory is much simpler.
+
+<h2>Entailment</h2>
+<p>Herbrand entailment holds whenever every Herbrand model that satisfies the premises satisfies the conclusion.  The natural question to ask is whether there is an algorithm that can be used to answer entailment queries, i.e. does a given set of sentences &Delta; entail a particular sentence &phi;?  It turns out there is formally no such algorithm because Herbrand logic is expressive enough to encode Diophantine equations and their inverses, which is enough to ensure entailment is not semi-decidable.  First we give the proof that shows
+entailment in Herbrand logic is undecidable; then we give the proof that shows entailment is not even semi-decidable.  Both rely on Diophantine equations.  
+
+<p>It is well known that solving Diophantine equations, i.e. determining whether a polynomial equation has integral roots, written P(x<sub>1</sub>,...,x<sub>n</sub>) = 0, is undecidable.  Every such polynomial can be expressed using multiplication and addition.  For example, 4x<sup>3</sup>y<sup>2</sup> + 1 is 4*x*x*x*y*y + 1.  The proof of the undecidability of Herbrand entailment shows how to encode addition and multiplication.
+
+<p><b>Theorem (&forall;* |= &exist;* is undecidable)</b>: &Delta; |= &phi; is undecidable.
+<br><b>Proof</b>: The proof shows how to encode arithmetic: N is the set of natural numbers, represented in unary.  Add(x,y,z) is true when x + y = z.  Mult(x,y,z) is true when x * y = z.<ul>N(0)<br>
+N(s(x)) &lArr; N(x)<br>
+Add(0,y,y)<br>
+Add(s(x),y,s(z)) &lArr; N(x) &#8743; N(y) &#8743; N(z) &#8743; Add(x,y,z)<br>
+Mult(0,y,0)<br>
+Mult(s(x),y,w) &lArr; N(x) &#8743; N(y) &#8743; N(w) &#8743; Mult(x,y,z) &#8743; N(z) &#8743; Add(z,y,w)<br>
+</ul>
+Technically, we need to express addition and multiplication of all the integers, not just the natural numbers.  Doing so is straightforward but tedious.  Suppose P(x<sub>1</sub>,...,x<sub>n</sub>,y) is the relation that says a particular polynomial with variables x<sub>1</sub>,...,x<sub>n</sub> equals y.  <!-- We want this to be functional, so we throw in the following.
+<ul>P(x<sub>1</sub>,...,x<sub>n</sub>,y) &#8743; P(x<sub>1</sub>,...,x<sub>n</sub>,z) &rArr; y=z</ul> -->
+Now we can encode the Diophantine problem.
+<ul>&exist;x<sub>1</sub>...x<sub>n</sub>.P(x<sub>1</sub>,...,x<sub>n</sub>,0) </ul>
+If this sentence is entailed, certainly there is a solution to the Diophantine problem, i.e. there is a solution in the minimal Herbrand model satisfying the axioms above.  If there is a solution to the Diophantine, there must be a solution in every model since the axioms above are Horn and a solution to the problem means there is a solution in the Horn model.  Because the minimal model is a subset of every model that satisfies the axioms, every model must satisfy the sentence. Therefore the sentence must be entailed. &#x220E
+
+<p><b>Corollary (|= is undecidable)</b>: &Delta; |= &phi; is undecidable.
+<br><b>Proof</b>: The special case defined in the last theorem is undecidable; thus, the problem in general is undecidable. &#x220E
+
+<p>Interestingly, we can also encode the statement that says there is no solution to the Diophantine.  That problem is not semi-decidable (otherwise solving the Diophantine itself would be decidable), ensuring that Herbrand Entailment is not semi-decidable.
+
+<p><b>Theorem (&forall;* |= &forall;* is not semi-decidable)</b>: Let &Delta; be a set of sentences in &forall;*.  Let &phi; be a sentence in &forall;*.  &Delta; |= &phi; is not semi-decidable.
+<br><b>Proof</b>: 
+Here we encode a problem that is not semi-decidable as an entailment query in Herbrand logic, with the required characteristics.  More precisely, we encode the query that says a Diophantine has no solution: every candidate solution when plugged in is either less than 0 or greater than 0.  Start with the axioms for less-than (lt), which are added to the axioms in the above proof.
+<ul>lt(s(x),0)<br>
+lt(s(x),s(y)) &lArr; lt(x,y)<br>
+&#x00AC; lt(0,0) </ul>
+The query that says there is no solution is then
+<ul>&forall;x<sub>1</sub>...x<sub>n</sub>y. (P(x<sub>1</sub>,...,x<sub>n</sub>,y) &rArr; (lt(y,0) &#8744; lt(0,y))) </ul>
+That is, the query says that regardless what numbers we plug in for x<sub>1</sub>,...,x<sub>n</sub>, the result is
+always less than 0 or greater than 0.  By reasoning similar to the proof above, this sentence
+is entailed if and only if the Diophantine described has no solution.&#x220E
+
+<p><b>Corollary (|= is not semi-decidable)</b>: &Delta; |= &phi; is not semidecidable.
+<br><b>Proof</b>: The special case defined in the last theorem is not semi-decidable; thus, the problem in general is not semi-decidable. &#x220E
+
+<p>So in general, there is no algorithm for determining that &Delta; |= &phi; even if it is true.  But, for a special case of Herbrand logic, entailment is semi-decidable.  That fragment is semi-decidable because in it Herbrand entailment is equivalent to first-order entailment.  We use |=<sub>FO</sub> to stand for first-order entailment.
+
+
+<p><b>Theorem (&forall;* |= &exist;* iff &forall;* |=<sub>FO</sub> &exist;*)</b>: Let &Delta; be a set of equality-free, quantifier-free sentences and &psi; be an equality-free, quantifier-free sentence.
+<nobrcenter>&Delta; |= &exist;*.&psi; if and only if &Delta; |=<sub>FO</sub> &exist;*.&psi;</nobrcenter>
+<br><b>Proof</b>: Below we use &Delta; &cup; &#x00AC;&psi; as shorthand for &Delta; &cup; {&#x00AC;&psi;}.
+	<ul>&Delta; |=<sub>FO</sub> &exist;*.&psi;<br>
+	&hArr; &Delta; &cup; &#x00AC;&psi; is First-Order-unsatisfiable. <br>
+	&hArr; there is no Herbrand model of &Delta; &cup; &#x00AC;&psi;.  (By Herbrand's theorem, since &Delta; &cup; &#x00AC;&psi; is quantifier-free and equality-free) <br>
+	&hArr; &Delta; &cup; &#x00AC;&psi; is Herbrand-unsat.<br>
+	&hArr; &Delta; |= &exist;*.&psi;  &#x220E<br>
+	</ul>
+
+<p><b>Corollary (&forall;* |= &exist;* is semi-decidable)</b>: Let &Delta; be a set of equality-free, quantifier-free sentences and &psi; be a quantifier free sentence.  &Delta; |= &exist;*.&psi; is semi-decidable.
+<br><b>Proof</b>: Since |= is equivalent to |=<sub>FO</sub>, and the latter is semi-decidable, so is the former. &#x220E
+
+<p>Since for a problem to be semi-decidable, its complement must not even be semi-decidable, the theorem above implies |# cannot be semi-decidable for the special case of entailment queries in the theorem.  Thus, in general, |# cannot be semi-decidable.
+
+<p><b>Corollary (&Delta; |# &phi; is not semi-decidable)</b>: &Delta; |# &phi; (or equivalently, Herbrand satisfiability) 
+is not semi-decidable.
+<br><b>Proof</b>: Because entailment and therefore unsatisfiability in the fragment with &forall;* premises and &exist;* queries is semi-decidable, satisfiability of that fragment must not be semi-decidable.  Otherwise, both unsatisfiability and satisfiability would be decidable.  Thus, because a special case of satisfiability or equivalently |# is not semi-decidable, in general, satisfiability cannot be semi-decidable. &#x220E
+
+<p>Herbrand logic in its most general form is thus incomputable: neither entailment nor its negation is semi-decidable.  Consequently some true sentences require infinite proofs in Herbrand logic, making the logic inherently incomplete.  (This assumes our definition of an inference system is one where checking whether a candidate proof actually proves a given query is decidable.  Under this assumption, if every true sentence in a logic admits a finite proof, entailment is semi-decidable: (1) the set of all finite proofs is recursively enumerable, (2) checking whether a given proof proves the query under consideration is decidable, (3) thus, if there is a finite proof, there is always a semi-decision procedure for finding it.  Since entailment is not semi-decidable, there must be true sentences without finite proofs.) 
+
+<p>Herbrand logic is therefore more expressive than FOL.  In FOL, we can encode a Diophantine, but because entailment is semi-decidable, we are ensured that there is no r.e. axiomatization of the negation of an arbitrary Diophantine since otherwise FOL would decide Diophantines, which clearly it can't.  But, in Herbrand logic, we can encode both the Diophantine and its negation; obviously, the downside is that we lose semi-decidability of entailment.  The benefit is that some theories that are not recursively enumerable in FOL appear to be finitely axiomatizable in Herbrand logic.  See <a href="goedel.html">Goedel</a> for more information.
+
+
+<h2>Finite Herbrand Logic</h2>
+<p>Another way to cut up the space of sentences in Herbrand logic is on the basis of what kinds of constants exist in the vocabulary.  If there are no functions, the logic becomes much simpler; all the negative results above require functions in the vocabulary.
+
+<p>Consider a vocabulary V without function constants.  Recall we assume the set of constants in a vocabulary is always finite.  The set of ground terms for V is then equal to the (by definition nonempty) set of object constants, which means the universe for every Herbrand model for V is finite.  The set of ground atoms is also finite, which makes the set of all Herbrand models finite.  We use the term <i>Finite Herbrand Logic</i> (FHL) to refer to this class of vocabularies.
+
+<p><b>Theorem (Finite Herbrand Logic Expressiveness)</b>: Finite Herbrand Logic has exactly the same expressiveness as Propositional Logic with a finite set of propositions.
+<br><b>Proof</b>: Let &Delta; be a set of FHL sentences with vocabulary V.  Invent a new propositional symbol for each ground atom in V.  Ground &Delta;.  Since the set of ground terms is finite, the grounding will produce only finite-length sentences.  Replace each ground atom in that grounding with the appropriate propositional symbol.  The result is a set of propositional sentences that has the same consequences as &Delta; modulo the ground atom rewriting.  The other direction is obvious: each propositional symbol is a relation constant of arity 0. &#x220E
+
+<p><b>Corollary</b>: &Delta; |= &phi; in Finite Herbrand Logic is decidable.
+<br><b>Proof</b>: Entailment in propositional logic is decidable; hence, so is entailment in Finite Herbrand Logic. &#x220E
+
+<p><b>Corollary</b>: Every theory in Finite Herbrand Logic can be finitely axiomatized.
+<br><b>Proof</b>: It is sufficient to show every set of models can be finitely axiomatized.  Every finite Herbrand model can be finitely axiomatized by conjoining all the ground literals true in the model.  A vocabulary in finite Herbrand logic always has a finite number of models.  Disjoining the finite axiomatizations for each of the models in the theory finitely axiomatizes that theory.  &#x220E
+
+
+<p>That is not to say that computationally, Finite Herbrand Logic has exactly the same properties as propositional logic; all it says is the two logics can express the same logical theories.  The structure in FHL may allow for more efficient representation or processing of those theories.
+
+<h2>Some More Proof Theory</h2>
+
+<p>In light of the negative results above, namely that Herbrand logic is inherently incomplete, it is not surprising that Herbrand logic is not compact.  Recall that Compactness says that if an infinite set of sentences is unsatisfiable, there is some finite subset that is satisfiable.  It guarantees
+finite proofs.
+
+<p><b>Theorem (NonCompactness)</b>: Herbrand logic is not compact.
+<br><b>Proof</b>: Consider the following infinite set of sentences.
+<ul>p(a)<br>
+p(f(a))<br>
+p(f(f(a)))<br>
+p(f(f(f(a))))<br>
+...<br>
+</ul>
+Assuming the vocabulary is {p, a, f}, the ground terms are a, f(a), f(f(a)), ..., and this set of sentences entails &forall; x.p(x).  Add in the sentence &exist; x.&#x00AC; p(x).  Clearly, the infinite set is unsatisfiable.  However, every finite subset is satisfiable with respect to the vocabulary {p, a, f}. (Every finite subset is missing either &exist; x.&#x00AC; p(x) or one of the sentences above.  If it is the former, the set is satisfiable, and if it is the latter, the set can be satisfied by making the missing sentence false.)  Thus, compactness does not hold.  &#x220E
+
+<p><b>Corollary (Infinite Proofs)</b>: In Herbrand logic, Some entailed sentences admit only infinite proofs.
+<br><b>Proof</b>: The above proof demonstrates a set of sentences that entail &forall;x.p(x).  The set of premises in any finite proof will be missing one of the above sentences; thus, those premises do not entail &forall;x.p(x).  Thus no finite proof can exist for &forall;x.p(x).&#x220E
+
+<p>This statement in this Corollary was made earlier with the condition that checking whether
+a candidate proof actually proves a conjecture is decidable.  There is no such condition on this 
+theorem.
+
+<p>Skolemization is another mainstay of many logics that does not have the same effect in Herbrand logic.
+
+<p><b>Theorem</b>: In Herbrand logic, Skolemization does not preserve satisfiability.
+<br><b>Proof</b>: The following set of sentences are unsatisfiable.
+<ul>p(a)<br>
+&exist;x.&#x00AC;p(x)</ul>
+Skolemizing produces a satisfiable set of sentences:
+<ul>p(a)<br>
+&#x00AC;p(k) &#x220E</ul>
+
+<p>This result is not surprising given the dependence of Herbrand satisfaction on the vocabulary.
+
+
+<!-- ***************** Model theory ****************** -->
+
+<h1>Model Theory</h1>
+<p>Model theory in Herbrand logic is much simpler than it is in first-order logic.
+
+<p>Unlike first-order logic where two models A and B can be equivalent with varying strengths, i.e. elementarily equivalent, secondarily equivalent, ..., isomorphic, and equal, there is no such hierarchy in Herbrand Logic.  Two models either satisfy all the same sentences because they are the same exact model, or they disagree on some ground atom, i.e. one satisfies it, and the other satisfies its negation.  Thus, the set of ground literals satisfied by a model uniquely identify it.
+
+<p><b>Theorem</b>: Let S be the set of ground literals satisfied by a Herbrand model M.  S is satisfied by exactly one Herbrand model: M.  Equivalently, Mod[Th[M]] = {M}.
+
+<p><b>Corollary</b>: Lowenheim-Skolem-Tarski  does not hold in Herbrand logic.
+<br><b>Proof</b>: Lowenheim-Skolem-Tarski is a theorem in first-order logic that states if a 
+set of sentences has a model of any infinite size, it has a model of every infinite size. 
+Clearly this theorem does not hold in Herbrand logic, since every infinite model
+has countable size.&#x220E
+
+
+<p>Unlike Finite Herbrand Logic, not all theories are finitely axiomatizable.
+
+<p><b>Theorem</b>: Some Herbrand models are not finitely axiomatizable.
+<br><b>Proof:</b> Consider a vocabulary with the set of terms {a, f(a), f(f(a)), f(f(f(a))), ...}, and a single, unary relation constant p.  The set of all Herbrand models over this vocabulary is a subset of the ground atoms {p(a), p(f(a)), p(f(f(a)), ...}.  There are 2<sup>&omega;</sup> such subsets, which is uncountably infinite.  Since there are only countably many sentences from a countable vocabulary, there are models without finite axiomatizations. &#x220E
+
+<p>More concretely, consider a model that encodes the digits of &pi;, alternating between the positive literals and the negative literals.
+
+<center>
+<table border="1" cellspacing="2" cellpadding="2">
+<tr><td>1</td><td>4</td><td>1</td><td>5</td><td>...</td></tr>
+<tr><td>p(a)</td><td>&#x00AC;p(fa), &#x00AC; p(ffa), &#x00AC; p(fffa), &#x00AC; p(ffffa)</td><td>p(f<sup>5</sup>a)</td><td>&#x00AC;p(f<sup>6</sup>a), &#x00AC; p(f<sup>7</sup>a), &#x00AC; p(f<sup>8</sup>a), &#x00AC; p(f<sup>9</sup>a)</td><td>...</td></tr>
+</table>
+</center>
+
+<p>Unless the digits of &pi; are finitely expressible, this model has no finite description.  
+
+
+<p><center>
+<div id="overline">
+&copy; Copyright 2006 by 
+<SCRIPT LANGUAGE="JavaScript" type="text/javascript">
+<!--
+var addr1 = "mailto:"
+var addr2 = "thinrich"
+var addr3 = "@"
+var addr4 = "stanford.edu"
+document.write( ' <A HREF=" ' + addr1 + addr2 + addr3 + addr4 + ' "> ' )
+document.write ( ' Tim Hinrichs</A> ' )
+//-->
+</SCRIPT>
+ and the <a href="http://logic.stanford.edu/">Stanford Logic Group</a></div>
+</center>
+</td></tr></table>
+</body>
+</html>

@@ -1,0 +1,9 @@
+set nocount on
+select distinct
+'(pedit-office', p.person_id as "---", office_id as "----", '=', room, '+)' 
+from people p, offices o
+where p.person_id = o.person_id
+and building = "GATES"
+and office_visible = 'Y'
+go
+exit

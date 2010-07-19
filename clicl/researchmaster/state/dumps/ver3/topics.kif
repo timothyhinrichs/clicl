@@ -1,0 +1,97 @@
+
+(topic.instance representation)
+(shortname      representation "Representation")
+(prettyname     representation "Representation")
+(topic.superclass     representation topic0)
+
+(topic.instance represent.classical)
+(shortname      represent.classical "Classical")
+(prettyname     represent.classical "Represent-Classical")
+(topic.superclass     represent.classical representation)
+
+(topic.instance represent.nonmon)
+(shortname      represent.nonmon "Nonmonotonic")
+(prettyname     represent.nonmon "Represent-Nonmonotonic")
+(topic.superclass     represent.nonmon representation)
+
+(topic.instance represent.metalevel)
+(shortname      represent.metalevel "Metalevel")
+(prettyname     represent.metalevel "Represent-Metalevel")
+(topic.superclass     represent.metalevel representation)
+
+(topic.instance represent.lp)
+(shortname      represent.lp "Logic Programming")
+(prettyname     represent.lp "Represent-Logic Programming")
+(topic.superclass     represent.lp representation)
+
+(topic.instance represent.csp)
+(shortname      represent.csp "Constraint Satisfaction")
+(prettyname     represent.csp "Represent-Constraint Satisfaction")
+(topic.superclass     represent.csp representation)
+
+(topic.instance represent.reformulation)
+(shortname      represent.reformulation "Reformulation")
+(prettyname     represent.reformulation "Represent-Reformulation")
+(topic.superclass     represent.reformulation representation)
+
+(topic.instance represent.temporal)
+(shortname      represent.temporal "Temporal")
+(prettyname     represent.temporal "Represent-Temporal")
+(topic.superclass     represent.temporal representation)
+
+(topic.instance reasoning)
+(shortname      reasoning "Reasoning")
+(prettyname     reasoning "Reasoning")
+(topic.superclass     reasoning topic0)
+
+(topic.instance reason.deduction)
+(shortname      reason.deduction "Deduction")
+(prettyname     reason.deduction "Reason-Deduction")
+(topic.superclass     reason.deduction reasoning)
+
+(topic.instance reason.abduction)
+(shortname      reason.abduction "Abduction")
+(prettyname     reason.abduction "Reason-Abduction")
+(topic.superclass     reason.abduction reasoning)
+
+(topic.instance reason.satisfiability)
+(shortname      reason.satisfiability "Satisfiability")
+(prettyname     reason.satisfiability "Reason-Satisfiability")
+(topic.superclass     reason.satisfiability reasoning)
+
+(topic.instance reason.modelchecking)
+(shortname      reason.modelchecking "Model Checking")
+(prettyname     reason.modelchecking "Reason-Model Checking")
+(topic.superclass     reason.modelchecking reasoning)
+
+(topic.instance reason.combination)
+(shortname      reason.combination "Combination Procedures")
+(prettyname     reason.combination "Reason-Combination Procedures")
+(topic.superclass     reason.combination reasoning)
+
+(topic.instance reason.reformulation)
+(shortname      reason.reformulation "Reformulation")
+(prettyname     reason.reformulation "Reason-Reformulation")
+(topic.superclass     reason.reformulation reasoning)
+
+(topic.instance reason.semantic)
+(shortname      reason.semantic "Semantic Methods")
+(prettyname     reason.semantic "Reason-Semantic Methods")
+(topic.superclass     reason.semantic reasoning)
+
+(topic.instance reason.nonmon)
+(shortname      reason.nonmon "Nonmonotonic")
+(prettyname     reason.nonmon "Reason-Nonmonotonic")
+(topic.superclass     reason.nonmon reasoning)
+
+(topic.instance reason.temporal)
+(shortname      reason.temporal "Temporal")
+(prettyname     reason.temporal "Reason-Temporal")
+(topic.superclass     reason.temporal reasoning)
+
+
+(topic.instance applications)
+(shortname      "Applications")
+(prettyname     "Applications")
+(topic.superclass     applications topic0)
+

@@ -1,0 +1,218 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; dspobj
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    (dspobj.instance dspobj.application)
+    (prettyname      dspobj.application "Application")
+    (dspobj.boss     dspobj.application dspobjroot)
+
+    (dspobj.instance dspobj.application.distributed)
+    (prettyname      dspobj.application.distributed "Distributed Systems")
+    (dspobj.boss     dspobj.application.distributed dspobj.application)
+
+    (dspobj.instance dspobj.application.security)
+    (prettyname      dspobj.application.security "Security")
+    (dspobj.boss     dspobj.application.security dspobj.application)
+
+    (dspobj.instance dspobj.application.security.authorization)
+    (prettyname      dspobj.application.security.authorization "Authorization")
+    (dspobj.boss     dspobj.application.security.authorization dspobj.application.security)
+
+    (dspobj.instance dspobj.application.security.privacy)
+    (prettyname      dspobj.application.security.privacy "Privacy")
+    (dspobj.boss     dspobj.application.security.privacy dspobj.application.security)
+
+    (dspobj.instance dspobj.application.security.trustmanagement)
+    (prettyname      dspobj.application.security.trustmanagement "Trust Management")
+    (dspobj.boss     dspobj.application.security.trustmanagement dspobj.application.security)
+
+    (dspobj.instance dspobj.application.semanticweb)
+    (prettyname      dspobj.application.semanticweb "Semantic Web")
+    (dspobj.boss     dspobj.application.semanticweb dspobj.application)
+
+    (dspobj.instance dspobj.application.spreadsheets)
+    (prettyname      dspobj.application.spreadsheets "Spreadsheets")
+    (dspobj.boss     dspobj.application.spreadsheets dspobj.application)
+
+    (dspobj.instance dspobj.mypublication)
+    (prettyname      dspobj.mypublication "My Publications")
+    (dspobj.boss     dspobj.mypublication dspobjroot)
+
+    (dspobj.instance dspobj.reasoning)
+    (prettyname      dspobj.reasoning "Reasoning")
+    (dspobj.boss     dspobj.reasoning dspobjroot)
+
+    (dspobj.instance dspobj.reasoning.abduction)
+    (prettyname      dspobj.reasoning.abduction "Abduction")
+    (dspobj.boss     dspobj.reasoning.abduction dspobj.reasoning)
+
+    (dspobj.instance dspobj.reasoning.combination)
+    (prettyname      dspobj.reasoning.combination "Combination")
+    (dspobj.boss     dspobj.reasoning.combination dspobj.reasoning)
+
+    (dspobj.instance dspobj.reasoning.combination.architecture)
+    (prettyname      dspobj.reasoning.combination.architecture "Architectures")
+    (dspobj.boss     dspobj.reasoning.combination.architecture dspobj.reasoning.deduction)
+
+    (dspobj.instance dspobj.reasoning.database)
+    (prettyname      dspobj.reasoning.database "Databases")
+    (dspobj.boss     dspobj.reasoning.database dspobj.reasoning)
+
+    (dspobj.instance dspobj.reasoning.deduction)
+    (prettyname      dspobj.reasoning.deduction "Deduction")
+    (dspobj.boss     dspobj.reasoning.deduction dspobj.reasoning)
+
+    (dspobj.instance dspobj.reasoning.deduction.abstraction)
+    (prettyname      dspobj.reasoning.deduction.abstraction "Abstraction")
+    (dspobj.boss     dspobj.reasoning.deduction.abstraction dspobj.reasoning.deduction)
+
+    (dspobj.instance dspobj.reasoning.deduction.application)
+    (prettyname      dspobj.reasoning.deduction.application "Applications")
+    (dspobj.boss     dspobj.reasoning.deduction.application dspobj.reasoning.deduction)
+
+    (dspobj.instance dspobj.reasoning.deduction.architecture)
+    (prettyname      dspobj.reasoning.deduction.architecture "Architecture")
+    (dspobj.boss     dspobj.reasoning.deduction.architecture dspobj.reasoning.deduction)
+
+    (dspobj.instance dspobj.reasoning.deduction.attachment)
+    (prettyname      dspobj.reasoning.deduction.attachment "Attachments")
+    (dspobj.boss     dspobj.reasoning.deduction.attachment dspobj.reasoning.deduction)
+
+    (dspobj.instance dspobj.reasoning.deduction.calculi)
+    (prettyname      dspobj.reasoning.deduction.calculi "Calculi")
+    (dspobj.boss     dspobj.reasoning.deduction.calculi dspobj.reasoning.deduction)
+
+    (dspobj.instance dspobj.reasoning.deduction.comparativeanalysis)
+    (prettyname      dspobj.reasoning.deduction.comparativeanalysis "Comparative Analysis")
+    (dspobj.boss     dspobj.reasoning.deduction.comparativeanalysis dspobj.reasoning.deduction)
+
+    (dspobj.instance dspobj.reasoning.deduction.indexing)
+    (prettyname      dspobj.reasoning.deduction.indexing "Indexing")
+    (dspobj.boss     dspobj.reasoning.deduction.indexing dspobj.reasoning.deduction)
+
+    (dspobj.instance dspobj.reasoning.deduction.modelguided)
+    (prettyname      dspobj.reasoning.deduction.modelguided "Model Guided")
+    (dspobj.boss     dspobj.reasoning.deduction.modelguided dspobj.reasoning.deduction)
+
+    (dspobj.instance dspobj.reasoning.deduction.ordering)
+    (prettyname      dspobj.reasoning.deduction.ordering "Orderings")
+    (dspobj.boss     dspobj.reasoning.deduction.ordering dspobj.reasoning.deduction)
+
+    (dspobj.instance dspobj.reasoning.deduction.reformulation)
+    (prettyname      dspobj.reasoning.deduction.reformulation "Reformulation")
+    (dspobj.boss     dspobj.reasoning.deduction.reformulation dspobj.reasoning.deduction)
+
+    (dspobj.instance dspobj.reasoning.descriptionlogic)
+    (prettyname      dspobj.reasoning.descriptionlogic "Description Logic")
+    (dspobj.boss     dspobj.reasoning.descriptionlogic dspobj.reasoning)
+
+    (dspobj.instance dspobj.reasoning.induction)
+    (prettyname      dspobj.reasoning.induction "Induction")
+    (dspobj.boss     dspobj.reasoning.induction dspobj.reasoning)
+
+    (dspobj.instance dspobj.reasoning.logicprogramming)
+    (prettyname      dspobj.reasoning.logicprogramming "Logic Programming")
+    (dspobj.boss     dspobj.reasoning.logicprogramming dspobj.reasoning)
+
+    (dspobj.instance dspobj.reasoning.modelchecking)
+    (prettyname      dspobj.reasoning.modelchecking "Model Checking")
+    (dspobj.boss     dspobj.reasoning.modelchecking dspobj.reasoning)
+
+    (dspobj.instance dspobj.reasoning.nonmon)
+    (prettyname      dspobj.reasoning.nonmon "Nonmonotonic")
+    (dspobj.boss     dspobj.reasoning.nonmon dspobj.reasoning)
+
+    (dspobj.instance dspobj.reasoning.paraconsistent)
+    (prettyname      dspobj.reasoning.paraconsistent "Paraconsistent")
+    (dspobj.boss     dspobj.reasoning.paraconsistent dspobj.reasoning)
+
+    (dspobj.instance dspobj.reasoning.satisfiability)
+    (prettyname      dspobj.reasoning.satisfiability "Satisfiability")
+    (dspobj.boss     dspobj.reasoning.satisfiability dspobj.reasoning)
+
+    (dspobj.instance dspobj.reasoning.satisfiability.modelbuilding)
+    (prettyname      dspobj.reasoning.satisfiability.modelbuilding "Model Building")
+    (dspobj.boss     dspobj.reasoning.satisfiability.modelbuilding dspobj.reasoning.satisfiability)
+
+    (dspobj.instance dspobj.reasoning.satisfiability.satsolving)
+    (prettyname      dspobj.reasoning.satisfiability.satsolving "SAT Solving")
+    (dspobj.boss     dspobj.reasoning.satisfiability.satsolving dspobj.reasoning.satisfiability)
+
+    (dspobj.instance dspobj.reasoning.semanticmethods)
+    (prettyname      dspobj.reasoning.semanticmethods "Semantic Methods")
+    (dspobj.boss     dspobj.reasoning.semanticmethods dspobj.reasoning)
+
+    (dspobj.instance dspobj.reasoning.semanticmethods.casebased)
+    (prettyname      dspobj.reasoning.semanticmethods.casebased "Case-Based")
+    (dspobj.boss     dspobj.reasoning.semanticmethods.casebased dspobj.reasoning.semanticmethods)
+
+    (dspobj.instance dspobj.reasoning.semanticmethods.examples)
+    (prettyname      dspobj.reasoning.semanticmethods.examples "Examples")
+    (dspobj.boss     dspobj.reasoning.semanticmethods.examples dspobj.reasoning.semanticmethods)
+
+    (dspobj.instance dspobj.reasoning.semanticmethods.graphical)
+    (prettyname      dspobj.reasoning.semanticmethods.graphical "Graphical")
+    (dspobj.boss     dspobj.reasoning.semanticmethods.graphical dspobj.reasoning.semanticmethods)
+
+    (dspobj.instance dspobj.reasoning.semanticmethods.modelbased)
+    (prettyname      dspobj.reasoning.semanticmethods.modelbased "Model-Based")
+    (dspobj.boss     dspobj.reasoning.semanticmethods.modelbased dspobj.reasoning.semanticmethods)
+
+    (dspobj.instance dspobj.reasoning.semanticmethods.modelbased.characteristic)
+    (prettyname      dspobj.reasoning.semanticmethods.modelbased.characteristic "Characteristic Models")
+    (dspobj.boss     dspobj.reasoning.semanticmethods.modelbased.characteristic dspobj.reasoning.semanticmethods.modelbased)
+
+    (dspobj.instance dspobj.reasoning.temporal)
+    (prettyname      dspobj.reasoning.temporal "Temporal")
+    (dspobj.boss     dspobj.reasoning.temporal dspobj.reasoning)
+
+    (dspobj.instance dspobj.reasoning.temporal.behavioralgoals)
+    (prettyname      dspobj.reasoning.temporal.behavioralgoals "Behavioral Goals")
+    (dspobj.boss     dspobj.reasoning.temporal.behavioralgoals dspobj.reasoning.temporal)
+
+    (dspobj.instance dspobj.reasoning.temporal.hypotheticaldb)
+    (prettyname      dspobj.reasoning.temporal.hypotheticaldb "Hypothetical Database Queries")
+    (dspobj.boss     dspobj.reasoning.temporal.hypotheticaldb dspobj.reasoning.temporal)
+
+    (dspobj.instance dspobj.reasoning.temporal.planning)
+    (prettyname      dspobj.reasoning.temporal.planning "Planning")
+    (dspobj.boss     dspobj.reasoning.temporal.planning dspobj.reasoning.temporal)
+
+    (dspobj.instance dspobj.reasoning.temporal.planning.deductive)
+    (prettyname      dspobj.reasoning.temporal.planning.deductive "Deductive")
+    (dspobj.boss     dspobj.reasoning.temporal.planning.deductive dspobj.reasoning.temporal.planning)
+
+    (dspobj.instance dspobj.reasoning.temporal.planning.historical)
+    (prettyname      dspobj.reasoning.temporal.planning.historical "Historical")
+    (dspobj.boss     dspobj.reasoning.temporal.planning.historical dspobj.reasoning.temporal.planning)
+
+    (dspobj.instance dspobj.reasoning.temporal.planning.recursion)
+    (prettyname      dspobj.reasoning.temporal.planning.recursion "Recursive Plans")
+    (dspobj.boss     dspobj.reasoning.temporal.planning.recursion dspobj.reasoning.temporal.planning)
+
+    (dspobj.instance dspobj.reasoning.temporal.planning.sensor)
+    (prettyname      dspobj.reasoning.temporal.planning.sensor "Sensor")
+    (dspobj.boss     dspobj.reasoning.temporal.planning.sensor dspobj.reasoning.temporal.planning)
+
+    (dspobj.instance dspobj.reasoning.transformation)
+    (prettyname      dspobj.reasoning.transformation "Reformulation")
+    (dspobj.boss     dspobj.reasoning.transformation dspobj.reasoning)
+
+    (dspobj.instance dspobj.representation)
+    (prettyname      dspobj.representation "Representation")
+    (dspobj.boss     dspobj.representation dspobjroot)
+
+    (dspobj.instance dspobj.textbook)
+    (prettyname      dspobj.textbook "Textbooks")
+    (dspobj.boss     dspobj.textbook dspobjroot)
+
+    (dspobj.instance dspobj.website)
+    (prettyname      dspobj.website "Website")
+    (dspobj.boss     dspobj.website dspobjroot)
+
+    (dspobj.instance dspobjroot)
+    (prettyname      dspobjroot "Root")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

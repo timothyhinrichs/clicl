@@ -1,0 +1,31 @@
+<html>
+<head><title>Javascript Debugger</title>
+<link rel="stylesheet" type="text/css" href="../style/main.css">
+<link rel="stylesheet" type="text/css" href="../style/jack.css">
+<link rel="stylesheet" type="text/css" href="../style/websheet.css">
+<script src="../javascript/util.js"></script>
+<script src="../javascript/spreadsheet.js"></script>
+<script src="../javascript/ds.js"></script>
+</head>
+<body>
+
+<div class="autoform"><center>
+<form>
+
+<p>Messages</p>
+<textarea cols='40' rows='20' id='msg' name='msg'>
+</textarea>
+
+<p>Javascript Portal<br>
+<textarea cols='80' rows='15' id='evalbox' name='evalbox'>
+</textarea><br>
+<input type='button' value='Eval' onclick="alerteval('evalbox');">
+<input type='button' value='Time' onclick="alerttime('evalbox');">
+<input type='button' value='Findbugs' onclick="alert(findbugs());">
+
+
+
+
+</form></center></div>
+</body>
+</html>

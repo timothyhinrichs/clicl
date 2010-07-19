@@ -1,0 +1,100 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; (c) Copyright 1999-2008 by Michael Genesereth.  All rights reserved.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(load "/epilog/source/base")
+(load "/epilog/source/true")
+(load "/epilog/source/fact")
+(load "/epilog/source/fast")
+(load "/epilog/source/data")
+(load "/epilog/source/view")
+(load "/epilog/source/full")
+(load "/epilog/source/find")
+
+(load "/infomaster/source/magenta")
+(load "/infomaster/source/factserver")
+(load "/infomaster/source/fastserver")
+(load "/infomaster/source/dataserver")
+(load "/infomaster/source/viewserver")
+(load "/infomaster/source/fullserver")
+(load "/infomaster/source/dualserver")
+(load "/infomaster/source/diffserver")
+(load "/infomaster/source/ruleserver")
+
+;(load "/infomaster/source/bsd")
+(load "/infomaster/source/sha1")
+(load "/infomaster/source/logic")
+(load "/infomaster/source/sequel")
+(load "/infomaster/source/formats")
+(load "/infomaster/source/tcp.ccl")
+(load "/infomaster/source/http")
+(load "/infomaster/source/aclhandler")
+(load "/infomaster/source/sqlhandler")
+(load "/infomaster/source/soaphandler")
+(load "/infomaster/source/htmlhandler")
+(load "/infomaster/source/aclserver")
+(load "/infomaster/source/sqlserver")
+(load "/infomaster/source/soapserver")
+(load "/infomaster/source/docserver")
+(load "/infomaster/source/protabula")
+(load "/infomaster/source/proforma")
+(load "/infomaster/source/conforma")
+(load "/infomaster/source/prologica")
+(load "/infomaster/source/leftovers")
+(load "/infomaster/source/interface")
+(load "/infomaster/source/remote")
+(load "/infomaster/source/security")
+
+(load "/infomaster/source/translator")
+(load "/infomaster/source/transformer")
+(load "/infomaster/source/integrator")
+(load "/infomaster/source/facilitator")
+(load "/infomaster/source/preprocessor")
+
+(load "/infomaster/source/check")
+(load "/infomaster/source/miscellaneous")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; To start the interface, type one of the following:
+;;;   (tcp-handler #'http-handler <port>)
+;;;   (tcp-loop #'http-handler <port>)
+;;;   (tcp-servers #'http-handler <port> 10)
+;;;   (start-tcp-server-process #'http-handler <port>)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(setq *host* (hostname))
+(setq *port* 3000)
+(setq *home* "/")
+(setq *homedir* "/infomaster/")
+(setq *imageprefix* "/infomaster/images/")
+(setq *web* "")
+(setq *icons* t)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#|
+(test "/infomaster/tests/factserver.test")
+(test "/infomaster/tests/viewserver.test")
+(test "/infomaster/tests/fullserver.test")
+(test "/infomaster/tests/dataserver.test")
+(test "/infomaster/tests/diffserver.test")
+(test "/infomaster/tests/ruleserver.test")
+(test "/infomaster/tests/fastserver.test")
+(test "/infomaster/tests/translator.test")
+(test "/infomaster/tests/transformer.test")
+(test "/infomaster/tests/integrator.test")
+(test "/infomaster/tests/facilitator.test")
+(test "/infomaster/tests/interface.test")
+
+(test "/infomaster/tests/album.test")
+(test "/infomaster/tests/cookware.test")
+(test "/infomaster/tests/housewares.test")
+(test "/infomaster/tests/msrp.test")
+(test "/infomaster/tests/nhma.test")
+(test "/infomaster/tests/once.test")
+(test "/infomaster/tests/university.test")
+|#
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

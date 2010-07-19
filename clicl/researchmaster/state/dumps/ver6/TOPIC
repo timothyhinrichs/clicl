@@ -1,0 +1,181 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; topic
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    (topic.instance abduction)
+    (prettyname     abduction "Abduction")
+
+    (topic.instance abstraction)
+    (prettyname     abstraction "Abstraction")
+
+    (topic.instance application)
+    (prettyname     application "Application")
+
+    (topic.instance architecture)
+    (prettyname     architecture "Architecture")
+
+    (topic.instance attachment)
+    (prettyname     attachment "Attachment")
+
+    (topic.instance authorization)
+    (prettyname     authorization "Authorization")
+
+    (topic.instance behavioralgoals)
+    (prettyname     behavioralgoals "Behavioral Goals")
+
+    (topic.instance calculus)
+    (prettyname     calculus "Calculus")
+
+    (topic.instance casebased)
+    (prettyname     casebased "Case-Based")
+
+    (topic.instance characteristicmodels)
+    (prettyname     characteristicmodels "Characteristic Models")
+
+    (topic.instance classical)
+    (prettyname     classical "Classical")
+
+    (topic.instance combination)
+    (prettyname     combination "Combination")
+
+    (topic.instance comparativeanalysis)
+    (prettyname     comparativeanalysis "Comparative Analysis")
+
+    (topic.instance constraintlogicprogramming)
+    (prettyname     constraintlogicprogramming "Constraint Logic Programming")
+
+    (topic.instance constraintsatisfaction)
+    (prettyname     constraintsatisfaction "Constraint Satisfaction")
+
+    (topic.instance contextfreegrammar)
+    (prettyname     contextfreegrammar "Context Free Grammar")
+
+    (topic.instance database)
+    (prettyname     database "Database")
+
+    (topic.instance deduction)
+    (prettyname     deduction "Deduction")
+
+    (topic.instance descriptionlogic)
+    (prettyname     descriptionlogic "Description Logic")
+    (shortname      descriptionlogic "Description Logic")
+
+    (topic.instance distributed)
+    (prettyname     distributed "Distributed Systems")
+
+    (topic.instance firstorder)
+    (prettyname     firstorder "First Order")
+
+    (topic.instance graphical)
+    (prettyname     graphical "Graphical")
+
+    (topic.instance herbrandlogic)
+    (prettyname     herbrandlogic "Herbrand Logic")
+
+    (topic.instance higherorder)
+    (prettyname     higherorder "Higher Order")
+
+    (topic.instance historical)
+    (prettyname     historical "Historical Planning")
+
+    (topic.instance hypothetical)
+    (prettyname     hypothetical "Hypothetical")
+
+    (topic.instance indexing)
+    (prettyname     indexing "Indexing")
+
+    (topic.instance induction)
+    (prettyname     induction "Induction")
+
+    (topic.instance logicprogramming)
+    (prettyname     logicprogramming "Logic Programming")
+
+    (topic.instance metalevel)
+    (prettyname     metalevel "Metalevel")
+
+    (topic.instance modelbased)
+    (prettyname     modelbased "Model-Based")
+
+    (topic.instance modelbuilding)
+    (prettyname     modelbuilding "Model Building")
+
+    (topic.instance modelchecking)
+    (prettyname     modelchecking "Model Checking")
+
+    (topic.instance modelguided)
+    (prettyname     modelguided "Model Guided")
+
+    (topic.instance naturallanguageprocessing)
+    (prettyname     naturallanguageprocessing "Natural Language Processing")
+
+    (topic.instance nonmon)
+    (prettyname     nonmon "Nonmonotonic")
+
+    (topic.instance objectoriented)
+    (prettyname     objectoriented "Object-oriented")
+
+    (topic.instance ordering)
+    (prettyname     ordering "Ordering")
+
+    (topic.instance paraconsistency)
+    (prettyname     paraconsistency "Paraconsistency")
+
+    (topic.instance planning)
+    (prettyname     planning "Planning")
+
+    (topic.instance privacy)
+    (prettyname     privacy "Privacy")
+
+    (topic.instance programming)
+    (prettyname     programming "Programming")
+
+    (topic.instance propositional)
+    (prettyname     propositional "Propositional")
+
+    (topic.instance reasoning)
+    (prettyname     reasoning "Reasoning")
+    (shortname      reasoning "Reasoning")
+
+    (topic.instance recursion)
+    (prettyname     recursion "Recursion")
+
+    (topic.instance representation)
+    (prettyname     representation "Representation")
+    (shortname      representation "Representation")
+
+    (topic.instance satisfiability)
+    (prettyname     satisfiability "Satisfiability")
+
+    (topic.instance security)
+    (prettyname     security "Security")
+
+    (topic.instance semanticweb)
+    (prettyname     semanticweb "Semantic Web")
+
+    (topic.instance sensor)
+    (prettyname     sensor "Sensor")
+
+    (topic.instance spreadsheet)
+    (prettyname     spreadsheet "Spreadsheets")
+
+    (topic.instance temporal)
+    (prettyname     temporal "Temporal")
+
+    (topic.instance textbook)
+    (prettyname     textbook "Textbooks")
+
+    (topic.instance tlh)
+    (prettyname     tlh "My Publications")
+
+    (topic.instance transformation)
+    (prettyname     transformation "Transformation")
+
+    (topic.instance trustmanagement)
+    (prettyname     trustmanagement "Trust Management")
+
+    (topic.instance website)
+    (prettyname     website "Websites")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

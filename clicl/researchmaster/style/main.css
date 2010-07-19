@@ -1,0 +1,96 @@
+
+	a:active, a:visited, a:link {color: blue; text-decoration: none;}
+	a:hover {color: blue; text-decoration: underline;}
+	body {
+		margin: 0px 0px 0px 0px;
+		padding: 0px 0px 0px 0px;
+		background: #DCCB8F;
+	}
+	div.structure {
+		margin: 8px 8px 8px 8px;
+		border: 2px solid gray;
+		background: white;
+		width: 98%
+	}
+	div.header {
+		width: 100%;
+	}
+	div.subhead {
+		width: 100%;
+	}
+	div.title {
+		font: bold 30pt copperplate;
+		text-align: left;
+	}
+	div.navigation {
+		text-align: center;
+		width: 100%;
+		margin-top: 6px;
+	}
+	span.nav1 { 
+		padding: 2px 4px 2px 4px;
+		border-right: 2px solid white;
+		border-left: 2px solid white; 
+	}
+	span.nav { 
+		padding: 2px 4px 2px 4px;
+		border-right: 2px solid white;
+	}
+
+	div.whiteongray {
+		background: #999999;
+		color: white;
+	}
+	div.whiteongray a:link {
+		color: white; text-decoration: none;}
+	div.whiteongray a:visited {
+		color: white; text-decoration: none;}
+	div.whiteongray a:hover, a:active {
+		color: white; text-decoration: underline;}
+	
+	div.bodytext {
+		margin: 4px 4px 4px 4px;
+	}
+
+	div.sentencewrap {
+		position: relative;
+		font-family: monaco, courier, sans-serif;
+	}
+ 	div.sentence {
+		position: relative;
+		clear: left;
+	}
+	div.atom {
+		position: relative;
+		margin-left: 4px;
+	}
+	div.head {
+		position: relative;
+		float: left;
+		margin-left: 4px;
+	}
+	div.body {
+		position: relative;
+		float: left;
+		margin-left: 4px;
+	}
+	div.subheader {
+		margin-top: 15px;
+		font-size: large;
+	}
+
+	table.matrix {
+		position: relative;
+		margin: 10px 5px 10px 5px;
+	}
+	table.matrix tr {
+	}
+	table.matrix td {
+		border: 1px solid black;
+		text-align: center;
+	}
+	table.matrix td.rowhead {
+		border: 0px solid black;
+		text-align: left;
+	}
+	

@@ -1,0 +1,248 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; (c) Copyright 1999-2006 by Michael Genesereth.  All rights reserved.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; widgets.lisp
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Frontdoor
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod process (s (file (eql 'frontdoorwidget)) postlines)
+  (cond ((null (cdr postlines)) (widget-frontdoor-start s))
+        (t (widget-frontdoor-reissue s postlines))))
+
+(defun widget-frontdoor-start (s)
+  (declare (ignore postlines))
+  (let (tree)
+    (setq tree (cons 'top (find-frames *gui*)))
+    (widget-frontdoor-header s)
+    (format s "<DL>")
+    (dolist (node (cdr tree))
+      (format s "<DD>")
+      (widget-front s tree node)
+      (format s "</DD>"))
+    (format s "</DL>")
+    (widget-frontdoor-footer s)
+    'done))
+
+(defun widget-frontdoor-reissue (s postlines)
+  (let (tree node)
+    (setq tree (read-user-string (cdr (pop postlines))))
+    (setq node (read-user-string (cdr (pop postlines))))
+    (setq tree (front-toggle node tree))
+    (widget-frontdoor-header s)
+    (format s "<DL>")
+    (dolist (node (cdr tree))
+      (format s "<DD>")
+      (widget-front s tree node)
+      (format s "</DD>"))
+    (format s "</DL>")
+    (widget-frontdoor-footer s)
+    'done))
+
+(defun widget-front (s tree node)
+  (cond ((atom node)
+         (if (find-subclass node) (widget-front-closed s tree node)
+             (widget-front-lone s tree node)))
+        (t (format s "<DL>")
+           (format s "<DT>")
+           (widget-front-open s tree (car node))
+           (format s "</DT>")
+           (dolist (node (cdr node))
+             (format s "<DD>")
+             (widget-front s tree node)
+             (format s "</DD>"))
+           (format s "</DL>"))))
+
+(defun widget-front-open (s tree node)
+  (format s "<span onClick=\"postFrontdoorwidget('~A','~A')\">" tree node)
+  (format s "<IMG SRC=\"~Aimages/green.gif\" BORDER=\"0\"/>" *home*)
+  (format s "</span>")
+  (format s "&nbsp;~A" (iconify node)))
+
+(defun widget-front-closed (s tree node)
+  (format s "<span onClick=\"postFrontdoorwidget('~A','~A')\">" tree node)
+  (format s "<IMG SRC=\"~Aimages/red.gif\" BORDER=\"0\"/>" *home*)
+  (format s "</span>")
+  (format s "&nbsp;~A" (iconify node)))
+
+(defun widget-front-lone (s tree node)
+  (format s "<IMG SRC=\"~Aimages/grey.gif\">" *home*)
+  (format s "<span style=\"cursor: pointer; text-decoration: underline\" onClick=\"makeSearchwidget('~A','~A')\">" tree node node)
+  (format s (iconify node))
+  (format s "</span>"))
+
+(defun widget-frontdoor-header (s)
+  (format s "<table cellpadding=\"4\" BGCOLOR=\"#E7EBF7\">
+<tr><td colspan=\"2\" bgcolor=\"#006699\">
+<font face=\"arial\" color=\"white\">Step 1 - Select the type of product you wish to donate</font>
+</td></tr>
+<tr><td>"))
+
+(defun widget-frontdoor-footer (s)
+  (format s "</td></tr></table>"))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Search
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod process (s (command (eql 'searchwidget)) postlines)
+  (cond ((null (cdr postlines)) (widget-search-start s postlines))
+        ((and (setq command (getf-post "Command" postlines)) nil))
+        ((equalp command "Expand") (widget-search-revision s postlines))
+        ((equalp command "Display") (widget-search-display s postlines))
+        (t (widget-search-revision s postlines))))
+
+(defun widget-search-start (s postlines)
+  (let (class structure (*buttons* 0) (*cells* 0))
+    (setq class (read-user-string (cdar postlines)))
+    (setq structure (maksearchstructure (gentemp "?") class))
+    (widget-search-page s class structure)))
+
+(defun widget-search-display (s postlines)
+  (let (structure class aspect kif slots objects selections start end count)
+    (multiple-value-setq (structure postlines) (parsestructure postlines))
+    (setq class (cadr structure))
+    (setq aspect (car structure))
+    (setq kif (maksand (reconverter structure)))
+    (setq start (or (read-value-string (getf-post "Start" postlines)) 1))
+    (setq end (or (read-value-string (getf-post "Solutions" postlines)) 20))
+    (setq objects (request `(ask-all ,aspect ,kif) *client* *agent*))
+    (multiple-value-setq (objects count start end) (trim objects start end))
+    (setq selections (find-selections *client* objects))
+    (setq slots (displayable-slots class))
+    (widget-display-page s class aspect kif slots objects selections count start end)))
+
+(defun widget-search-revision (s postlines)
+  (let (structure class revision (*buttons* 0) (*cells* 0))
+    (setq revision (getrevision postlines))
+    (setq postlines (remrevision postlines))
+    (multiple-value-setq (structure postlines) (parsestructure postlines))
+    (setq class (cadr structure))
+    (setq structure (revisesearch structure revision))
+    (widget-search-page s class structure)))
+
+(defun widget-search-page (s class structure)
+  (widget-search-header s (prettify class))
+  (format s "<FORM>")
+  (widget-search-structure s structure)
+  (format s "<TABLE WIDTH=\"100%\"><TR><TD WIDTH=\"25%\" VALIGN=\"TOP\">")
+  (format-normal-button s "Display")
+  (format s "</TD><TD WIDTH=\"25%\" VALIGN=\"TOP\">")
+  (format s "</TD><TD WIDTH=\"25%\" VALIGN=\"TOP\">")
+  (format s "</TD><TD WIDTH=\"25%\" VALIGN=\"TOP\">")
+  (format s "</TD></TR></TABLE>")
+  (format s "</FORM>")
+  (widget-search-footer s))
+
+(defun widget-display-page (s class aspect kif slots objects selections count start end)
+  (widget-search-header s (prettify class))
+  (format s "<CENTER><TABLE><TR><TD>")
+  (cond ((and (= start 1) (geqp end count)))
+        ((= count 1) (format s "<P>There is 1 viewable answer.<P>"))
+        (t (format s "<P>There are ~D viewable answers.  The following table shows answers ~A through ~A.<P>"
+                   count start end)))
+  (format s "</TD></TR><TR><TD>")
+  (format s "<FORM ACTION=display? METHOD=POST>")
+  (output-display-table s class objects selections slots)
+  (format s "</TD></TR><TR><TD>")
+  (output-display-commands s class aspect kif objects selections count start end)
+  (format s "</FORM>")
+  (format s "</TD></TR></TABLE></CENTER>")
+  (widget-search-footer s))
+
+(defun format-normal-button (s value)
+  (format s "<INPUT TYPE=\"button\" VALUE=\"~A\" onClick=\"makeDisplaywidget(this.form)\"/>" value))
+
+(defun widget-search-header (s classname)
+  (format s "<table cellpadding=\"4\" BGCOLOR=\"#E7EBF7\">
+<tr><td colspan=\"2\" bgcolor=\"#006699\">
+<font face=\"arial\" color=\"white\">Step 2 - Select a ~A you wish to donate</font>
+</td></tr>
+<tr><td>" classname))
+
+(defun widget-search-footer (s)
+  (format s "</td></tr></table>"))
+
+(defun widget-search-structure (s x)
+  (let (flat)
+    (setq flat (findp `(nocommand ,*gui* subframe) *interface*))
+    (format-hidden s "Start" "")
+    (format-hidden s "Object" (stringize (car x)))
+    (format-hidden s "Class" (stringize (cadr x)))
+    (format s "<P><TABLE CELLSPACING=\"3\">")
+    (do ((l (cddr x) (cdr l)) (multivalued) (multiple) (style) (flag))
+        ((null l))
+      (format s "<TR><TH ALIGN=\"LEFT\" VALIGN=\"TOP\">")
+      (unless (eq (caar l) flag)
+        (setq multivalued (find-multivalued (caar l)))
+        (setq style (find-searchstyle (caar l)))
+        (output-slotlink s (caar l)))
+      (setq multiple (or (eq (caar l) flag) (eq (caar l) (caadr l))))
+      (setq flag (caar l))
+      (cond ((null (cdar l))
+             (format s "</TH><TD VALIGN=\"TOP\">")
+             (output-another-button s (incf *buttons*) multivalued)
+             (output-removal-button s (incf *buttons*) multiple)
+             (if flat (incf *buttons*) (output-plus-button s (incf *buttons*)))
+             (format s "</TD><TD>")
+             (widget-search-cell s style (caar l) 'unknown (cadr x))
+             (incf *cells*))
+            ((or (atom (cadar l)) (find (caadar l) '(oneof taxonomy between substring)))
+             (format s "</TH><TD VALIGN=\"TOP\">")
+             (output-another-button s (incf *buttons*) multivalued)
+             (output-removal-button s (incf *buttons*) multiple)
+             (if flat (incf *buttons*) (output-plus-button s (incf *buttons*)))
+             (format s "</TD><TD>")
+             (widget-search-cell s style (caar l) (cadar l) (cadr x))
+             (incf *cells*))
+            (t (format s "</TH><TD VALIGN=\"TOP\">")
+               (output-snow-button s (incf *buttons*))
+               (output-trash-button s (incf *buttons*))
+               (output-minus-button s (incf *buttons*))
+               (format s "</TD><TD>")
+               (format s "<TABLE BORDER><TR><TD>")
+               (format-hidden s "Start" "")
+               (format-hidden s "Style" "Subframe")
+               (format-hidden s "Slot" (stringize (caar l)))
+               (format s "~A <B>" (article (cadr (cadar l))))
+               (output-classlink s (cadr (cadar l)))
+               (format s "</B> that satisfies the following criteria<BR/>")
+               (widget-search-structure s (cadar l))
+               (format s "</TD></TR></TABLE>")))
+      (format s "</TD></TR>")
+      (crlf s))
+    (format s "</TABLE>")
+    (format-hidden s "End" "")))
+
+(defun widget-search-cell (s style slot value class)
+  (cond ((eq style 'multichoicelist) (output-search-menu s slot value))
+        ((eq style 'dropdownlist) (output-search-selector s slot value class))
+        ((eq style 'hierarchicalselector) (output-search-multiselector s slot value))
+        ((eq style 'checkbox) (output-search-checkbox s slot value))
+        ((eq style 'radiobutton) (output-search-radiobutton s slot value))
+        ((eq style 'interval) (widget-search-typein s slot value))
+        ((eq style 'textarea) (output-search-textarea s slot value))
+        ((eq style 'stringfield) (output-search-text s slot value))
+        ((eq style 'text) (output-search-text s slot value))
+        ((eq style 'urlstyle) (output-search-text s slot value))
+        ((eq style 'password) (output-search-password s slot value))
+        ((eq style 'glyph) (output-search-glyph s slot value))
+        (t (output-search-typein s slot value))))
+
+(defun widget-search-typein (s slot value)
+  (format-hidden s "Start" (stringize *cells*))
+  (format-hidden s "Style" "Typein")
+  (format-hidden s "Slot" (stringize slot))
+  (widget-typein-result s (stringize *cells*) (stringize value) 40)
+  (format-hidden s "End" ""))
+
+(defun widget-typein-result (s name value size)
+  (format s "<INPUT TYPE=TEXT NAME=\"~A\" " name)
+  (unless (string= value "") (format s "VALUE=\"~A\" " value))
+  (format s "SIZE=~A onKeyDown='return true'>" size))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

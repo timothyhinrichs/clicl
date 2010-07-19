@@ -1,0 +1,2 @@
+set nocount on\\nselect distinct\\n'(pedit-office', p.person_id as \\\"---\\\", office_id as \\\"----\\\", '=', room, '+)' \\nfrom people p, offices o\\nwhere 
+p.person_id = o.person_id\\nand building = \\\"GATES\\\"\\nand office_visible = 'Y'\\ngo\\nexit

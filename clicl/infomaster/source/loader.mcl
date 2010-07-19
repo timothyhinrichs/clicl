@@ -1,0 +1,104 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; (c) Copyright 1999-2007 by Michael Genesereth.  All rights reserved.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(load "gullible:mcl:library:loop")
+(load "gullible:mcl:library:opentransport")
+
+(load "gullible:epilog:source:base")
+(load "gullible:epilog:source:true")
+(load "gullible:epilog:source:fact")
+(load "gullible:epilog:source:fast")
+(load "gullible:epilog:source:data")
+(load "gullible:epilog:source:view")
+(load "gullible:epilog:source:full")
+(load "gullible:epilog:source:find")
+
+(load "gullible:infomaster:source:bsd")
+(load "gullible:infomaster:source:sha1")
+(load "gullible:infomaster:source:magenta")
+(load "gullible:infomaster:source:factserver")
+(load "gullible:infomaster:source:fastserver")
+(load "gullible:infomaster:source:dataserver")
+(load "gullible:infomaster:source:viewserver")
+(load "gullible:infomaster:source:fullserver")
+(load "gullible:infomaster:source:dualserver")
+(load "gullible:infomaster:source:diffserver")
+(load "gullible:infomaster:source:ruleserver")
+(load "gullible:infomaster:source:translator")
+(load "gullible:infomaster:source:transformer")
+(load "gullible:infomaster:source:integrator")
+(load "gullible:infomaster:source:facilitator")
+(load "gullible:infomaster:source:interface")
+(load "gullible:infomaster:source:preprocessor")
+
+(load "gullible:infomaster:source:logic")
+(load "gullible:infomaster:source:sequel")
+(load "gullible:infomaster:source:formats")
+
+(load "gullible:infomaster:source:tcp")
+(load "gullible:infomaster:source:sleep")
+(load "gullible:infomaster:source:http")
+(load "gullible:infomaster:source:aclhandler")
+(load "gullible:infomaster:source:sqlhandler")
+(load "gullible:infomaster:source:soaphandler")
+(load "gullible:infomaster:source:htmlhandler")
+(load "gullible:infomaster:source:docserver")
+(load "gullible:infomaster:source:protabula")
+(load "gullible:infomaster:source:proforma")
+(load "gullible:infomaster:source:prologica")
+(load "gullible:infomaster:source:leftovers")
+(load "gullible:infomaster:source:security")
+
+(load "gullible:infomaster:source:remote")
+(load "gullible:infomaster:source:aclserver")
+(load "gullible:infomaster:source:sqlserver")
+(load "gullible:infomaster:source:soapserver")
+
+(load "gullible:infomaster:source:miscellaneous")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; To start the interface, type one of the following:
+;;;   (tcp-handler #'http-handler <port>)
+;;;   (tcp-loop #'http-handler <port>)
+;;;   (tcp-servers #'http-handler <port> 10)
+;;;   (start-tcp-server-process #'http-handler <port>)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(setq *background-event-ticks* 30)
+(setq *host* (hostname))
+(setq *port* 3000)
+(setq *home* "/")
+(setq *homedir* "gullible:infomaster:")
+(setq *imageprefix* "gullible:infomaster:images:")
+(setq *web* "")
+(setq *icons* t)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#|
+(test "gullible:infomaster:tests:factserver.test")
+(test "gullible:infomaster:tests:viewserver.test")
+(test "gullible:infomaster:tests:fullserver.test")
+(test "gullible:infomaster:tests:dataserver.test")
+(test "gullible:infomaster:tests:diffserver.test")
+(test "gullible:infomaster:tests:ruleserver.test")
+(test "gullible:infomaster:tests:fastserver.test")
+(test "gullible:infomaster:tests:translator.test")
+(test "gullible:infomaster:tests:transformer.test")
+(test "gullible:infomaster:tests:integrator.test")
+(test "gullible:infomaster:tests:facilitator.test")
+(test "gullible:infomaster:tests:interface.test")
+
+(test "gullible:infomaster:tests:album.test")
+(test "gullible:infomaster:tests:cookware.test")
+(test "gullible:infomaster:tests:housewares.test")
+(test "gullible:infomaster:tests:msrp.test")
+(test "gullible:infomaster:tests:nhma.test")
+(test "gullible:infomaster:tests:once.test")
+(test "gullible:infomaster:tests:university.test")
+|#
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

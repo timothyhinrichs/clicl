@@ -1,0 +1,193 @@
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=iso-8859-1" />
+	<link rel=StyleSheet href="basenew.css" title="normal" />
+	<title>Publications - Timothy Hinrichs</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<%
+(format t "~A" (common-lisp-user::showhidescript))
+%>
+</head>
+
+
+
+<body id="timhinrichs">
+<center>
+<div id="container">  <!-- Wrapper for the 3 other panes: topbar, navigation, and content -->
+
+<table border="0" cellspacing="0" cellpadding="0" width="100%">
+<tr><td colspan="2">
+<div id="toppane">
+	<table cellpadding="0" cellspacing="0" width="100%">
+	<tr><td><img src="images/tlhg.jpg" width="451" height="83" border="0"/></td>
+	<td align="right"><img src="images/complogic.gif" width="216" height="83" border="0" /></td>
+	</tr>
+	</table>
+</div>
+</td></tr>
+
+<tr><td valign="top">
+<div id="content">
+
+<h3 class="redtext">Refereed Articles</h3>
+
+<%
+
+(mapc #'(lambda (x) (common-lisp-user::output-paper-html x t :minimal t :imageurl "" :shortenauthor nil))
+	(common-lisp-user::find-my-refereed))
+
+%>
+
+
+
+<h3 class="redtext">Technical Reports and Theses</h3>
+<%
+(mapc #'(lambda (x) (common-lisp-user::output-paper-html x t :minimal t :imageurl "" :shortenauthor nil)) 
+	(common-lisp-user::find-my-unrefereed))
+%>
+
+<h3 class="redtext">Talks</h3>
+<a name="hinrichs2008fsltalkname"></a>
+      <span class="paper">
+            <table border="0">
+               <tr>
+                  <td width="6" valign="top"><a href="javascript:showDetails('hinrichs2008fsltalk')"><img src="images/arrowrt.gif" width="21" height="19" id="hinrichs2008fsltalkShow" style="display:block;" border="0"></a><a href="javascript:hideDetails('hinrichs2008fsltalk')"><img src="images/arrowdn.gif" width="21" height="19" id="hinrichs2008fsltalkHide" style="display:none" border="0"></a></td>
+                  <td align="left" class="paperentry">
+<span class="author">Hinrichs, T. L.</span>:
+<a href="talks/nox+fsl.ppt"><span class="paperTitle">Towards a Flow-level Network Security System</span></a>, 
+<ul>
+<li>University of Illinois at Urbana-Champaign, ITI Trust and Security Seminar, October 2008</li>
+</ul>
+                      </td>
+               </tr>
+               <tr>
+                  <td colspan="2">
+                     <p id="hinrichs2008fsltalk" style="display:none"><span class="description">
+While traditional network security policies have been enforced by manual 
+configuration of individual network components such as router ACLs, 
+firewalls, NATs, and VLANs, emerging enterprise network designs and 
+products support global policies declared over high level abstractions. 
+We further the evolution of simpler and more powerful network security 
+mechanisms by designing, implementing, and testing a flow-based network 
+security policy language and enforcement infrastructure. Our policy 
+language, FSL, expresses basic network access controls, directionality 
+in communication establishment (similar to NAT), network isolation 
+(similar to VLANs), communication paths, and rate limits. FSL supports 
+modular construction, distributed authorship, and efficient 
+implementation. We have implemented FSL as the primary policy language 
+for NOX, a network-wide control platform, and have deployed it within an 
+operational network for over 10 months. We describe how supporting 
+complex policy objectives and meeting the demanding performance 
+requirements of network-wide policy enforcement have influenced the FSL 
+language design and implementation.
+                           </span><br><br></p>
+                  </td>
+               </tr>
+            </table></font></span>
+
+<a name="hinrichs2008collaborativetalkname"></a>
+      <span class="paper">
+            <table border="0">
+               <tr>
+                  <td width="6" valign="top"><a href="javascript:showDetails('hinrichs2008collaborativetalk')"><img src="images/arrowrt.gif" width="21" height="19" id="hinrichs2008collaborativetalkShow" style="display:block;" border="0"></a><a href="javascript:hideDetails('hinrichs2008collaborativetalk')"><img src="images/arrowdn.gif" width="21" height="19" id="hinrichs2008collaborativetalkHide" style="display:none" border="0"></a></td>
+                  <td align="left" class="paperentry">
+<span class="author">Hinrichs, T. L.</span>:
+<a href="talks/collaborative.ppt"><span class="paperTitle">Collaborative Programming</span></a>.
+<ul>
+<li>University of Illinois at Urbana-Champaign, KRR Group, October 2008</li>
+<li>University of Illinois at Chicago, Computer Science Seminar, September 2008</li>
+<li>Summer School on Logic Programming and Computational Logic, New Mexico State University, July 2008 (<a href="talks/collaborative_compulog.ppt">COMPULOG version</a>)
+<li>DSL Workshop, University of Chicago, May 2008
+</ul>
+                      </td>
+               </tr>
+               <tr>
+                  <td colspan="2">
+                     <p id="hinrichs2008collaborativetalk" style="display:none"><span class="description">
+The prevalence of networked computer systems has enhanced a myriad of collaborative activities. Of special interest for computer science is the growing desire for large numbers of users to issue computer instructions in highly dynamic, loosely-coupled environments. In these settings, users might not communicate with each other outside of the instructions they issue, no user knows enough to write an the entire instruction set herself, and groups of users often disagree about the proper course of action. 
+
+<br><br>We call such settings Collaborative Programming environments. Languages for these environments cope with issues not addressed in traditional approaches to programming. Because no user knows everything, instruction sets in Collaborative Programming languages can be incomplete, saying only what to do some of the time or forbidding certain actions. Because users sometimes disagree, instruction sets can be conflicting, simultaneously instructing the system to perform some action and forbidding the system from performing that same action. Technology that supports Collaborative Programming must be able to combine independently authored instruction sets and be tolerant of incompleteness and conflicts.
+
+<br><br>This talk introduces Collaborative Programming and through the discussion of two practical examples argues that tools from logic and automated reasoning form a good foundation for Collaborative Programming technology.  At the same time, those examples provide challenges for researchers in logic and automated reasoning. The first example centers around a logical language for expressing network security policies; the second focuses on a generalization of traditional spreadsheets that allows users to impose relational constraints (as opposed to functional definitions) on cells in the spreadsheet. The talk concludes by discussing the tradeoffs for the example Collaborative Programming languages and techniques for leveraging those tradeoffs.
+                           </span><br><br></p>
+                  </td>
+               </tr>
+            </table></font></span>
+
+<a name="hinrichs2006extensionaltalkname"></a>
+      <span class="paper">
+            <table border="0">
+               <tr>
+                  <td width="6" valign="top"><a href="javascript:showDetails('hinrichs2006extensional')"><img src="images/arrowrt.gif" width="21" height="19" id="hinrichs2006extensionalShow" style="display:block;" border="0"></a><a href="javascript:hideDetails('hinrichs2006extensional')"><img src="images/arrowdn.gif" width="21" height="19" id="hinrichs2006extensionalHide" style="display:none" border="0"></a></td>
+                  <td align="left" class="paperentry"><span class="author">Hinrichs, T. L.</span>:
+                      <a href="talks/er.ppt"><span class="paperTitle">Extensional Reasoning</span></a>.
+			<ul>
+			<li>Stanford University Ph.D. defense, September 2007
+			<li>SRI International's Artificial Intelligence Center, August 2007
+			<li>University of Munich's Institute for Informatics, July 2007
+			<li>UC Berkeley Workshop, June 2007
+		 	<li>University of Illinois at Urbana-Champaign KRR Group, December 2006	 
+			<li>SRI International's Artificial Intelligence Center, May 2006 (<a href="talks/mapcoloring.ppt">Map coloring version</a>)
+			</ul>
+                      </td>
+               </tr>
+               <tr>
+                  <td colspan="2">
+                     <p id="hinrichs2006extensional" style="display:none"><span class="description">
+Much of the work done today on automated theorem proving focuses on developing and refining calculi that can handle every entailment query in the logic.  Because of their generality, these uniform methods are often unable to take advantage of the special properties of the entailment query at hand.  Nonuniform methods, on the other hand, do take advantage of special properties, which can result in performance improvements of several orders of magnitude over uniform methods; unfortunately, such techniques are not applicable to every query.
+
+<br><br>Extensional Reasoning (ER) is an approach to automated reasoning where the machine analyzes the entailment query at hand and determines whether or not to transform it into Datalog, i.e. a database, a set of views (implicit definitions for tables), and a database query.  It is so named because one of the central concerns is determining which portion of the logical sentence set is to be converted into a database, i.e. which portion should be represented extensionally.   This talk focuses on the transformation process: given an arbitrary entailment query, what algorithms can be used to automatically translate that query into Datalog?  Unlike related work, extensional reasoning does not require certain symbols to have special properties but instead relies on model-theoretic and syntactic properties of the theory, e.g. axiomatic completeness.  Extensional reasoning enables computer systems to solve important, well-understood problems using efficient, special-purpose techniques without losing the ability to solve all the problems expressible in the logic--it moves automated theorem provers toward the goal of practical generality.
+                           </span><br><br></p>
+                  </td>
+               </tr>
+            </table></font></span>
+
+<!--
+<a name="hinrichs2006mapname"></a>
+      <span class="paper">
+            <table border="0">
+               <tr>
+                  <td width="6" valign="top"><a href="javascript:showDetails('hinrichs2006map')"><img src="images/arrowrt.gif" width="21" height="19" id="hinrichs2006mapShow" style="display:block;" border="0"></a><a href="javascript:hideDetails('hinrichs2006map')"><img src="images/arrowdn.gif" width="21" height="19" id="hinrichs2006mapHide" style="display:none" border="0"></a></td>
+                  <td align="left" class="paperentry"><span class="author">Hinrichs, T. L.</span>:
+                      <a href="talks/mapcoloring.ppt"><span class="paperTitle">Map Coloring with Logic: Two Formulations of Map Coloring</span></a>,
+                     <span class="source">SRI International's Artificial Intelligence Center</span>, <span class="date">May 2006</span>.
+                      </td>
+               </tr>
+               <tr>
+                  <td colspan="2">
+                     <p id="hinrichs2006map" style="display:none"><span class="description">
+Map coloring is a much discussed problem in the constraint satisfaction and logic programming literature.  For example, John McCarthy's paper entitled  "Coloring Maps and the Kowalski Doctrine" shows how to leverage the properties of planar graphs to reorder a particular set of graph coloring axioms so that no backtracking occurs when searching for a coloring.  The formulation he uses is the one typically studied in the literature.  Perhaps surprisingly, this formulation, which we call the Logic Programming formulation, is not the same set of sentences our introductory logic students produce year after year when asked how to state this same problem in first-order logic.  Our conclusion is that the Logic Programming formulation, though heavily studied, is not the most natural formulation for the problem.  This talk demonstrates how to reformulate the students' axioms into the Logic Programming axioms, giving users the ability to encode the problem as they please but allow system designers to leverage powerful results in the constraint satisfaction and logic programming literature.  
+                           </span><br><br></p>
+                  </td>
+               </tr>
+            </table></font></span>
+   	  <br> 
+-->
+
+<br>
+</div>
+
+</td><td valign="top" width="190">
+<div id="sidebar">
+	<div id="navigation">
+		<a href="index.html">Home</a><br>
+		<a href="projects.htm">Projects</a><br>
+		<a href="publications.htm">Publications</a><br>
+		<a href="personal.htm">Personal</a><br>
+		<a href="links.htm">Links</a><br>
+	</div>
+	<div id="images">
+ 		<img src="images/dcp_1139.jpg" border="1" width="180" height="120"/>
+		<p class="caption">
+		A lake near Queenstown, <br>New Zealand
+		</p>
+	</div>
+</div>
+</td></tr>
+</table>
+
+</div>
+</center>
+
+</body>
+</html>

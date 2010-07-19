@@ -1,0 +1,45 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; (c) Copyright 1999-2003 by Michael Genesereth.  All rights reserved.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(load "gullible:mcl:library:opentransport")    ;;; mactcp
+(load "gullible:infomaster:source:tcp")
+(load "gullible:infomaster:source:epilog")
+(load "gullible:infomaster:source:database")
+(load "gullible:infomaster:source:full")
+(load "gullible:infomaster:source:magenta")
+(load "gullible:infomaster:source:logic")
+(load "gullible:infomaster:source:sequel")
+(load "gullible:infomaster:source:diskserver")
+(load "gullible:infomaster:source:formats")
+(load "gullible:infomaster:source:integrator")
+(load "gullible:infomaster:source:update")
+(load "gullible:infomaster:source:differential")
+(load "gullible:infomaster:source:preprocessor")
+(load "gullible:infomaster:source:proforma")
+(load "gullible:infomaster:source:inspect")
+(load "gullible:infomaster:source:inspector")
+(load "gullible:infomaster:source:docserver")
+(load "gullible:infomaster:source:qbe")
+(load "gullible:infomaster:source:transform")
+(load "gullible:infomaster:source:infomaster")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; To start the interface, type one of the following:
+;;;   (tcp-handler #'http-handler <port>)
+;;;   (tcp-loop #'http-handler <port>)
+;;;   (tcp-servers #'http-handler <port> 10)
+;;;   (start-tcp-server-process #'http-handler <port>)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(setq *background-event-ticks* 30)
+(setq *host* (hostname))
+(setq *port* 3000)
+(setq *home* "/")
+(setq *homedir* "gullible:infomaster:")
+(setq *web* "http://persistent.stanford.edu")
+(setq *icons* t)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -1,0 +1,1 @@
+(grind '(<=> (NOT P) (AND (FORALL ?X (FORALL ?Y (> (+ ?X ?Y) (* ?X ?Y)))) R)))"~P <=> Ax.Ay.x+y>x*y & R"

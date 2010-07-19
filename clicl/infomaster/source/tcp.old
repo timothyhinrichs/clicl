@@ -1,0 +1,436 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; (c) Copyright Epistemics Inc.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(require :socket) ; load the socket code
+
+(defun open-tcp-stream (host port)
+        (declare (type string host))
+        (declare (type (integer 0 *) port))
+        (cond (host (format t "~%connecting to ~A on port ~A~%" host
+port)
+                    (socket:make-socket :remote-host host :remote-port
+port))
+                  (t (format t "~%listening on port ~A~%" port)
+                     (socket:make-socket :connect :passive :local-port
+port))))
+
+(defun tcp-server (function port)
+  (let ((websocket (open-tcp-stream nil port))(ip))
+    (unwind-protect
+        (loop
+          (let ((s (socket:accept-connection websocket)))
+            (unwind-protect
+               (setq ip (socket:ipaddr-to-dotted (socket:remote-host
+s)))
+              (mp:process-run-function "TCP Handler" function s port
+ip)))))))   
+     
+
+(defun start-tcp-server-process (function port)
+  (mp:process-run-function "TCP Server" #'tcp-server function port))
+
+
+
+(defun make-lock ()
+  (mp::make-process-lock))
+
+(defmacro with-lock-grabbed (lock &rest body)
+  `(mp::with-process-lock ,lock . ,body))
+(eval-when (compile load eval)
+  (cltl1::require :process)
+  (cltl1::require :foreign))
+
+(defun processp (x) (typep x 'mp::process))
+
+
+(defun process-run-function (&rest args)
+  (apply #'mp::process-run-function args))
+
+(defun process-kill (x) (mp::process-kill x))
+
+(defun process-msecs () (mp::process-cpu-msec-used
+mp::*current-process*))
+
+
+#|
+
+(defun tcp-handler (function port)
+  (let (hostaddr)
+    (with-open-stream (s (open-tcp-stream nil port :commandtimeout
+86400000))
+      (loop (when (stream-listen s)
+              (setq hostaddr (tcp-addr-to-str (stream-remote-host s)))
+              (return (funcall function s hostaddr hostaddr)))))))
+
+(defun tcp-loop (function port)
+  (loop (ignore-errors (tcp-handler function port))))
+
+(defun tcp-server (function port)
+  (do ((s (open-tcp-stream nil port :commandtimeout 86400000))
+(hostaddr))
+      (nil)
+      (process-wait "Listening" #'stream-listen s)
+      (setq hostaddr (tcp-addr-to-str (stream-remote-host s)))
+      (process-run-function "TCP Handler" function s hostaddr hostaddr)
+      (setq s (open-tcp-stream nil port :commandtimeout 86400000))))
+
+(defun start-tcp-server-process (function port)
+  (process-run-function "TCP Server" #'tcp-server function port))
+|#
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(eval-when (compile load eval)
+  (cltl1::require :process)
+  (cltl1::require :foreign))
+
+(defun processp (x) (typep x 'mp::process))
+
+(defun process-run-function (&rest args)
+  (apply #'mp::process-run-function args))
+
+(defun process-kill (x) (mp::process-kill x))
+
+(defun process-msecs () (mp::process-cpu-msec-used mp::*current-process*))
+
+
+(defvar *open-max-tries* 10)
+
+(defun open-tcp-stream (host port)
+  "Returns (1) stream or NIL, (2) string describing error if NIL stream"
+  (declare (type string host))
+  (declare (type (integer 0 *) port))
+  (loop
+      for count from 1 to *open-max-tries*
+      for (stream error) = (multiple-value-list (request-connection host port))
+      until (streamp stream)
+      finally (return (values stream error)) ))
+
+(defun tcp-handler (function port &optional (name "TCP server"))
+  (let (stream hostname hostnum)
+    (multiple-value-bind (socket error-str) (register-port port)
+      (if (integerp socket)
+	  (unwind-protect
+	      (progn
+                (mp:start-scheduler)
+		(mp:wait-for-input-available
+		 socket
+		 :wait-function
+		 #'(lambda (socket)
+		     (multiple-value-setq (stream hostname hostnum)
+		       (accept-connection-no-block socket) )
+		     (streamp stream) )
+		 :whostate
+		 (format nil "Waiting for connection on port ~D" port) )
+		(funcall function stream hostname hostnum ))
+	    (unregister-socket socket) )
+	(error error-str)))))
+
+(defun tcp-loop (function port &optional (name "TCP server"))
+  (let (stream hostname hostnum)
+    (multiple-value-bind (socket error-str) (register-port port)
+      (if (integerp socket)
+	  (unwind-protect
+            (progn
+              (mp:start-scheduler)
+	      (loop
+		(mp:wait-for-input-available
+		 socket
+		 :wait-function
+		 #'(lambda (socket)
+		     (multiple-value-setq (stream hostname hostnum)
+		       (accept-connection-no-block socket) )
+		     (streamp stream) )
+		 :whostate
+		 (format nil "Waiting for connection on port ~D" port) )
+		(funcall function stream hostname hostnum )))
+	    (unregister-socket socket) )
+	(error error-str) ))))
+
+(defun tcp-server (function port &optional (name "TCP server"))
+  "Listen to PORT, and then call FUNCTION in a new thread whenever a
+remote connection occurs.  FUNCTION should take three arguments: a stream,
+the remote hostname (a string), and the remote host IP addr (a string)."
+  (let (stream hostname hostnum)
+    (multiple-value-bind (socket error-str) (register-port port)
+      (if (integerp socket)
+          (unwind-protect
+            (progn
+              (mp:start-scheduler)
+              (loop
+                (mp:wait-for-input-available
+                 socket
+                 :wait-function
+                 #'(lambda (socket)
+                     (multiple-value-setq (stream hostname hostnum)
+                       (accept-connection-no-block socket) )
+                     (streamp stream) )
+                 :whostate
+                 (format nil "Waiting for connection on port ~D" port) )
+                (mp:process-run-function
+                 name function stream hostname hostnum )))
+            (unregister-socket socket) )
+        (error error-str) ))))
+
+#|
+(defun tcp-server (function port &optional (name "TCP server"))
+  "Listen to PORT, and then call FUNCTION in a new thread whenever a
+remote connection occurs.  FUNCTION should take three arguments: a stream,
+the remote hostname (a string), and the remote host IP addr (a string)."
+  (let (stream hostname hostnum)
+    (multiple-value-bind (socket error-str) (register-port port)
+      (if (integerp socket)
+	  (unwind-protect
+	      (loop
+		(mp:wait-for-input-available
+		 socket
+		 :wait-function
+		 #'(lambda (socket)
+		     (multiple-value-setq (stream hostname hostnum)
+		       (accept-connection-no-block socket) )
+		     (streamp stream) )
+		 :whostate
+		 (format nil "Waiting for connection on port ~D" port) )
+		(mp:process-run-function
+		 name function stream hostname hostnum ))
+	    (unregister-socket socket) )
+	(error error-str) ))
+    ))
+|#
+
+(defun start-tcp-server-process
+    (function port &optional (name "TCP server"))
+  "Start a process which listens to a PORT
+The process starts a new thread running FUNCTION for every remote connection.
+FUNCTION should take three arguments: a stream, remote hostname, and host IP."
+  (mp:process-run-function
+   (format nil "~A listener" name) #'tcp-server function port name ))
+
+(defun make-lock ()
+  (mp::make-process-lock))
+
+(defmacro with-lock-grabbed (lock &rest body)
+  `(mp::with-process-lock ,lock . ,body))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; C/Unix interface
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(ff:defforeign 'opensocket
+    :arguments '(integer)
+    :return-type :integer
+    :language :c)
+
+(ff:defforeign 'closesocket
+    :arguments '(integer)
+    :return-type :integer
+    :language :c)
+
+(ff:defforeign 'connectsocket
+    :arguments '(string integer)
+    :return-type :integer
+    :language :c)
+
+(ff:defforeign 'blockaccept
+    :arguments '(integer integer)
+    :return-type :void
+    :language :c)
+
+(ff:defforeign 'check_socket
+    :arguments '(integer)
+    :return-type :integer
+    :language :c)
+
+;;; Define a Lisp analog to a C structure
+(ff:def-c-type
+    (lisp-a_conn :in-foreign-space) :struct
+    (sockfd     :int)			; the socket descriptor
+    (hostname * :char)			; the host name
+    (hostnum  * :char) )		; the host number, e.g., 36.8.0.71
+
+;;;----------------------------------------------------------------------------
+
+;; C functions often terminate writes with NULL
+(set-syntax-from-char #\Null #\Space)
+
+(defvar *open-sockets* nil)
+
+;;;----------------------------------------------------------------------------
+
+;;; Register a port number on the current host.
+;;; Returns socket number if successful, NIL otherwise.
+(defun register-port (portnumber)
+  "Returns: (1) socket number or NIL; (2) string describing error if NIL"
+  (let ((socket (opensocket portnumber)))
+    (case socket
+      (-1 (values nil "Cannot open stream socket"))
+      (-2 (values nil "Cannot set local-address-reuse socket option"))
+      (-3 (values nil "Cannot bind local address"))
+      (-4 (values nil "Cannot listen to socket"))
+      (otherwise (push socket *open-sockets*) (values socket nil)) )
+    ))
+
+;;; Unregister a socket on the current host.
+(defun unregister-socket (socket)
+  (when (member socket *open-sockets*)
+    (closesocket socket)
+    (setf *open-sockets* (delete socket *open-sockets*))
+    t))
+
+;;; Request a connection to a machine at a given port
+;;; Returns socket number. NIL means failure.
+(defun request-connection (hostname portnumber)
+  (let ((socket (connectsocket hostname portnumber)))
+    (case socket
+      (-1 (values nil (format nil "Unknown host: ~a" hostname)))
+      (-2 (values nil "Could not open a socket"))
+      (-3 (values nil "Could not connect to server"))
+      (otherwise
+       (values (make-instance 'excl::bidirectional-terminal-stream
+		 :fn-in  socket :fn-out socket )
+	       nil )))
+    ))
+
+;;; Accept a connection with blocking.
+;;; Returns socket number if successful, NIL otherwise.
+(defun accept-connection-block (socketnumber)
+  "Returns: (1) stream or NIL, (2) hostname or error string, (3) host IP"
+  (declare (type integer socketnumber))
+  (handler-case
+      (let ((conn-struct (make-lisp-a_conn))
+	    socket hostname hostnum )
+	(blockaccept socketnumber conn-struct)
+	(setf socket (lisp-a_conn-sockfd conn-struct))
+	(case socket
+	  (-1 (values nil "Could not accept a connection"))
+	  (otherwise
+	   (setq hostname
+	     (ff:char*-to-string (lisp-a_conn-hostname conn-struct)) )
+	   (setq hostnum
+	     (ff:char*-to-string (lisp-a_conn-hostnum conn-struct)) )
+	   (values (make-instance 'excl::bidirectional-terminal-stream
+		     :fn-in  socket :fn-out socket )
+		   hostname
+		   hostnum )
+	   )))
+    (error (condition)
+      (values nil condition "") )))
+
+;;; Check the status of a socket to see if someone is trying to connect to it
+;;; This call is non-blocking.
+;;; Argument: a socket with calls to "bind" and "listen" already done
+;;; Return:
+;;;  o nil if no one is trying to connect to this socket, and
+;;;  o t otherwise.
+
+(defun check-socket (socket)
+  (> (check_socket socket) 0) )
+
+;;; Accept a connection WITHOUT blocking.
+;;; Argument: a socket with calls to "bind" and "listen" already done
+;;; Return:
+;;;  o NIL no one is trying to connect to this socket, or
+;;;  o values stream, hostname, hostnum
+
+(defun accept-connection-no-block (socketnumber)
+  (when (check-socket socketnumber)
+    (accept-connection-block socketnumber) ))
+
+;;;
+;;; Franz Inc. supplied patch to fix losing Open Files Descriptors.
+;;; Only for Allegro Common Lisp  4.3
+;;;
+
+;;;
+;;;
+(defun ofd ()
+ "Returns the number of open file descriptors"
+ (loop with ofl = nil and s = nil
+       for i from 0 to 100
+       do
+       (setf s nil)
+       (handler-case
+	(setf s (open "/dev/null" :direction :output :if-exists :new-version))
+	(file-error (c) 
+		    (ignore-errors
+		          (mapcar 'close ofl)
+				    (setf s i))
+		    i)
+	)
+       (unless (numberp s)
+	   (push s ofl))
+       until (numberp s)
+       finally (return s)
+       )
+)
+
+#+ALLEGRO-V4.3 (in-package :excl)
+#+ALLEGRO-V4.3 (defmethod stream-handle-sigpipe 
+		   :before ((stream socket-stream))
+		 (excl::filesys-checking-close 
+		  (slot-value stream 'excl::fn-in))
+		 )
+
+#-ALLEGRO-V4.3 (format t "TCP OFD Patch Not Required")
+
+
+
+;;;----------------------------------------------------------------------------
+;;;
+;;;	Examples
+
+#|
+
+;;;----------------------------------------------------------------------------
+;;; Open a TCP stream
+
+(defun finger (host &optional (name ""))
+  (with-open-stream (s (open-tcp-stream host 79))
+    ;; The first interaction of the finger protocol is to send the
+    ;; name in which we are interested.  The empty string will
+    ;; report on all current users.
+    (format s "~a~%" name)
+    ;; Then we read back multiple lines of information.
+    (do ((line (read-line s nil nil) (read-line s nil nil)))
+	((null line) (values))
+      ;; The returned data contains extra #\return characters
+      ;; which we might not want to print.
+      (write-line (remove #\return line)))))
+
+;;;----------------------------------------------------------------------------
+;;; Listen to a TCP stream
+
+(defun echo-server (s)
+  (declare (type stream s))
+  (with-open-stream (remote s)
+    (loop
+	for line = (read-line remote nil nil)
+	while line
+	do (write-string "Echo got: " s)
+	   (write-line line s)
+	   (force-output remote) )))
+
+(defun start-echo-server (&key (port 3000) (name "Echo Daemon"))
+  (start-tcp-server-process #'echo-server port :name name) )
+
+(defconstant *self-host-number* 2130706433 "Self IP address: 127.0.0.1")
+
+(defun tcp-send (string &key (host *self-host-number*) (port 3000))
+  (with-open-stream (s (open-tcp-stream host port))
+    (format s "~A~%" string)
+    (loop
+	for answer = (read-line s nil nil)
+	while answer
+	do (format t "Remote ~A:~A sent ~A~%" host port answer) )
+    ))
+
+;;;----------------------------------------------------------------------------
+
+|#
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
