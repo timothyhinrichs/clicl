@@ -1,9 +1,8 @@
 
 # Makefile for CLICL
-
 LOAD=(load \"./loader\")
 COMPILE=(load \"./compiler\")
-SAVE=(save-application \"./clicl\" :prepend-kernel t)
+SAVE=(save-application \"./clicl\" :init-file \"$(CURDIR)/clicl-init.lisp\" :prepend-kernel t)
 TCP=(starttcp 5000)
 QUIT=(quit)
 

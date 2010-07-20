@@ -1,31 +1,41 @@
-1) Install CCL.
+1) Install CCL (Clozure Common Lisp).
 
-1a) Download CCL from an appropriate directory.
-
+o  Download CCL from an appropriate directory.
 	svn co http://svn.clozure.com/publicsvn/openmcl/release/1.5/<version>/ccl
+	where <version> is one of linuxx86, freebsdx86, solarisx86, windows, darwinppc, or linuxppc.
 
-where <version> is one of linuxx86, freebsdx86, solarisx86, windows, darwinppc, or linuxppc.
+o  Copy ccl/scripts/ccl or ccl/scripts/ccl64 to somewhere in your PATH.
 
-1b) Copy ccl/scripts/ccl or ccl/scripts/ccl64 to somewhere in your PATH.
-
-1c) Set the variable CCL_DEFAULT_DIRECTORY to the path to CCL (not ending the path with a /).
-
-2) Install minisat and SNARK
-
-FILL THIS IN.
-
-3) Compile application
-
-FIGURE OUT HOW TO ALLOW USERS TO CUSTOMIZE GLOBAL VARIABLES. Maybe when saving application, add line somewhere that says (ignore-errors (load "absolutepath/clicl-init")). 
-
-cd /to/path/with/clicl
-make
-
-4) Run 
-
-To change parameters, edit clicl-init.
-
-// To run, we use a shell script that calls the lisp image output by (2).  Need to figure out which commands to expose via the shell script.
+o  Set the variable CCL_DEFAULT_DIRECTORY to the path to CCL (not ending the path with a /).
 
 
+2) Install minisat (if using ESODatalog) and SNARK (if using Plato)
+
+o  Minisat
+	http://minisat.se/downloads/minisat-2.2.0.tar.gz
+
+o  SNARK
+	http://www.ai.sri.com/~stickel/snark.tar.gz	
+
+
+3) Customize and compile application
+
+	cd /to/path/with/clicl
+	Change clicl-init.lisp to include one or both of the following lines
+		(setq *minisat* "/path/to/minisat")
+		(setq *snark-path* "/path/to/snark/")	
+	make
+
+
+4) Run
+	
+	./clicl
+
+Note: clicl first starts by executing the Lisp file clicl-init.lisp, so any changes made there will be reflected each time clicl is started.
+
+
+5) Quit
+
+	1> (quit)
+	? (quit)
 
