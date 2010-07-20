@@ -33,7 +33,7 @@ o  Add sym link to clicl directory naming the link 'snark'
 	make
 
 
-4) Run and test
+4) Run
 	
 	./clicl
 
