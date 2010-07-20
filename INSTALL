@@ -12,7 +12,7 @@ o  Set the variable CCL_DEFAULT_DIRECTORY to the path to CCL (not ending the pat
 2) Install minisat (if using ESODatalog)
 
 o  Download and install per included instructions
-	http://minisat.se/downloads/minisat-2.2.0.tar.gz
+	http://minisat.se/downloads/minisat2-070721.zip
 
 o  Edit line in /path/to/clicl/clicl-init.lisp
 	(setq *minisat* "/path/to/minisat.exe")
