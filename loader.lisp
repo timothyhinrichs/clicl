@@ -12,8 +12,10 @@
     (make-pathname :name name :type type
       :directory (append (pathname-directory *compile-file-pathname*) dir)))
 
-
 ;;;;;;;; Loading subsystems ;;;;;;;;
+
+; check if snark available
+(ignore-errors (when (probe-file (loadfn "snark")) (push 'snark *features*)))
 
 ; epilog
 (load (loadfn "loader" :dir "epilog"))
@@ -21,15 +23,16 @@
 ; infomaster
 (load (loadfn "loader" :dir "infomaster"))
 
-; snark
-(load (loadfn "snark-system" :type "lisp" :dir "snark"))
-(make-snark-system)
+; snark: load if possible
+#+snark (progn
+	  (load (loadfn "snark-system" :type "lisp" :dir "snark"))
+	  (make-snark-system)
+	  (in-package :common-lisp-user))
 ;(defpackage :snark)
 ;(defpackage :snark-user)
 ;(defpackage :snark-lisp)
-(in-package :common-lisp-user)
 
-; for templates
+; templates
 (load (loadfn "load" :dir "cl-ppcre-2.0.3"))
 (load (loadfn "load" :dir "cl-emb-0.4.4"))
 

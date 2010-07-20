@@ -143,8 +143,8 @@
 (defun what2how (p th)
   "(WHAT2HOW P TH) takes a classical entailment query th |= p and transforms it into a nonrecursive 
    datalog with negation query (as multiple values)."
-  (let (maxiffs relns remaining posses oneofs (*oneofs* nil) univ 
-		(*resolution-closure* #'resolution-closure-snark))
+  (let (maxiffs relns remaining posses oneofs (*oneofs* nil) univ)
+;		(*resolution-closure* #'resolution-closure-snark))
     (setq univ (objs (maksand (contents th))))
     (multiple-value-setq (maxiffs remaining) (ps2iffmax (contents th)))
     (setq relns (complete-preds (maksand maxiffs)))

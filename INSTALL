@@ -9,21 +9,27 @@ o  Copy ccl/scripts/ccl or ccl/scripts/ccl64 to somewhere in your PATH.
 o  Set the variable CCL_DEFAULT_DIRECTORY to the path to CCL (not ending the path with a /).
 
 
-2) Install minisat (if using ESODatalog) and SNARK (if using Plato)
+2) Install minisat (if using ESODatalog)
 
-o  Minisat
+o  Download and install per included instructions
 	http://minisat.se/downloads/minisat-2.2.0.tar.gz
 
-o  SNARK
+o  Edit line in /path/to/clicl/clicl-init.lisp
+	(setq *minisat* "/path/to/minisat.exe")
+
+
+3) Install SNARK (if using Plato)
+
+o  Download and install per included instructions
 	http://www.ai.sri.com/~stickel/snark.tar.gz	
 
+o  Add sym link to clicl directory naming the link 'snark'
+	ln -s /path/to/snark/dir /path/to/clicl/dir/snark
 
-3) Customize and compile application
+
+3) Compile CLICL
 
 	cd /to/path/with/clicl
-	Change clicl-init.lisp to include one or both of the following lines
-		(setq *minisat* "/path/to/minisat")
-		(setq *snark-path* "/path/to/snark/")	
 	make
 
 
@@ -31,7 +37,9 @@ o  SNARK
 	
 	./clicl
 
-Note: clicl first starts by executing the Lisp file clicl-init.lisp, so any changes made there will be reflected each time clicl is started.
+(eso-materialize '(color) '((=> (color ?x ?y) (color ?z ?y) (not (adj ?x ?z))) (forall ?x (=> (region ?x) (exists ?y (color ?x ?y)))) (region r1) (region r2) (region r3) (hue red) (hue blue) (adj r1 r2) (adj r2 r3) (=> (color ?x ?y) (and (region ?x) (hue ?y)))))
+
+Note: after clicl starts, it executes the Lisp file clicl-init.lisp and then gives control to the user.  
 
 
 5) Quit

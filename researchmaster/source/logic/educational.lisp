@@ -215,6 +215,7 @@ NIL
              (markproof (positive node))
              (markproof (negative node))))))
 
+#+snark
 (defun resolution-closure-snark (th end)
   (let ((thcl nil) newth neweq tmp r)
     (setq neweq '__tlheq)
@@ -238,6 +239,10 @@ NIL
           (setq thcl (cons tmp thcl))))
     (mapcar #'(lambda (x) (subst '= neweq x)) (nreverse thcl))))
 
+#-snark
+(defun resolution-closure-snark (th end) (declare (ignore th end)) nil)
+
+#+snark
 (defun snark-to-kif (p)
   (cond ((eq p snark-lisp:false) '(or))
         ((snark::constant-p p) (if (symbolp p) p (snark::function-name p)))
@@ -247,14 +252,8 @@ NIL
                                           (snark-to-kif (snark::compound-appl-args p))))
         (t (assert nil nil "Don't know how to convert to KIF."))))
 
-#|
-(deftheory ww 
-  (or (gold a) (gold b) (gold c))
-  (not (gold d))
-  (not (gold e))
-  (not (gold f))
-  (or (not (gold ?x)) (not (gold ?y)) (= ?x ?y)))
-|#
+#-snark
+(defun snark-to-kif (p) p)
 
 (defun resolution-closure (premises end)
   (mapcar #'second (convertproof (logica premises nil end))))

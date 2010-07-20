@@ -3,7 +3,7 @@
 ;;;     routines for interfacing with external systems
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defparameter *minisat-path* "/Applications/research/minisat/simp/minisat")
+(defparameter *minisat* "/Applications/research/minisat/simp/minisat")
 (defvar *datalognot* 'not)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -573,7 +573,7 @@
 (defun run-minisat-solver (infile num2atom)
   (let (realtime r (outfile "/tmp/epilog/minisat.out"))
     (setq realtime (get-internal-real-time))
-    (run-program *minisat-path* (list infile outfile))
+    (run-program *minisat* (list infile outfile))
     (setq realtime (/ (- (get-internal-real-time) realtime) internal-time-units-per-second))
     (setq r (read-any-file outfile))
     (setq r (split-string r '(#\Newline)))
