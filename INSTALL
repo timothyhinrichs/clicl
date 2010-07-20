@@ -33,13 +33,11 @@ o  Add sym link to clicl directory naming the link 'snark'
 	make
 
 
-4) Run
+4) Run and test
 	
 	./clicl
 
-(eso-materialize '(color) '((=> (color ?x ?y) (color ?z ?y) (not (adj ?x ?z))) (forall ?x (=> (region ?x) (exists ?y (color ?x ?y)))) (region r1) (region r2) (region r3) (hue red) (hue blue) (adj r1 r2) (adj r2 r3) (=> (color ?x ?y) (and (region ?x) (hue ?y)))))
-
-Note: after clicl starts, it executes the Lisp file clicl-init.lisp and then gives control to the user.  
+Note: After clicl starts, it executes the Lisp file clicl-init.lisp and then gives control to the user. 
 
 
 5) Quit
