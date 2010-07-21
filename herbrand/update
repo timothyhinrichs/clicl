@@ -1,9 +1,0 @@
-
-cd scripts
-./convertlatml.pl
-cd ..
-chmod 755 ./latml/*
-chmod 755 ./html/*
-chmod 740 ./scripts/*
-
-
