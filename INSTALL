@@ -34,13 +34,18 @@ o  Add sym link to clicl directory naming the link 'snark'
 
 
 4) Run
-	
-	./clicl
 
-Note: After clicl starts, it executes the Lisp file clicl-init.lisp and then gives control to the user. 
+o  To run ESODATALOG on a single ESODB predicate 'color' on
+   'examples/esodatalog/mapcoloring' with output to file 'out':
+	./bin/esodatalog color ./examples/esodatalog/mapcoloring ./out
+
+o  To start Lisp with the clicl library already loaded
+	./bin/clicl
+
+Note: To set clicl parameters, edit the file bin/clicl-init.lisp.
 
 
-5) Quit
+5) To quit Lisp:
 
 	1> (quit)
 	? (quit)

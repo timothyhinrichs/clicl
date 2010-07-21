@@ -18,10 +18,25 @@
 
 ; task scheduling
 ;(eso-materialize '(does) '((=> (does ?t ?a ?d) (and (task ?t) (actor ?a) (day ?d))) (=> (depends ?x ?y) (and (task ?x) (task ?y))) (=> (does ?t ?a ?d) (does ?t2 ?a ?d) (= ?t ?t2)) (forall ?t (=> (task ?t) (exists (?a ?d) (does ?t ?a ?d)))) (=> (depends ?t1 ?t2) (does ?t1 ?a1 ?d1) (does ?t2 ?a2 ?d2) (lt ?d1 ?d2)) (=> (does ?t ?a1 ?d1) (does ?t ?a2 ?d2) (and (= ?a1 ?a2) (= ?d1 ?d2))) (day mon) (day tues) (day wed) (actor tim) (actor bob) (task a) (task b) (task c) (task d) (depends a b) (depends a c) (depends b d) (depends c d) (lt mon tues) (lt mon wed) (lt tues wed)))
- 
-(defun eso-materialize (esodb th)
-  "(ESOMATERIALIZE ESODBS TH) computes extensions for the ESODB predicates in theory TH.
+
+(defmethod eso-materialize (esodb (th symbol))
+  (esomaterialize esodb th))
+(defmethod eso-materialize (esodb (th list))
+  (esomaterialize esodb th))
+(defmethod eso-materialize (esodb (th string))
+  (if (probe-file th)
+      (esomaterialize esodb (read-file th))
+      (assert nil nil (format nil "Error: eso-materialize could not find file ~A." th))))
+(defmethod eso-materialize (esodb (th theory))
+  (esomaterialize esodb th))
+(defmethod eso-materialize (esodb th)
+  (declare (ignore esodb))
+  (assert nil nil (format nil "Error: theory represented by unknown type: ~A." th)))
+
+(defun esomaterialize (esodb th)
+  "(ESOMATERIALIZE ESODBS TH) computes extensions for the ESODB predicates in theory or file TH.
    TH is an existential second order stratified datalog theory."
+  (setq esodb (tolist esodb))
   (let (rules constraints)
     (multiple-value-setq (rules constraints) 
       (split #'(lambda (x) (or (atomicp x) (eq (signifier x) '<=))) (contents th)))
