@@ -90,7 +90,7 @@
 
 ; save-application call
 (defun savess ()
-  (ignore-errors (load *app-init-location*))
+  ;(ignore-errors (load *app-init-location*))
   (save-application *app-location* :prepend-kernel t))
 ; :toplevel-function #'ssx
 
@@ -660,7 +660,7 @@
       (format stream "</case>~%")))
   (printspaces 2 stream) (format stream "</good>~%")
   (printspaces 2 stream) (format stream "<bad>~%")
-  (dolist (bl (cddr (second notamperout)))
+  (dolist (bl (cdr (second notamperout)))
     (when (second bl)
       (printspaces 4 stream)
       (format stream "<case>~%")

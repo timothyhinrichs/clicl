@@ -40,7 +40,7 @@
   (let (rules constraints)
     (multiple-value-setq (rules constraints) 
       (split #'(lambda (x) (or (atomicp x) (eq (signifier x) '<=))) (contents th)))
-    (setq rules (define-theory (make-instance 'prologtheory) "" rules))
+    ;(setq rules (define-theory (make-instance 'prologtheory) "" rules))
     (eso-materialize-csp esodb constraints rules)))
 
 (defun eso-materialize-csp (esodb constraints rules)
@@ -112,7 +112,7 @@
    maps (pred position) to unary predicates, where position is in {1,...,arity(p)}."
   (let (p groundtime cnftime sattime (*timesofar* 0) groundcomp cnfcomp)
     ; ground constraints
-    (add-time (setq p (dbgrounds esodb constraints rules types)))
+    (add-time (setq p (delete 'true (dbgrounds esodb constraints rules types))))
     (setq groundtime (/ *timesofar* internal-time-units-per-second))
     (setq groundcomp (complexity (maksand p)))
 
