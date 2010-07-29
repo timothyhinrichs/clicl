@@ -33,9 +33,7 @@
 
 (defpackage :cl-ppcre-asd
   (:use :cl))
-
 (in-package :cl-ppcre-asd)
-
 (load (cl-user::loadfn "packages"))
 (load (cl-user::loadfn "specials"))
 (load (cl-user::loadfn "util"))
@@ -53,6 +51,8 @@
 (load (cl-user::loadfn "repetition-closures"))
 (load (cl-user::loadfn "scanner"))
 (load (cl-user::loadfn "api"))
+
+(in-package :cl-user)
 
 
 #|

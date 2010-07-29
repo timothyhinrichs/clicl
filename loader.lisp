@@ -17,6 +17,14 @@
 ; check if snark available
 (ignore-errors (when (probe-file (loadfn "snark")) (push 'snark *features*)))
 
+; external libraries
+(load (loadfn "load" :dir "cl-ppcre-2.0.3"))  ; regular expressions
+(load (loadfn "load" :dir "cl-emb-0.4.4"))   ; templates
+;(load (loadfn "lex" :dir "cl-lex"))
+(load (loadfn "load" :dir '("dso-lex-0.3.2" "dso-util-0.1.2")))  ; lex
+(load (loadfn "load" :dir "dso-lex-0.3.2"))  ; lex
+(load (loadfn "yacc" :dir "cl-yacc-0.3"))   ; yacc
+
 ; epilog
 (load (loadfn "loader" :dir "epilog"))
 
@@ -28,13 +36,7 @@
 	  (load (loadfn "snark-system" :type "lisp" :dir "snark"))
 	  (make-snark-system)
 	  (in-package :common-lisp-user))
-;(defpackage :snark)
-;(defpackage :snark-user)
-;(defpackage :snark-lisp)
 
-; templates
-(load (loadfn "load" :dir "cl-ppcre-2.0.3"))
-(load (loadfn "load" :dir "cl-emb-0.4.4"))
 
 ; global variables (set before researchmaster, as it loads code using web interface)
 (setq *host* (hostname))

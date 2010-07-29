@@ -1616,6 +1616,49 @@
         (t nil)))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Configit ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Configit is a company with an object-oriented language for specifying large
+;   product configuration problems.
+
+#|
+(yacc:parse-with-lexer (dso-lex:lex-slow '*configitlexer* "Gender : [
+  \"Male\",
+  \"Female\"
+];" '(whitespace)) *configitparser*)
+|#
+
+(dso-lex:deflexer *configitlexer* (:priority-only t)
+  ("\\\[" lbracket)
+  ("\\\]" rbracket)
+  (":" colon)
+  ("\"[a-zA-Z0-9_ ]*\"" string drop-quotes)
+  ("," comma)
+  (";" semicolon)
+  ("[a-zA-Z0-9_]+" symbol tosymbol)
+  ("\\s+" whitespace))
+
+(yacc:define-parser *configitparser*
+  (:start-symbol type)
+  (:terminals (lbracket rbracket colon string comma semicolon symbol))
+
+  (type (symbol colon lbracket commalist rbracket semicolon 
+		#'(lambda (symbol colon lbracket list rbracket semicolon)
+		    (declare (ignore colon lbracket rbracket semicolon))
+		    `(type ,(tosymbol symbol) ,list))))
+
+  (commalist (term #'(lambda (x) (list x)))
+	     (term comma commalist #'(lambda (term comma commalist) 
+				       (declare (ignore comma)) 
+				       (cons term commalist))))
+
+  (term (symbol #'tosymbol) string ))
+
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -275,6 +275,8 @@
 ;;;;;;;;;;;;;; Strings ;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defun drop-quotes (string) (subseq string 1 (1- (length string))))
+
 (defun split-on (string items)
   (setq items (mapcar #'(lambda (x) (cons x (length x))) items))
   (nreverse

@@ -18,6 +18,7 @@
 ;;;; This is free software, and you are welcome to redistribute it
 ;;;; under certain conditions; for details see COPYING.
 
+(make-package :cl-lex)
 (in-package :cl-lex)
 
 (defmacro with-gensyms ((&rest symbols) &body body)
