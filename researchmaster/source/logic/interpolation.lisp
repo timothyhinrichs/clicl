@@ -3,6 +3,66 @@
 ;;;     routines for computing interpolants
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defun interpolate-datalog (sourcepreds constraints targetpreds rules)
+  "(INTERPOLATE-DATALOG SOURCEPREDS CONSTRAINTS TARGETPREDS RULES) rewrites all of the FOL CONSTRAINTS
+   so that all occurrences of SOURCEPREDS are replaced with occurrences of TARGETPREDS
+   while preserving logical equivalence.  Relationships between source and target preds
+   are given by datalog/prolog RULES."
+  (let (h)
+    (setq h (make-hash-table))   ; memoizing rewritings
+    (mapcar #'(lambda (x) (interpolate-datalog-aux sourcepreds x targetpreds (contents rules) h)) (contents constraints))))
+
+(defun interpolate-datalog-aux (source p target rules defns)
+  (cond ((atom p) (if (member p source) (third (interpolate-datalog-pred p rules target defns)) p))
+	((member (car p) '(and or not => <= <=>)) 
+	 (cons (car p) (mapcar #'(lambda (x) (interpolate-datalog-aux source x target rules defns)) (cdr p))))
+	((member (car p) '(forall exists))
+	 (list (first p) (second p) (interpolate-datalog-aux source (third p) target rules defns)))
+	(t (cond ((member (car p) source)
+		  (let (pdef m)
+		    (setq pdef (interpolate-datalog-pred (relation p) rules target defns))
+		    (setq m (mgu (second pdef) p))
+		    (if m (plug (third pdef) m) `(err :orig ,p :new ,(second pdef)))))
+		 (t p)))))
+      
+(defun interpolate-datalog-pred (r rules preds defns)
+  "(PREDICATE-COMPLETION-INLINE R RULES DEFNS) finds a definition for predicate R and
+   definitions for all predicates influencing R in terms
+   of PREDS using RULES, storing the results in DEFNS, which must be a hash table.
+   Returns the definition for R."
+  (cond ((gethash r defns) (gethash r defns))
+	(t
+	 (let (rrules targetpreds rdef)
+	   (multiple-value-setq (rrules rules) (split #'(lambda (x) (eq (reln (head x)) r)) rules))
+	   (setq targetpreds (set-difference (uniquify (mapcan #'(lambda (x) (relns (maksand (body x)))) rrules)) preds))
+	   (mapc #'(lambda (x) (interpolate-datalog-pred x rules preds defns)) targetpreds)
+	   (setq rrules (mapcar #'(lambda (x) `(<= ,(head x) ,(logical-inline (maksand (body x)) targetpreds defns))) rrules))
+	   (setq rdef (predicate-completion-reln r rrules))
+	   (setf (gethash r defns) rdef)
+	   rdef))))
+	   
+(defun logical-inline (p targets hdefs)
+  "(LOGICAL-INLINE P TARGETS HDEFS) inlines all occurrences of predicates occurring in list TARGETS
+   within sentence P using the hash table of definitions HDEFS.  
+   Example.  (and p q) (p) (p -> (or r s))  becomes (and (or r s) q)."
+  (cond ((atom p) (if (member p targets) (third (gethash p hdefs)) p))
+	((member (car p) '(and or not => <= <=>)) 
+	 (cons (car p) (mapcar #'(lambda (x) (logical-inline x targets hdefs)) (cdr p))))
+	((member (car p) '(forall exists))
+	 (list (first p) (second p) (logical-inline (third p) targets hdefs)))
+	(t
+	 (cond ((member (relation p) targets)
+		(let (m pdef)
+		  (setq pdef (stdize (gethash (relation p) hdefs)))
+		  (setq m (mgu (second pdef) p))  ; make sure to put p last here
+		  (if m
+		      (plug (third pdef) m)
+		      `(err :orig ,p :defn ,(second pdef)))))
+	       (t p)))))
+	   
+
+
+
 ; For now, I've just copied the seemingly right portions out of ER.lisp.  Still need to go through
 ;  and construct functions called 'interpolation' or something similar and move non-interpolation
 ;  routines elsewhere.  Think through how this might augment Epilog's routines.

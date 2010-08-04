@@ -8,7 +8,9 @@
 (=> (color ?x ?y) (color ?z ?y) (not (adj ?x ?z))) 
 
 ; every region needs a color
-(forall ?x (=> (region ?x) (exists ?y (color ?x ?y)))) 
+; (forall ?x (=> (region ?x) (exists ?y (color ?x ?y)))) 
+(<= (hascolor ?x) (color ?x ?y))
+(=> (region ?x) (hascolor ?x))
 
 ; data 
 (region r1) 

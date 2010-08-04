@@ -96,7 +96,7 @@
 
 ; toplevel for application
 (defun ssx (file &key (numgood 1) (unique 'unknown) (required 'unknown) (stream t))
-  (ignore-errors (load *app-init-location*))
+  (load *app-init-location*)
   (format stream "<testcases>~%")
   (dolist (p (read-file file))
     (ssn (eval p)
@@ -332,8 +332,10 @@
   (setf (ss-prob-space prob) (maptree #'make-nice-variable (ss-prob-space prob)))
   (setf (ss-prob-types prob) (maptree #'make-nice-variable (ss-prob-types prob)))
 
-  (setf (ss-prob-varnames prob) (butlast (compose-mgus (list (append (ss-prob-varnames prob) truth)
-							     (append *ss-varmapping* truth)))))
+  (setf (ss-prob-varnames prob)
+	(mapcar #'(lambda (x) (cons (car x) (list 'var (cdr x))))
+		(butlast (compose-mgus (list (append (ss-prob-varnames prob) truth)
+					     (append *ss-varmapping* truth))))))
 
   ; turn types into a hash table
   (let ((e (make-hash-table)))
@@ -435,14 +437,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; These wrappers are necessary to ensure Hampi is initialized and terminated correctly.
-(defun main (f)
+(defun ss-main (f)
   (ss-hampi-init)
   (multiple-value-prog1 (funcall f)
     (ss-hampi-kill)))
 
 (defun notamp (p &key (numgood 1) (unique nil) (required nil) (types nil) (space 'true)) 
-  (main #'(lambda () (notamper p :numgood numgood :unique unique :required required :types types
-			       :space space))))
+  (ss-main #'(lambda () (notamper p :numgood numgood :unique unique :required required :types types
+				  :space space))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Testcase generation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -664,19 +666,28 @@
     (when (second bl)
       (printspaces 4 stream)
       (format stream "<case>~%")
-      (notamper2xml-varassign (vars (first bl)) (second bl) 6 stream)
+      (notamper2xml-varassign (ss-vars (first bl)) (second bl) 6 stream)
       (printspaces 4 stream)
       (format stream "</case>~%")))
   (printspaces 2 stream) (format stream "</bad>~%")
   (format stream "</form>~%"))
 
+(defun ss-vars (p)
+  (cond ((varp p) (list p))
+	((atom p) nil)
+	((member (car p) '(and or not => <= <=> forall exists)) (mapcan #'ss-vars (cdr p)))
+	((eq (car p) 'var) (list (second p)))
+	(t (mapcan #'ss-vars (cdr p)))))
+
 (defun notamper2xml-varassign (tamperedvars bl n s)
-  (dolist (x bl)
-    (printspaces n s) 
-    (format s "<bl><var tamper=\"~A\">~A</var><val>~A</val></bl>~%" 
-	    (if (member (first x) tamperedvars) "true" "false")
-	    (urlify (notamper2web-varspelling (first x))) 
-	    (urlify (second x)))))
+  (let (v)
+    (dolist (x bl)
+      (setq v (if (atom (first x)) (first x) (second (first x))))
+      (printspaces n s) 
+      (format s "<bl><var tamper=\"~A\">~A</var><val>~A</val></bl>~%" 
+	      (if (member v tamperedvars) "true" "false")
+		  (urlify (notamper2web-varspelling (first x)))
+		  (urlify (second x))))))
 #|
 (defun notamper2web (notamperout prob &key (stream t) (time nil) (count nil)) 
   "(NOTAMPER2WEB NOTAMPEROUT PROB &KEY STREAM TIME) takes the output of notamper and prints to stream 
@@ -1959,7 +1970,7 @@
 (defun create-hampi-simulator ()
   (let (h)
     (setq h (make-hash-table))
-    (setf (gethash 'univ h) '("aaa" "aab" "aba" "abb" "baa" "bab" "bba" "bbb"))
+    (setf (gethash 'univ h) '("aaa" "aab" "aba" "abb" "baa" "bab"(run-program *hampi-invoke* (append *hampi-invoke-args* (list f)) :output s) "bba" "bbb"))
     h))
 
 (defun ss-hampi-init () (run-program *hampi-init* *hampi-init-args*) (sleep 1))

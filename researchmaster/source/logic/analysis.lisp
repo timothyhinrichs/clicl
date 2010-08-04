@@ -383,6 +383,7 @@
 (defun function-arity (param) (parameter-arity param))
 (defun relation-arity (param) (parameter-arity param))
 
+(defun reln (p) (parameter-symbol (pred p)))
 (defun relns (p) (mapcar #'parameter-symbol (preds p)))
 (defun preds (p) (if (find p '(true false)) nil (delete-if-not #'isrelation (get-vocabulary p))))
 (defun pred (p) (first (preds p)))
@@ -449,6 +450,29 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Dependency Graphs ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; Note: dependency-graph treats predicates as symbols, whereas undirected-dependency-graph treats predicates
+;   as Parameters (with arities, types, etc.)  
+;  I believe it's fine to use just symbols, assuming that the rules are syntactically well-formed;
+;    but, I need to check all uses of undirected-dependency-graph to ensure nothing is fundamentally wrong.
+
+(defun dependency-graph (th &optional (ignorelist nil))
+  "(DEPENDENCY-GRAPH TH IGNORELIST TEST) takes a datalog/prolog theory TH and
+   returns a graph where the nodes are predicates (symbols), and there is an edge from 
+   u to v if u appears in the body of a rule and v appears in the head.  
+   Ignores included theories.  IGNORELIST is a list of symbols that are 
+   not included in the graph, according to TEST."
+  (let ((graph (make-agraph)) (preds) h)
+    (setq ignorelist (adjoin '= ignorelist))
+
+    ; build dependency graph from rules
+    (dolist (r (contents th) graph)
+      (setq h (reln (head r)))
+      (unless (member h ignorelist)
+	(setq preds (set-difference (relns (maksand (body r))) ignorelist))
+	(when preds
+	  (agraph-adjoin-noded h graph)
+	  (dolist (p preds)
+	    (agraph-adjoin-edged p h nil graph)))))))  
 
 (defun undirected-dependency-graph-vars (th &optional (ignorelist nil))
   "(UNDIRECTED-DEPENDENCY-GRAPH-VARS TH) returns a graph where the nodes are variables
@@ -472,7 +496,8 @@
   "(UNDIRECTED-DEPENDENCY-GRAPH TH IGNORELIST) returns a graph where the nodes are predicates
    and there is an edge between u and v if and only if there is some sentence 
    that mentions both the predicates u and v.  Ignores included theories.
-   IGNORELIST is a list of relation constants that are not included in the graph."
+   IGNORELIST (which always includes =) is a list of relation constants that 
+   are not included in the graph."
   (let ((graph (make-agraph)) (preds))
     (setq ignorelist (adjoin (make-parameter :symbol '= :arity 2 :type 'relation) ignorelist 
 			     :test #'param-equal))

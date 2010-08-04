@@ -13,7 +13,7 @@
 
 ; assign each event to a unique row-col pair
 (=> (assign ?e ?r ?c) (and (event ?e) (row ?r) (col ?c))) ; types
-(=> (assign ?e ?r1 ?c1) (assign ?e ?r2 ?c2) (and (= ?r1 ?r2) (= ?c1 ?c2))) ; function
+(=> (assign ?e ?r1 ?c1) (assign ?e ?r2 ?c2) (and (= ?r1 ?r2) (= ?c1 ?c2))) ;function
 (forall ?e (=> (event ?e) (exists (?r ?c) (assign ?e ?r ?c))))   ; total
 (=> (assign ?e1 ?r ?c) (assign ?e2 ?r ?c) (= ?e1 ?e2))   ; one-to-one
 
@@ -43,7 +43,13 @@
 (=> (overlap ?e1 ?e2) (overlap ?e2 ?e1))
 (=> (event-start ?e ?start) (event-end ?e ?end) (date-lte ?start ?end))
 
+;(=> (overlapA ?x ?y) (test ?x ?y))
 
+(<= (overlapA ?e1 ?e2)
+	(event-lt ?e1 ?e2)
+	(event-end ?e1 ?end1)
+	(event-start ?e2 ?start2)
+	(not (date-lte ?end1 ?start2)))
 
 ; data
 (row r1)
@@ -71,6 +77,9 @@
 (event e1)
 (event e2)
 (event e3)
+(event-lt e1 e2)
+(event-lt e1 e3)
+(event-lt e2 e3)
 (event-start e1 1)
 (event-end e1 3)
 (event-start e2 2)

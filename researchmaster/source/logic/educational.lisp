@@ -215,7 +215,7 @@ NIL
              (markproof (positive node))
              (markproof (negative node))))))
 
-#+snark
+#+snark 
 (defun resolution-closure-snark (th end)
   (let ((thcl nil) newth neweq tmp r)
     (setq neweq '__tlheq)
@@ -239,8 +239,7 @@ NIL
           (setq thcl (cons tmp thcl))))
     (mapcar #'(lambda (x) (subst '= neweq x)) (nreverse thcl))))
 
-#-snark
-(defun resolution-closure-snark (th end) (declare (ignore th end)) nil)
+#-snark (defun resolution-closure-snark (th end) (declare (ignore th end)) nil)
 
 #+snark
 (defun snark-to-kif (p)

@@ -40,30 +40,32 @@
   (let (rules constraints)
     (multiple-value-setq (rules constraints) 
       (split #'(lambda (x) (or (atomicp x) (eq (signifier x) '<=))) (contents th)))
-    ;(setq rules (define-theory (make-instance 'prologtheory) "" rules))
+    (setq rules (define-theory (make-instance 'prologtheory) "" rules))
     (eso-materialize-csp esodb constraints rules)))
 
 (defun eso-materialize-csp (esodb constraints rules)
   "(ESO-MATERIALIZE-CSP ESODB CONSTRAINTS RULES) takes a theory of RULES, a theory of CONSTRAINTS, 
    and a set of ESODB predicates.  Constructs extensions for those predicates such that when 
    added to RULES, the resulting stratified model satisfies CONSTRAINTS."
-  (let (types)
+  (let (types g esodeps)
+    ; using the dependency graph, grab those preds dependent on esodbs (including esodbs)
+    (setq g (dependency-graph rules))
+    (setq esodeps (mapunion #'(lambda (x) (agraph-find-connected x g)) esodb))
     ; grab the types
-    (multiple-value-setq (types constraints rules) (eso-materialize-csp-guesstypes constraints rules))
-
-    ; Analyze the constraints/rules to stratify ESODB predicates (and constraints).
-    ; Solve each strata of esodb predicates individually and then use CSP techniques
-    ;     to find solutions for all esodb predicates simultaneously.
-    
-    ; For now, we assume there's a single strata and all constraints are pertinent.
-    ;    So all we do is extract type info and pass along to the strata solver.
+    (multiple-value-setq (types constraints rules) (eso-materialize-csp-extracttypes constraints rules esodeps))
+    ; grab just the constraints that will impact the esodbs, i.e. those constraints including a pred dependent on esodbs
+    (setq constraints (remove-if-not #'(lambda (c) (intersection (relns c) esodeps)) constraints))
+    ; rewrite each constraint so that the only preds dependent on esodbs that appear are the esodbs.
+    (setq constraints (interpolate-datalog (set-difference esodeps esodb) constraints esodb (contents rules)))
+    ; construct a solution to the given constraints 
     (car (last (eso-materialize-csp-strata esodb constraints rules types)))))
 
-(defun eso-materialize-csp-guesstypes (constraints rules)
-  "(ESO-MATERIALIZE-CSP-GUESSTYPES CONSTRAINTS RULES) computes a hash table of (pred num) keys
+(defun eso-materialize-csp-extracttypes (constraints rules &optional (nontypes nil))
+  "(ESO-MATERIALIZE-CSP-EXTRACTTYPES CONSTRAINTS RULES) computes a hash table of (pred num) keys
    mapped to a unarypred indicating the type for pred's numth argument.  May modify rules
    to construct new types that are the intersection of old types for when we find multiple
-   types.  Removes any rules used to infer type info.  Returns three values: the hash table,
+   types.  Never assumes a NONTYPE is a type.  
+   Removes any rules used to infer type info.  Returns three values: the hash table,
    the remaining constraints, and the new rules."
   (let ((h (make-hash-table :test #'equal)) pred index typ (constraintsused nil))
     (dolist (c constraints)
@@ -71,7 +73,7 @@
 	(when (and (third c) (null (fourth c)) (atomicp (second c)))  ; of the form (=> atom b)
 	  (setq pred (relation (second c)))
 	  (dolist (r (and2list (third c)))
-	    (when (and (monadic-atom r) (varp (second r)))
+	    (when (and (monadic-atom r) (varp (second r)) (not (member (relation r) nontypes)))
 	      (setq index (indexof (second r) (second c)))
 	      (when index
 		(setq typ (relation r))
