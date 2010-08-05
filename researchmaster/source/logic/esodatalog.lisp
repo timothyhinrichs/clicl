@@ -40,8 +40,28 @@
   (let (rules constraints)
     (multiple-value-setq (rules constraints) 
       (split #'(lambda (x) (or (atomicp x) (eq (signifier x) '<=))) (contents th)))
-    (setq rules (define-theory (make-instance 'prologtheory) "" rules))
+    (multiple-value-setq (constraints rules) (eso-materialize-prep esodb constraints rules))
+    ;(setq rules (define-theory (make-instance 'prologtheory) "" rules))
     (eso-materialize-csp esodb constraints rules)))
+
+; todo run LloydTopor on result of functions-to-relations(rules) to deal with embedded ands and
+;     p :- not(Ex.f(y,x) ^ r(x))
+; todo: add totality axiom for functions (need types for that)
+; (eso-materialize '(assign-col assign-row) "/Users/thinrich/Research/code/clicl/examples/esodatalog/gantt2")
+(defun eso-materialize-prep (esodb constraints rules)
+  "(ESO-MATERIALIZE-PREP ESODB CONSTRAINTS RULES) massages the constraints and rules in
+   preparation for remainder of routines.  Both CONSTRAINTS and RULES are lists."
+  (declare (ignore esodb))
+  (let (funcs)
+    ; turn functions into relations
+    (setq funcs (funcs (makand (maksand constraints) (maksand rules))))
+    ; add axioms stating that functions are functional.  Necessary once functions converted to relations.
+    ;   f(x,y)=z ^ f(x,y)=z' => z=z' 
+    ;   TODO: type(x) ^ type(y) => Ez.f(x,y)=z
+    (setq constraints (nconc (mapcar #'functional-axiom funcs) constraints))
+    (setq constraints (mapcar #'functions-to-relations constraints))
+    (setq rules (mapcan #'to-canonical-datalog (mapcar #'functions-to-relations rules)))
+    (values constraints rules)))
 
 (defun eso-materialize-csp (esodb constraints rules)
   "(ESO-MATERIALIZE-CSP ESODB CONSTRAINTS RULES) takes a theory of RULES, a theory of CONSTRAINTS, 
@@ -50,13 +70,16 @@
   (let (types g esodeps)
     ; using the dependency graph, grab those preds dependent on esodbs (including esodbs)
     (setq g (dependency-graph rules))
+    (mapc #'(lambda (x) (agraph-adjoin-noded x g)) esodb) 
     (setq esodeps (mapunion #'(lambda (x) (agraph-find-connected x g)) esodb))
+(print esodeps)
     ; grab the types
     (multiple-value-setq (types constraints rules) (eso-materialize-csp-extracttypes constraints rules esodeps))
     ; grab just the constraints that will impact the esodbs, i.e. those constraints including a pred dependent on esodbs
     (setq constraints (remove-if-not #'(lambda (c) (intersection (relns c) esodeps)) constraints))
     ; rewrite each constraint so that the only preds dependent on esodbs that appear are the esodbs.
-    (setq constraints (interpolate-datalog (set-difference esodeps esodb) constraints esodb (contents rules)))
+    ;  NOTE: For now we're assuming the rules dependent on esodbs are non-recursive
+    (setq constraints (interpolate-datalog (set-difference esodeps esodb) constraints esodb rules))
     ; construct a solution to the given constraints 
     (car (last (eso-materialize-csp-strata esodb constraints rules types)))))
 

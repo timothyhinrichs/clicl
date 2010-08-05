@@ -211,6 +211,22 @@
    all the NILs in the result."
   (remove-if #'not (apply #'mapcar function lists)))
 
+(defun mapcaraccum (function list)
+  "(MAPCARACCUM FUNCTION LIST) mapcars multi-value return FUNCTION onto LIST.
+   Returns n values.  The first is the list of the first return value for each
+   list element; the nth value is the nconced result of the nth value for each
+   list element."
+  (let ((result nil) (accum nil) tmp)
+    (dolist (l list (values-list (cons (nreverse result) (mapcar #'nreverse accum))))
+      (setq tmp (multiple-value-list (funcall function l)))
+      (unless accum (setq accum (maptimes #'(lambda () nil) (1- (length tmp)))))
+      (push (first tmp) result)
+      (setq tmp (cdr tmp))
+      (do ((m tmp (cdr m))
+	   (a accum (cdr a)))
+	  ((or (null m) (null a)))
+	(setf (car a) (nconc (car a) (nreverse (car m))))))))
+
 (defun copy-prefix (list until)
   "(COPY-PREFIX LIST UNTIL) returns a copy of LIST up til the cdr equals UNTIL."
   (do ((res nil)

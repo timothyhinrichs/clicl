@@ -387,6 +387,7 @@
 (defun relns (p) (mapcar #'parameter-symbol (preds p)))
 (defun preds (p) (if (find p '(true false)) nil (delete-if-not #'isrelation (get-vocabulary p))))
 (defun pred (p) (first (preds p)))
+(defun funcs (p) (if (find p '(true false)) nil (delete-if #'(lambda (x) (or (isobject x) (isrelation x))) (get-vocabulary p))))
 (defun objs (p) (if (find p '(true false)) 
 		    nil 
 		    (mapcar #'parameter-symbol 

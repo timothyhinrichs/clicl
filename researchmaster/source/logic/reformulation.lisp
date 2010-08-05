@@ -47,11 +47,14 @@
 ;;;;;;;;;;;;;;; Basic sentence manipulation ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun equantify (fact)
-  "(EQUANTIFY FACT) existentially quantifies all free variables in fact."
-  (equantify-except fact nil))
+(defun equantify (vars fact)
+  "(EQUANTIFY FACT VARS) existentially quantifies variables VARS in FACT."
+  (if vars
+      `(exists ,vars ,fact)
+      fact))
 
 (defun equantify-except (fact vars)
+  "(EQUANTIFY FACT VARS) existentially quantifies all free variables in FACT except for VARS."
   (let ((vs (set-difference (freevars fact) vars)))
     (if vs
       `(exists ,vs ,fact)
@@ -210,6 +213,93 @@
                           (if (not newrule) (format t "broken~%"))))
           (sentences '? th))
     newth))
+
+
+(defun functions-to-relations (p)
+  "(FUNCTIONS-TO-RELATIONS P) returns P but where all functions have been turned into
+   relations.  This requires flattening embedded functions, e.g. (p (f (g ?x))) becomes
+   (and (= (g ?x) ?x1) (= (f ?x1) ?x2) (p ?x2)), and all functions are turned into relations, e.g.
+   (= (g ?x) ?x1) becomes (g ?x ?x1).  Returns 2 values: the new sentences and the additional constraints
+   required to ensure semantics are preserved."
+  (cond ((atom p) p)
+;	((eq (car p) '<=)  ; special case so rules look nice
+;	 (let ((newp (and2list (functions-to-relations (head p)))) (newvar (newindvar)))
+;	   (list* '<= (car newp) (and2list (flatten-operator (maksand (nconc (cdr newp) (mapcar #'functions-to-relations (cddr p)))))))))
+	((member (car p) '(=> and or not <=> <=))
+	 (cons (car p) (mapcar #'functions-to-relations (cdr p))))
+	((member (car p) '(forall exists))
+	 (list (first p) (second p) (functions-to-relations (third p))))
+	((eq (car p) '=)  ; special case = to reduce number of (= ?x ?y) statements
+	 (multiple-value-bind (term1 rest1 newvars1) (function-to-relation (second p))
+	   (multiple-value-bind (term2 rest2 newvars2) (function-to-relation (third p))
+	     (if (or rest1 rest2)
+		 (equantify (delete term1 (nconc newvars1 newvars2)) (plug (maksand (nconc rest1 rest2)) (list (cons term1 term2) '(t . t))))
+		 `(= ,term1 ,term2)))))
+	(t 
+	 (multiple-value-bind (newp rest newvars) (mapcaraccum #'function-to-relation (cdr p))
+	   (equantify newvars (maksand (cons (cons (car p) newp) rest)))))))
+
+(defun function-to-relation (term)
+  "(FUNCTION-TO-RELATION TERM) takes a term and flattens it, returning two values:
+   a term and a list of supporting atoms, e.g. (f (g ?x)) becomes ?z and ((g ?x ?y) (f ?y ?z))."
+  (cond ((atom term) (values term nil nil))
+	(t (let ((newvar (newindvar)))
+	     (multiple-value-bind (newterm rest newvars) (mapcaraccum #'function-to-relation (cdr term))
+	       (setq newterm (append newterm (list newvar)))
+	       (setq newterm (cons (car term) newterm))
+	       (values newvar (cons newterm rest) (cons newvar newvars)))))))
+
+(defun functional-axiom (param)
+  "(FUNCTIONAL-AXIOM PARAM) returns f(@x)=y ^ f(@x)=z => y=z."
+  (let ((args (maptimes #'newindvar (parameter-arity param)))
+	(res1 (newindvar))
+	(res2 (newindvar)))
+    `(=> (= ,(cons (parameter-symbol param) args) ,res1)
+	 (= ,(cons (parameter-symbol param) args) ,res2)
+	 (= ,res1 ,res2))))
+
+(defun to-canonical-datalog (rule)
+  "(TO-CANONICAL-DATALOG RULE) takes a datalog rule where the head is a literal
+   and the body is an arbitrary FOL formula and converts it into a list of rules 
+   that are equivalent to RULE except that
+   the body of each consists of literals, i.e. quantifiers and boolean connectives
+   (besides the implicit AND) are all removed."
+  (assert (literalp (head rule)) nil (format nil "TO-CANONICAL-DATALOG expects an input where the head is a literal: ~A" (head rule)))
+  (assert (or (atomicp rule) (eq (car rule) '<=)) nil 
+	  (format nil "TO-CANONICAL-DATALOG expects an input where the head is a literal: ~A" (head rule)))
+  (cond ((atomicp rule) (list rule))
+	((null (cddr rule)) (list rule))
+	(t (multiple-value-bind (entries defs) (mapcaraccum #'lloyd-topor (cddr rule))
+	     (cons (list* '<= (head rule) (and2list (flatten-operator (maksand entries)))) defs)))))
+
+(defun lloyd-topor (p &optional (neg nil))
+  "(LLOYD-TOPOR P) translates the FOL sentence P into a set of datalog rules.
+   NEG is true iff the entry is to be used inside a negation.
+   Returns two values: a conjunction of literals (often just an entry point) and the set of rules."
+  (cond ((atomicp p) (values p nil))
+	((eq (car p) 'not) (multiple-value-bind (entry defs) (lloyd-topor (second p) t)
+			     (values (if neg entry (maknot entry)) defs)))
+	((eq (car p) 'forall) (lloyd-topor `(not (exists ,(second p) (not ,(third p)))) neg)) 
+	((eq (car p) 'exists) 
+	 (multiple-value-bind (entry defs) (lloyd-topor (third p))
+	   (cond (neg
+		  (let (newentry)
+		    (setq newentry (cons (tosymbol (gentemp "reln")) (set-difference (vars entry) (tolist (second p)))))
+		    (values newentry (cons (list* '<= newentry (and2list entry)) defs))))
+		 (t (values entry defs)))))
+	((member (car p) '(and or))
+	 (setq p (flatten-operator p))
+	 (multiple-value-bind (entries defs) (mapcaraccum #'lloyd-topor (cdr p))
+	   (let (newentry)
+	     (setq newentry (cons (tosymbol (gentemp "reln")) (freevars p)))
+	     (if (eq (car p) 'and)
+		 (if neg
+		     (values newentry (cons (list* '<= newentry (and2list (flatten-operator (maksand entries)))) defs))
+		     (values (flatten-operator (maksand entries)) defs))
+		 (values newentry (nconc (mapcar #'(lambda (x) (list* '<= newentry (and2list x))) entries) defs))))))
+	((member (car p) '(<= => <=>)) (lloyd-topor (nnf p) neg))
+	(t (assert nil nil (format nil "Lloyd-Topor expects a KIF formula but received ~A" p)))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Equality
