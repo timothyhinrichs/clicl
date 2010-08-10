@@ -18,9 +18,9 @@
 (ignore-errors (when (probe-file (loadfn "snark")) (push :snark *features*)))
 
 #+snark 
-(format t "Snark is available.")
+(format t "~&Snark is available.~%")
 #-snark
-(format t "Snark is unavailable.")
+(format t "~&Snark is unavailable.~%")
 
 ; external libraries
 (load (loadfn "load" :dir "cl-ppcre-2.0.3"))  ; regular expressions

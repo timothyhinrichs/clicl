@@ -10,10 +10,6 @@
 ; assign each event to a unique row-col pair
 (=> (= (assign-row ?e) ?r) (and (event ?e) (row ?r))) ; types
 (=> (= (assign-col ?e) ?c) (and (event ?e) (col ?c))) ; types
-(=> (= (assign-row ?e1) ?r) (= (assign-col ?e1) ?c) (= (assign-row ?e2) ?r) (= (assign-col ?e2) ?c) (= ?e1 ?e2))   ; one-to-one
-
-; Should be automatically inserted (but requires type of function).
-(forall ?e (=> (event ?e) (exists (?r ?c) (and (= (assign-row ?e) ?r) (= (assign-col ?e) ?c)))))
 
 ; ensure events don't overlap if they are assigned the same row
 (=> (= (assign-row ?e1) ?r) (= (assign-row ?e2) ?r) (not (overlap ?e1 ?e2)))
@@ -39,8 +35,7 @@
 (=> (overlap ?e1 ?e2) (overlap ?e2 ?e1))
 (=> (event ?e) (date-lte (event-start ?e) (event-end ?e)))
 
-;(=> (overlapA ?x ?y) (test ?x ?y))
-
+; should be able to replace the use of overlap above with overlapA (to avoid symmetries)
 (<= (overlapA ?e1 ?e2)
 	(event-lt ?e1 ?e2)
 	(not (date-lte (event-end ?e1) (event-start ?e2))))

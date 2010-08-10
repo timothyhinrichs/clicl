@@ -577,7 +577,7 @@
     (setq realtime (/ (- (get-internal-real-time) realtime) internal-time-units-per-second))
     (setq r (read-any-file outfile))
     (setq r (split-string r '(#\Newline)))
-    (cond ((search "unsat" (first r)) (values :unsat realtime))
+    (cond ((search "unsat" (first r) :test #'equalp) (values :unsat realtime))
 	  (t ; parse resulting model and invert to ground atoms
 	   (setq r (mapcar #'tosymbol (split-string (second r) '(#\Space))))
 	   (setq r (run-sat-solver-invertmodel (butlast r) num2atom))
@@ -1627,12 +1627,23 @@
 (yacc:parse-with-lexer (dso-lex:lex-slow '*configitlexer* "Gender : [
   \"Male\",
   \"Female\"
-];" '(whitespace)) *configitparser*)
+];
+Person : {
+  public gender   : Gender;
+  public height   : PersonHeight;
+  public biketype : BikeType;
+};
+" '(whitespace)) *configitparser*)
 |#
 
 (dso-lex:deflexer *configitlexer* (:priority-only t)
   ("\\\[" lbracket)
   ("\\\]" rbracket)
+  ("{" lcurly)
+  ("}" rcurly)
+  ("public" public)
+  ("private" private)
+  ("friend" friend)
   (":" colon)
   ("\"[a-zA-Z0-9_ ]*\"" string drop-quotes)
   ("," comma)
@@ -1641,19 +1652,37 @@
   ("\\s+" whitespace))
 
 (yacc:define-parser *configitparser*
-  (:start-symbol type)
-  (:terminals (lbracket rbracket colon string comma semicolon symbol))
+  (:start-symbol start)
+  (:terminals (lbracket rbracket lcurly rcurly colon string comma semicolon symbol public private friend))
 
+  (start toplevel
+	 (toplevel start))
+
+  (toplevel type class)
   (type (symbol colon lbracket commalist rbracket semicolon 
 		#'(lambda (symbol colon lbracket list rbracket semicolon)
 		    (declare (ignore colon lbracket rbracket semicolon))
 		    `(type ,(tosymbol symbol) ,list))))
+
+  (class (symbol colon lcurly vardeclist rcurly semicolon
+		 #'(lambda (symbol colon lcurly vardeclist rcurly semicolon)
+		     (declare (ignore colon lcurly rcurly semicolon))
+		     `(class ,(tosymbol symbol) ,vardeclist))))
 
   (commalist (term #'(lambda (x) (list x)))
 	     (term comma commalist #'(lambda (term comma commalist) 
 				       (declare (ignore comma)) 
 				       (cons term commalist))))
 
+  (scope (public #'tosymbol) (private #'tosymbol) (friend #'tosymbol))
+  (vardeclist (vardec #'(lambda (x) (list x)))
+	      (vardec vardeclist #'(lambda (vardec vardeclist) 
+				     (cons vardec vardeclist))))
+
+  (vardec (scope var colon symbol semicolon #'(lambda (scope var colon symbol semicolon)
+						(declare (ignore colon semicolon))
+						`(vardec ,scope ,var ,symbol))))
+  (var (symbol #'tosymbol))
   (term (symbol #'tosymbol) string ))
 
 

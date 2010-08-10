@@ -24,7 +24,7 @@
   (cond ((literalp constraint) constraint)
 	((member (car constraint) '(or and not => <= <=>))
 	       (cons (car constraint) 
-		     (mapcar #'(lambda (x) (dbground rules x preds types)) (cdr constraint))))
+		     (mapcar #'(lambda (x) (dbground preds x rules types)) (cdr constraint))))
 	(t  ; quantified
 	 (let (dbquery remainder q dbpreds)
 	   ; isolate the predicates defined in the database
@@ -40,7 +40,7 @@
 	   (if (eq (car constraint) 'exists) 
 	       (setq remainder (maksor remainder)) 
 	       (setq remainder (maksand remainder)))
-	   (dbground rules remainder preds types)))))
+	   (dbground preds remainder rules types)))))
 
 (defun dbground-prep-dbquery (dbquery remainder types)
   "(DBGROUND-PREP-DBQUERY DBQUERY REMAINDER TYPES) takes the database query DBQUERY being used to 

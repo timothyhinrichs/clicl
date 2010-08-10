@@ -249,15 +249,32 @@
 	       (setq newterm (cons (car term) newterm))
 	       (values newvar (cons newterm rest) (cons newvar newvars)))))))
 
-(defun functional-axiom (param)
-  "(FUNCTIONAL-AXIOM PARAM) returns f(@x)=y ^ f(@x)=z => y=z."
-  (let ((args (maptimes #'newindvar (parameter-arity param)))
-	(res1 (newindvar))
-	(res2 (newindvar)))
-    `(=> (= ,(cons (parameter-symbol param) args) ,res1)
-	 (= ,(cons (parameter-symbol param) args) ,res2)
-	 (= ,res1 ,res2))))
+(defun functional-axioms (param types)
+  "(FUNCTIONAL-AXIOMS PARAM) returns f(@x,y) ^ f(@x,z) => y=z and
+   types(@x) => Ey.type(y) ^ f(@x,y) as a list.  TYPES is a hash table keyed on (pred index)"
+  (labels ((gettype (f i) (let ((y (gethash (list f i) types)))
+			    (if y y 'univ))))
+    (let* ((args1 nil) (args2 nil)
+	   (res1 (newindvar))
+	   (res2 (newindvar))
+	   (p (parameter-symbol param))
+	   typelist)
+      (dotimes (i (parameter-arity param))
+	(push (newindvar) args1)
+	(push (list (gettype p (1+ i)) (car args1)) typelist))
+      (setq args1 (nreverse args1))
+      (setq typelist (nreverse typelist))
 
+      (setq args2 (append args1 (list res2)))
+      (setq args1 (nconc args1 (list res1)))
+
+      (list
+       `(=> ,(cons p args1)
+	    ,(cons p args2)
+	    (= ,res1 ,res2))
+       `(=> ,(maksand typelist) ,(equantify res1 (makand (list (gettype p (1+ (parameter-arity param))) res1) 
+							(cons p args1))))))))
+  
 (defun to-canonical-datalog (rule)
   "(TO-CANONICAL-DATALOG RULE) takes a datalog rule where the head is a literal
    and the body is an arbitrary FOL formula and converts it into a list of rules 

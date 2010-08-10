@@ -1,22 +1,19 @@
 ; task scheduling: assign a given set of TASKs with certain DEPENDencies
-;   to certain ACTORs and DAYs.  The ESODB predicate is DOES.
+;   to ACTORs and DAYs.  The ESODB predicates are TASK-DONE-BY AND TASK-DONE-ON.
 
 ; types for does and depends
-(=> (does ?t ?a ?d) (and (task ?t) (actor ?a) (day ?d)))
+(=> (= (task-done-by ?t) ?a) (and (task ?t) (actor ?a)))
+(=> (= (task-done-on ?t) ?d) (and (task ?t) (day ?d)))
+
 (=> (depends ?x ?y) (and (task ?x) (task ?y))) 
 
-; two actors can't perform different tasks as the same day/time
-(=> (does ?t ?a ?d) (does ?t2 ?a ?d) (= ?t ?t2)) 
-
-; every task needs to be done
-(forall ?t (=> (task ?t) (exists (?a ?d) (does ?t ?a ?d)))) 
-
-; the same task can't be done twice
-(=> (does ?t ?a1 ?d1) (does ?t ?a2 ?d2) (and (= ?a1 ?a2) (= ?d1 ?d2))) 
-
 ; task ordering needs to respect 'depends'
-(=> (depends ?t1 ?t2) (does ?t1 ?a1 ?d1) (does ?t2 ?a2 ?d2) (lt ?d1 ?d2)) 
+(=> (depends ?t1 ?t2) (lt (task-done-on ?t1) (task-done-on ?t2)))
 
+; two actors can't perform different tasks on the same day
+(=> (not (= ?t1 ?t2)) 
+	(= (task-done-by ?t1) (task-done-by ?t2)) 
+	(not (= (task-done-on ?t1) (task-done-on ?t2))))
 
 ; data (the only rules in this example)
 
