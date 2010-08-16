@@ -101,8 +101,8 @@
 
 (define-parser *expression-parser*
   (:start-symbol expression-opt)
-  (:terminals (int id + - * / |(| |)|))
-  (:precedence ((:left * /) (:left + -)))
+  (:terminals (int id + neg - * / |(| |)|))
+  (:precedence ((:left * /) (:left + - neg)))
 
   ;; optional expression
   (expression-opt
@@ -110,17 +110,19 @@
    ())                                  ; implicit action #'list
 
   (expression
+   (neg expression)
    (expression + expression #'i2p)
    (expression - expression #'i2p)
    (expression * expression #'i2p)
    (expression / expression #'i2p)
-   term)                                ; implicit action #'identity
+   (|(| expression |)| #'k-2-3))
+  ; term)                                ; implicit action #'identity
 
   (term
    id                                   ; implicit action #'identity
-   int                                  ; implicit action #'identity
-   (- term)                             ; implicit action #'list
-   (|(| expression |)| #'k-2-3)))
+   int ))                                 ; implicit action #'identity
+;   (- term)))                            ; implicit action #'list
+;   (|(| expression |)| #'k-2-3)))
 
 
 ;;; The evaluator

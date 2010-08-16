@@ -883,55 +883,103 @@
 	(push n res)))
     (nreverse res)))
 
-
-; cp take the form of (+ c c p)
-; functions to extract for flexibility
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Logical Compression
+;;;     Taking logical constraints and constructing constraints + tables
+;;;     that have the same semantics. 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 #|
-;; unfinished -- once we have the variables ordered how do we then order the conjuncts?
+(compress-with-database '(OR 
+	(AND (SKU "PD 6600") (PEDALTYPE "SPD"))
+        (AND (SKU "PD 5500") (PEDALTYPE "SPD"))
+        (AND (SKU "PD M545") (PEDALTYPE "Clip"))
+        (AND (SKU "PD M434") (PEDALTYPE "Clip"))
+        (AND (SKU "Campagnolo Record") (PEDALTYPE "SPD"))
+        (AND (SKU "Campagnolo Chorus") (PEDALTYPE "SPD"))
+        (AND (SKU "PD C105") (PEDALTYPE "Standard"))
+        (AND (SKU "Black Plastic") (PEDALTYPE "Standard"))
+        (AND (SKU "PD C101") (PEDALTYPE "Standard"))))
 
-(defun order-conjuncts-by-producer-consumer (literals cps)
-  (declare (ignore literals) (ignore cps))
-  literals)
+becomes
+(=> (sku ?x) (pedaltype ?y) (p ?x ?y))
 
-(defun consumer-producer-symbol (cp) (signed-relation cp))
-(defun consumer-producer-list (cp) (arguments cp))
-
-(defun build-variable-dependencies (lits cps)
-  "(BUILD-VARIABLE-DEPENDENCIES LITS CPS) returns a graph that depicts the variable dependencies
-   that exist in LITS, according to the consumer-producer info in CPS."
-  (let ((g (make-graph)))
-    (mapc #'(lambda (x) (add-variable-dependency x cps g)) lits)
-    g))
-
-(defun add-variable-dependency (literal cps graph)
-  "(ADD-VARIABLE-DEPENDENCY LITERAL) adds all the edges to GRAPH for variable
-   dependencies in LITERAL.  An edge from x to y means computing x requires having computed y."
-  (let ((cp (find (signed-relation literal) cps :key #'consumer-producer-symbol))
-        (producers) (consumers))
-    (multiple-value-setq (producers consumers) (split-cp (arguments literal) (consumer-producer-list cp)))
-
-    (dolist (p producers)
-      (dolist (c consumers)
-        (graph-insert-edged c p graph)))))
-
-
-(defun split-cp (args cps)
-  "(SPLIT-CP ARGS CPS) returns two lists: the arguments in ARGS corresponding to Cs in 
-   CPS and all other args."
-  (do ((as args (cdr as))
-       (cs cps (cdr cs))
-       (cargs nil)
-       (pargs nil))
-      ((or (null as) (null cs)) (if (or (not (null as)) (not (null cs))) 
-                                  (values nil nil) 
-                                  (values (nreverse cargs) (nreverse pargs))))
-    (if (eq (car cs) 'c)
-      (setq cargs (cons (car as) cargs))
-      (setq pargs (cons (car as) pargs)))))
+	(p "PD 6600" "SPD")
+        (p "PD 5500" "SPD")
+        (p "PD M545" "Clip")
+        (p "PD M434" "Clip")
+        (p "Campagnolo Record" "SPD")
+        (p "Campagnolo Chorus" "SPD")
+        (p "PD C105" "Standard")
+        (p "Black Plastic" "Standard")
+        (p "PD C101" "Standard")
 
 |#
 
+(defun compress-to-database (p)
+  "(COMPRESS-TO-DATABASE P) takes a monadic, function-free KIF formula as input and 
+   returns (i) a new KIF formula and (ii) a set of database tables such that the 
+   semantics is preserved." 
+  (declare (ignore p))
+)
+
+(defun compress-or-and (p)
+  "(COMPRESS-OR-AND P NEWRELNNAME) breaks and OR of ANDs P into a number of blocks,
+   each of which satisfy the assumptions of COMPRESS-OR-AND-BLOCK.  Constructs 
+   a table for each block and returns an equivalent P together with a set of tables
+   (represented as a set of ground atoms)."
+  (let (blocks head body rest)
+    (setq blocks (group-by (or2list p) #'(lambda (x) (sort (uniquify (relns x)) #'string< :key #'tostring)) 
+			   :test #'equal))
+    (print blocks)
+    (dolist (b blocks)
+      (multiple-value-bind (newp newtables) (compress-or-and-block (mapcar #'and2list (nnf (cdr b))) 
+								   (tosymbol (gensym "reln")))
+	(push (second newp) head)
+	(setq body (nconc (cddr newp) body))
+	(setq rest (nconc newtables rest))))
+    (values (list* '<= (maksor head) body) rest)))  
+  
+
+(defun compress-or-and-block (p &optional (newrelnname 'q))
+  "(COMPRESS-OR-AND-FLAT-BLOCK P NEWRELNNAME) takes a list of lists of ground, monadic atoms, where the internal
+   lists are implicit ANDs and the external list is an implicit OR.  Assumes each predicate occurs
+   exactly once in each AND, and that the set of predicates occurring in all ANDs is the same."
+  (let ((h (make-hash-table :test #'equal)) result (fields nil) formula vars entry head body newreln2)
+    ;(setq p (mapcar #'and2list (or2list p)))
+    (setq fields (mapcar #'first (first p)))
+    (print fields)
+    ; arrange atoms into canonical ordering
+    (do ((i 0 (1+ i))
+	 (ps p (cdr ps)))
+	((null ps))
+      (dolist (q (car ps))
+	(setf (gethash (list i (reln q)) h) q)))
+    (pretty-print h)
+    ; construct datalog definitions
+    (setq result nil)
+    (dotimes (i (length p))
+      (setq head (list newrelnname))
+      (setq body nil)
+      (dolist (f fields)
+	(setq entry (gethash (list i f) h))
+	(cond ((atomicp entry) (push (second entry) head))
+	      ((eq (car entry) 'or)
+	       (push (newindvar) head)
+	       (setq newreln2 (tosymbol (gentemp "reln")))
+	       (push (list newreln2 (car head)) body)
+	       (setq result (nconc (mapcar #'(lambda (x) (list newreln2 (second x))) (or2list entry)) result)))))
+      (push (if body
+		(list* '<= (nreverse head) body)
+		(nreverse head)) 
+	    result))
+    ; construct formula
+    (setq formula nil)
+    (setq vars nil)
+    (dolist (f fields)
+      (push (newindvar) vars)
+      (push (list f (car vars)) formula))
+    (setq formula (list* '<= (cons newrelnname (nreverse vars)) formula))
+    (values formula (nreverse result))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Poss ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

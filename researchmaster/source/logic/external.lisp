@@ -1624,69 +1624,208 @@
 ;   product configuration problems.
 
 #|
-(yacc:parse-with-lexer (dso-lex:lex-slow '*configitlexer* "Gender : [
+(configit2kif "type Gender : [
   \"Male\",
   \"Female\"
 ];
-Person : {
+Person : {   /* My person name ****/
   public gender   : Gender;
   public height   : PersonHeight;
   public biketype : BikeType;
 };
-" '(whitespace)) *configitparser*)
+Gear_cat : {
+  public sku       : Gear;
+  public gears     : Number;
+  private biketype : BikeType;
+  private internal : boolean;
+rule
+  (sku=\"Dura Ace\" and biketype=\"Racer Bike\" and not internal and gears=\"18\") or
+  (sku=\"Ultegra\" and biketype=\"Racer Bike\" and not internal and gears=\"16\");
+  (order(sku) >= order(\"24\"\"));
+  (biketype.obj1.obj2.name=\"Racer Bike\") -> (internal=false);
+};
+variable public x : y ;
+rule
+  case rims.height of
+      \"50 cm\" then (order(frame.size)>=order(\"15\"\") and order(frame.size)<=order(\"22\"\"))
+    | \"65 cm\" then (order(frame.size)>=order(\"17\"\") and order(frame.size)<=order(\"28\"\"))
+    | \"70 cm\" then (order(frame.size)>=order(\"19\"\") and order(frame.size)<=order(\"28\"\"))
+    | default true
+  esac;
+  if ((frame.biketype=\"Racer Bike\" or frame.biketype=\"City Bike\") and
+      (person.height=\"150-160 cm\")) then
+    (order(frame.size)>=order(\"17\"\") and order(frame.size)<=order(\"20\"\"));
+
+")
 |#
 
-(dso-lex:deflexer *configitlexer* (:priority-only t)
+(defun configit2kif (string)
+  "(CONFIGIT2KIF STRING) translates a configit configuration management input
+   format into KIF-like syntax.  Constraints utilize standard KIF operators as
+   well as if/then/else and case operators.  Leaving extra operators so that 
+   we might leverage the additional structure they imply.  (If/then without else 
+   is translated to =>, but with an else we leave as if/then/else.)"
+  (yacc:parse-with-lexer 
+   (dso-lex:lex-inc '*configitlexer* 
+		    (strip-blocks string "/*" "*/") 
+		    '(whitespace))
+   *configitparser*))
+
+(defun configit-symbol (str)
+  (cond ((equal str "<=") '=<)
+	((equal str "->") '=>)
+	((equal str "<-") '<=)
+	((equal str "<->") '<=>)
+	(t (tosymbol str))))
+
+; Amazingly, it looks like the standard approach to dealing with
+;   C comments is to rip them out programmatically instead of with LEX.
+;   Usually, this is done inside the lexer, but I don't think I have that
+;   option, so I just do it as a preprocessing pass.
+(dso-lex:deflexer *configitlexer* (:priority-only nil)
   ("\\\[" lbracket)
   ("\\\]" rbracket)
   ("{" lcurly)
   ("}" rcurly)
-  ("public" public)
-  ("private" private)
-  ("friend" friend)
+  ("\\\(" lparen)
+  ("\\\)" rparen)
   (":" colon)
-  ("\"[a-zA-Z0-9_ ]*\"" string drop-quotes)
   ("," comma)
+  ("'" singlequote)
   (";" semicolon)
-  ("[a-zA-Z0-9_]+" symbol tosymbol)
+;  ("\\/" fslash)
+;  ("\\*" star)
+  ("\\." dot)
+  ("rule" rulesymbol configit-symbol)
+  ("variable" variablesymbol configit-symbol)
+  ("type" typesymbol configit-symbol)
+  ("public" public configit-symbol)
+  ("private" private configit-symbol)
+  ("and" and configit-symbol)
+  ("or" or configit-symbol)
+  ("not" neg configit-symbol)
+  ("if" if configit-symbol)
+  ("then" then configit-symbol)
+  ("else" else configit-symbol)
+  ("case" casesymbol configit-symbol)
+  ("of" of configit-symbol)
+  ("esac" esac configit-symbol)
+  ("default" default configit-symbol)
+  ("->" implies configit-symbol)
+  ("<-" reduces configit-symbol)
+  ("<->" bicond configit-symbol)
+  ("\\|" vertbar)
+  ("=" equal configit-symbol)  
+  ("<>" notequal configit-symbol)
+  ("<=" lte configit-symbol)   ; make sure <= and >= come before < and >
+  (">=" gte configit-symbol)
+  ("<" lt configit-symbol)
+  (">" gt configit-symbol)
+  ("\"[a-zA-Z0-9_\" \\.\\\\-]*\"" string drop-quotes)
+  ("[a-zA-Z0-9_-]+" symbol configit-symbol)
   ("\\s+" whitespace))
 
 (yacc:define-parser *configitparser*
   (:start-symbol start)
-  (:terminals (lbracket rbracket lcurly rcurly colon string comma semicolon symbol public private friend))
+  (:terminals (lbracket rbracket lcurly rcurly lparen rparen colon string comma semicolon 
+			symbol public private 
+			and or neg implies reduces bicond if then casesymbol of esac vertbar default
+			equal lt lte gt gte dot notequal
+			typesymbol variablesymbol rulesymbol))
+  (:precedence ((:left neg) (:left and) (:left or) (:right implies) (:right reduces) (:left bicond)))
 
-  (start toplevel
-	 (toplevel start))
+  (start (typesymbol typeclasslist variablesymbol classblock
+		     #'(lambda (x types y classblock)
+			 (declare (ignore x y))
+			 (list (cons 'typeclasses types)
+			       (cons 'main classblock)))))
 
-  (toplevel type class)
-  (type (symbol colon lbracket commalist rbracket semicolon 
+  (typeclasslist (typeorclass #'list) 
+		 (typeorclass typeclasslist #'cons))
+
+  (typeorclass type class)
+
+
+  (type (symbol colon lbracket basictermlist rbracket semicolon 
 		#'(lambda (symbol colon lbracket list rbracket semicolon)
 		    (declare (ignore colon lbracket rbracket semicolon))
-		    `(type ,(tosymbol symbol) ,list))))
+		    `(type ,symbol ,list))))
 
-  (class (symbol colon lcurly vardeclist rcurly semicolon
-		 #'(lambda (symbol colon lcurly vardeclist rcurly semicolon)
+  (class (symbol colon lcurly classblock rcurly semicolon
+		 #'(lambda (symbol colon lcurly classblocklist rcurly semicolon)
 		     (declare (ignore colon lcurly rcurly semicolon))
-		     `(class ,(tosymbol symbol) ,vardeclist))))
+		     (list* 'class symbol classblocklist))))
 
-  (commalist (term #'(lambda (x) (list x)))
-	     (term comma commalist #'(lambda (term comma commalist) 
-				       (declare (ignore comma)) 
-				       (cons term commalist))))
+  (classblock (vardeclist)
+	      (vardeclist rulesymbol sentlist #'(lambda (x y z) (declare (ignore y)) 
+							(nconc x (list (cons 'constraints z))))))
 
-  (scope (public #'tosymbol) (private #'tosymbol) (friend #'tosymbol))
-  (vardeclist (vardec #'(lambda (x) (list x)))
+  (sentlist (sentence #'list)
+	    (sentence sentlist #'cons))
+
+  (sentence (expression semicolon #'k-1-2) 
+	    (if expression then expression semicolon #'(lambda (if e1 then e2 semi)
+							 (declare (ignore if then semi))
+							 (list '=> e1 e2)))
+	    (if expression then expression else expression semicolon #'(lambda (if e1 then e2 else e3 semi)
+							 (declare (ignore if then else semi))
+							 (list 'if e1 e2 e3)))
+	    (casesymbol dotterm of caselist esac semicolon #'(lambda (casesymbol var of list esac semi)
+							       (declare (ignore casesymbol of esac semi))
+							       (list* 'case var list))))
+  (caselist (casestmt #'list)
+	    (casestmt vertbar caselist #'(lambda (x y z) (declare (ignore y)) (cons x z))))
+
+  (casestmt (term then expression #'(lambda (x y z) (declare (ignore y)) (list x z)))
+	    (default expression))
+
+  (expression
+   term 
+   (term infixop term #'infix2prefix)
+   (neg expression)
+   (expression and expression #'(lambda (x y z) (flatten-operator (infix2prefix x y z))))
+   (expression or expression #'(lambda (x y z) (flatten-operator (infix2prefix x y z))))
+   (expression implies expression #'infix2prefix)
+   (expression reduces expression #'infix2prefix)
+   (expression bicond expression #'infix2prefix)
+   (lparen expression rparen #'k-2-3))
+
+  (infixop equal notequal lt gt lte gte)
+
+  (scope public private)
+  (vardeclist (vardec #'list)
 	      (vardec vardeclist #'(lambda (vardec vardeclist) 
 				     (cons vardec vardeclist))))
 
   (vardec (scope var colon symbol semicolon #'(lambda (scope var colon symbol semicolon)
 						(declare (ignore colon semicolon))
 						`(vardec ,scope ,var ,symbol))))
+
+  (basictermlist (basicterm #'list)
+		 (basicterm comma basictermlist #'(lambda (term comma commalist) 
+						    (declare (ignore comma)) 
+						    (cons term commalist))))
+
+  (termlist (term #'list)
+	    (term comma termlist #'(lambda (term comma termlist) 
+				     (declare (ignore comma)) 
+				     (cons term termlist))))
+
+
+  (term string dotterm functionalterm)
+  (dotterm symbol #'tosymbol 
+	   (symbol dot dotterm #'(lambda (x y z) (declare (ignore y)) `(dot ,x ,z))))
+  (functionalterm (symbol lparen termlist rparen #'(lambda (f lparen list rparen)
+						 (declare (ignore lparen rparen))
+						 (cons f list))))
   (var (symbol #'tosymbol))
-  (term (symbol #'tosymbol) string ))
 
+  (basicterm symbol string)
+)
 
-
+(defun infix2prefix (x op y) (list op x y))
+(defun k-1-2 (x y) (declare (ignore y)) x)
+(defun k-2-3 (x y z) (declare (ignore x z)) y)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

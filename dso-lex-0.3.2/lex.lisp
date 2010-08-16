@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (defpackage #:dso-lex
     (:documentation "Allows the definition of lexers.  See DEFLEXER.")
-  (:use #:cl #:cl-ppcre) ; #:dso-util)
-  (:export #:deflexer #:make-lexer #:lex-all #:lex-slow))
+  (:use #:cl #:cl-ppcre #:dso-util)
+  (:export #:deflexer #:make-lexer #:lex-all #:lex-inc))
 
 (in-package #:dso-lex)
 
@@ -144,8 +144,9 @@ Example:
              (if (> (length input) start)
 		 (multiple-value-bind (class image remainder)
 		     (funcall lexer input start)
-		   (when class
-		     (scan remainder (cons (list class image) tokens))))
+		   (if class
+		     (scan remainder (cons (list class image) tokens))
+		     (nreverse (cons (list :error :error) tokens))))
 		 (nreverse tokens))))
     (scan 0 '())))
 
@@ -161,3 +162,23 @@ Example:
 			    (setq lexlist (cdr lexlist))
 			    (values class value)))))))
 
+(defun lex-inc (lexer input &optional (drop nil))
+  "(LEX-INC LEXER INPUT) returns a function that takes 0 args; each time
+   the function is called, it returns two values: the next class and value.
+   It ignores all classes in the list DROP.
+   Returns 2 nils once input has been absorbed."
+  (let ((index 0) (max (length input)))
+    #'(lambda () 
+	(do ((class nil) image remainder)
+	    ((or (>= index max) class) 
+	     (if (>= index max) (values nil nil) (values class image)))
+	  (multiple-value-setq (class image remainder)
+	    (funcall lexer input index))
+	  (setq index remainder)
+	  (cond ((member class drop)
+		 (setq class nil))
+		(class)
+		(t
+		 (setq index (1+ max))
+		 (setq class :error)
+		 (setq image (format nil "At position ~D" index))))))))

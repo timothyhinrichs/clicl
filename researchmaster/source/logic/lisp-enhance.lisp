@@ -358,6 +358,30 @@ rest of the given `string', if any."
           (setf word '()))
       (setf word (cons (elt str i) word)))))
 
+(defun strip-blocks (string start end)
+  "(STRIP-BLOCKS STRING START END) runs over string and removes any
+   substring between START and END, both of which are strings.
+   Returns 2 values: the stripped string and whether or not there was an error (mismatched blocks)."
+  (assert (and (stringp string) (stringp start) (stringp end)) nil "STRIP-BLOCKS requires 3 strings.")
+  (do ((newstring) (lend (length end)) (len (length string)) 
+       (index 0) startindex endindex (err nil))
+      ((or (>= index len) err) (values (apply #'stringappend (nreverse newstring)) err))
+    (setq startindex (search start string :start2 index))
+    (setq endindex (search end string :start2 index))
+    ;(format t "index: ~A, start: ~A, end: ~A~%" index startindex endindex)
+    (cond ((and (not startindex) (not endindex))
+	   (push (subseq string index) newstring)
+	   (setq index len))
+	  ((and startindex endindex (< startindex endindex))
+	   (push (subseq string index startindex) newstring)
+	   (setq index (+ endindex lend)))
+	  ((and startindex endindex)
+	   (setq err (format nil "End block occurs before start block: start at pos ~A, end at pos ~A"
+			     startindex endindex)))
+	  (t
+	   (setq err (format nil "Couldn't find matching start and end for next block: start ~A, end ~A"
+			     startindex endindex))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;; Input/Output ;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
