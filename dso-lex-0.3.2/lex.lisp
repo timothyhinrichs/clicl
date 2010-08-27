@@ -170,8 +170,8 @@ Example:
   (let ((index 0) (max (length input)))
     #'(lambda () 
 	(do ((class nil) image remainder)
-	    ((or (>= index max) class) 
-	     (if (>= index max) (values nil nil) (values class image)))
+	    ((or (> index max) class) 
+	     (if (> index max) (values nil nil) (values class image)))
 	  (multiple-value-setq (class image remainder)
 	    (funcall lexer input index))
 	  (setq index remainder)
@@ -182,3 +182,10 @@ Example:
 		 (setq index (1+ max))
 		 (setq class :error)
 		 (setq image (format nil "At position ~D" index))))))))
+
+(defun lex-inc-output (lexer input &optional (drop nil))
+  (let ((f (lex-inc lexer input drop)))
+    (loop
+       (multiple-value-bind (v1 v2) (funcall f)
+	 (print (cons v1 v2))
+	 (when (and (null v1) (null v2)) (return))))))

@@ -81,6 +81,13 @@
         (t (mapcan #'(lambda (sofar) (mapcar #'(lambda (elem) (cons elem sofar)) set))
                    (cross-product set (1- power))))))
 
+(defun cartesian-product (&rest sets)
+  "(CARTESIAN-PRODUCT SET1 ... SETN) computes SET1 x ... x SETN."
+  (declare (notinline cartesian-product))
+  (cond ((null sets) nil)
+	((null (cdr sets)) (mapcar #'list (car sets)))
+	(t (product (mapcar #'list (car sets)) (apply #'cartesian-product (cdr sets))))))
+
 (defun subsets (s)
   "(SUBSETS S) returns the set of all subsets of S."
   (declare (notinline subsets))

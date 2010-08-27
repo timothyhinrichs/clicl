@@ -1671,6 +1671,9 @@ rule
 		    '(whitespace))
    *configitparser*))
 
+(defun configit2kif-testtype (string)
+  (configit2kif (stringappend "type " string " variable public x : y ;")))
+
 (defun configit-symbol (str)
   (cond ((equal str "<=") '=<)
 	((equal str "->") '=>)
@@ -1756,9 +1759,9 @@ rule
 		     (declare (ignore colon lcurly rcurly semicolon))
 		     (list* 'class symbol classblocklist))))
 
-  (classblock (vardeclist)
+  (classblock (vardeclist #'identity)
 	      (vardeclist rulesymbol sentlist #'(lambda (x y z) (declare (ignore y)) 
-							(nconc x (list (cons 'constraints z))))))
+							(cons (cons 'constraints z) x))))
 
   (sentlist (sentence #'list)
 	    (sentence sentlist #'cons))
@@ -1794,8 +1797,7 @@ rule
 
   (scope public private)
   (vardeclist (vardec #'list)
-	      (vardec vardeclist #'(lambda (vardec vardeclist) 
-				     (cons vardec vardeclist))))
+	      (vardec vardeclist #'cons))
 
   (vardec (scope var colon symbol semicolon #'(lambda (scope var colon symbol semicolon)
 						(declare (ignore colon semicolon))

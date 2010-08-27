@@ -35,13 +35,12 @@
   (or (and (positive-literalp lit1) (positive-literalp lit2))
       (and (negative-literalp lit1) (negative-literalp lit2))))
 
-(defun positive-literalp (lit) (not (negative-literalp lit)))
+(defun literalp (lit) 
+  (or (atomicp lit) 
+      (and (listp lit) (eq (car lit) 'not) (atomicp (second lit)))))
 
-(defun negative-literalp (lit)
-  "(NEGATIVE-LITERALP LIT) returns T if lit is negative, else returns NIL."
-  (cond ((atom lit) nil)
-        ((listp lit) (eq (car lit) 'not))
-        (t nil)))
+(defun positive-literalp (lit) (atomicp lit))
+(defun negative-literalp (lit) (and (listp lit) (eq (car lit) 'not) (atomicp (second lit))))
 
 (defun body (p)
   (cond ((atom p) nil)
@@ -137,21 +136,6 @@
           ((eq (car p) 'not) (1+ (size (second p))))
           ((eq (car p) '<=>) (1+ (+ (size (second p)) (size (third p)))))
           (t 1)))
-
-(defun relation (rule)
-  "(RELATION RULE) returns the relation for rule."
-  (setq rule (head rule))
-  (cond ((atom rule) rule)
-        ((and (listp rule) (eq (car rule) 'not)) (relation (cadr rule)))
-        (t (car rule))))
-
-(defun signed-relation (rule)
-  "(SIGNED-RELATION RULE) returns the positive or negative relation for rule."
-  (setq rule (head rule))
-  (if (and (listp rule) (eq (car rule) 'not))
-    (cons 'not (list (relation rule)))
-    (relation rule)))
-
 
 (defun mgun (list &optional (mgu truth))
   "(MGUN LIST) computes an n-way unifier for LIST or NIL if the list is not unifiable."
@@ -383,19 +367,30 @@
 (defun function-arity (param) (parameter-arity param))
 (defun relation-arity (param) (parameter-arity param))
 
-(defun reln (p) (parameter-symbol (pred p)))
-(defun relns (p) (mapcar #'parameter-symbol (preds p)))
-(defun preds (p) (if (find p '(true false)) nil (delete-if-not #'isrelation (get-vocabulary p))))
+(defun preds (p) (if (member p '(true false)) nil (delete-if-not #'isrelation (get-vocabulary p))))
 (defun pred (p) (first (preds p)))
-(defun funcs (p) (if (find p '(true false)) nil (delete-if #'(lambda (x) (or (isobject x) (isrelation x))) (get-vocabulary p))))
-(defun objs (p) (if (find p '(true false)) 
+(defun relns (p) (mapcar #'parameter-symbol (preds p)))
+(defun reln (p) (first (relns p)))
+(defun funcs (p) (if (member p '(true false)) nil (delete-if #'(lambda (x) (or (isobject x) (isrelation x))) (get-vocabulary p))))
+(defun objs (p) (if (member p '(true false)) 
 		    nil 
 		    (mapcar #'parameter-symbol 
 			    (delete-if-not #'isobject (get-vocabulary p)))))
 
-(defun signed-preds (clause) 
-  (mapunion #'(lambda (x) (list (signed-relation x)))
-	    (if (or (atom clause) (not (eq (first clause) 'or))) clause (cdr clause))))
+
+(defun relation (rule)
+  "(RELATION RULE) returns the relation for rule."
+  (setq rule (head rule))
+  (cond ((atom rule) rule)
+        ((and (listp rule) (eq (car rule) 'not)) (relation (cadr rule)))
+        (t (car rule))))
+
+(defun signed-relation (rule)
+  "(SIGNED-RELATION RULE) returns the positive or negative relation for rule."
+  (setq rule (head rule))
+  (if (and (listp rule) (eq (car rule) 'not))
+    (cons 'not (list (relation rule)))
+    (relation rule)))
 
 ; ignoring universe, which is not consistently computable
 (defun param-equal (x y &key (test #'equalp))
@@ -446,6 +441,48 @@
   "(SENTENCE-IN-VOCABP P RELNS) checks whether the relations in P are a subset of RELNS."
   (subsetp (mapcar #'parameter-symbol (remove-if-not #'isrelation (get-vocabulary p)))
            vocab))
+
+; versions where we care about signed relations
+
+(defun signed-relns (p)
+  "(SIGNED-RELNS P) returns a list of possibly negated symbols representing the occurrences of predicates
+   in P."
+  (mapcar #'(lambda (x) (if (parameter-p x) (parameter-symbol x) (list (first x) (parameter-symbol (second x)))))
+	  (signed-preds p)))
+
+(defun signed-preds (p) 
+  "(SIGNED-RELNS P) returns a list of possibly negated parameters 
+   representing the occurrences of predicates in P."
+  (if (find p '(true false)) 
+      nil
+      (remove-if-not #'(lambda (x) (or (and (parameter-p x) (isrelation x)) (listp x)))
+		     (get-signed-vocabulary p))))
+
+(defun get-signed-vocabulary (p)
+  "(GET-SIGNED-VOCABULARY P) returns a list of possibly negated parameters.
+   Only negates a parameter for relation p if a literal of the form (not (p @t)) appears.
+   Most useful when P is in NNF."
+  (cond ((atom p) (list (make-parameter :symbol p 
+					:arity 0 
+					:type (if *propositions* 
+						  'proposition 
+						  'relation))))
+        ((and (find (car p) '(or and <=> => <=))
+              (find (car p) *real-ops*))
+         (mapunion #'get-signed-vocabulary (cdr p) :test #'equalp))
+        ((and (find (car p) '(naf not)) (find 'not *real-ops*))
+	 (let ((v (get-signed-vocabulary (second p))))
+	   (if (atomicp (second p))
+	       (cons (maknot (first v)) (cdr v))
+	       v)))
+        ((and (find (car p) '(forall exists))
+              (find (car p) *real-ops*))
+         (get-signed-vocabulary (third p)))
+        (t
+         (cons (make-parameter :symbol (car p) 
+                               :arity (1- (length p)) 
+                               :type 'relation)
+	       (mapunion #'get-functions (cdr p) :test #'equalp)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Dependency Graphs ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -551,7 +588,7 @@
 
     ; build dependency graph from clauses
     (dolist (r (contents th) graph)
-      (setq preds (set-difference (signed-preds r) ignorelist :test #'equal))
+      (setq preds (set-difference (signed-relns r) ignorelist :test #'equal))
       (when preds
         (agraph-adjoin-noded (car preds) graph :test #'equal)
         (do ((ps preds (cdr ps)))

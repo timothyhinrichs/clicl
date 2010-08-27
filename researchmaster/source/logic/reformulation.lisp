@@ -915,12 +915,46 @@ becomes
 
 |#
 
+(define-condition structural-mismatch (error) ((comment :initarg :comment)))
+
 (defun compress-to-database (p)
   "(COMPRESS-TO-DATABASE P) takes a monadic, function-free KIF formula as input and 
    returns (i) a new KIF formula and (ii) a set of database tables such that the 
    semantics is preserved." 
-  (declare (ignore p))
-)
+  (setq p (nnf p))
+  (unless (compressiblep p) (setq p (coerce-to-compressible p)))  ; since coersion is sometimes inefficient
+  (if (compressiblep p)
+      (handler-case (compress-or-and p)
+	(structural-mismatch () (values p nil)))
+      p))
+
+(defun coerce-to-compressible (p)
+  "(COERCE-TO-COMPRESSIBLE P) coerces P into a compressible form, i.e. 
+   a disjunction of conjunctions of simple disjunctions or literals.
+   Assumes P is in NNF, i.e. it contains AND/OR combinations of literals.
+   Always returns a sentence of depth at most 3: (or (and (or ...))).  Each
+   inner OR mentions at most one relation."
+  (cond ((literalp p) p)
+	((eq (car p) 'and) (dnf p))
+	((eq (car p) 'or) 
+	 ; make p a collection of ANDs and literals
+	 (setq p (flatten-operator p))  
+	 ; for each AND, ensure all argscheck if each conjunct mentions 1 predicate; if not, split
+	 (flatten-operator (maksor (mapcar #'coerce-to-compressible (cdr p)))))
+	(t p)))
+
+(defun simple-orp (x) (and (listp x) (eq (car x) 'or) (every #'literalp (cdr x))))
+
+(defun compressiblep (p)
+  (and (listp p) 
+       (eq (first p) 'or)
+       (every #'(lambda (x) (setq x (flatten-operator x)) 
+			(or (literalp x)
+			    (and (eq (car x) 'and)
+				 (every #'(lambda (y) (or (literalp y)
+							  (simple-orp y)))
+					(cdr x)))))
+	      (cdr p))))
 
 (defun compress-or-and (p)
   "(COMPRESS-OR-AND P NEWRELNNAME) breaks and OR of ANDs P into a number of blocks,
@@ -928,33 +962,44 @@ becomes
    a table for each block and returns an equivalent P together with a set of tables
    (represented as a set of ground atoms)."
   (let (blocks head body rest)
-    (setq blocks (group-by (or2list p) #'(lambda (x) (sort (uniquify (relns x)) #'string< :key #'tostring)) 
+    (setq blocks (group-by (or2list p) #'(lambda (x) (sort (uniquify (signed-relns x)) #'string< :key #'tostring)) 
 			   :test #'equal))
-    (print blocks)
+    ;(print blocks)
     (dolist (b blocks)
-      (multiple-value-bind (newp newtables) (compress-or-and-block (mapcar #'and2list (nnf (cdr b))) 
-								   (tosymbol (gensym "reln")))
+      (multiple-value-bind (newp newtables) (compress-or-and-block (cdr b) (tosymbol (gensym "reln")))
 	(push (second newp) head)
 	(setq body (nconc (cddr newp) body))
 	(setq rest (nconc newtables rest))))
     (values (list* '<= (maksor head) body) rest)))  
   
-
 (defun compress-or-and-block (p &optional (newrelnname 'q))
-  "(COMPRESS-OR-AND-FLAT-BLOCK P NEWRELNNAME) takes a list of lists of ground, monadic atoms, where the internal
-   lists are implicit ANDs and the external list is an implicit OR.  Assumes each predicate occurs
+  "(COMPRESS-OR-AND-FLAT-BLOCK P NEWRELNNAME) takes a list of conjunctions of
+   disjunctions of ground, monadic literals where each disjunction mentions exactly one predicate.
+   Assumes each predicate occurs
    exactly once in each AND, and that the set of predicates occurring in all ANDs is the same."
-  (let ((h (make-hash-table :test #'equal)) result (fields nil) formula vars entry head body newreln2)
-    ;(setq p (mapcar #'and2list (or2list p)))
-    (setq fields (mapcar #'first (first p)))
-    (print fields)
-    ; arrange atoms into canonical ordering
+  (let ((h (make-hash-table :test #'equal)) (signs (make-hash-table))
+	result (fields nil) formula vars entry head body newreln2)
+    (setq fields (uniquify (relns (first p))))
+    (setq p (mapcar #'and2list p))
+    ;(print fields)
+    ; arrange atoms into canonical ordering and record signs for each predicate
     (do ((i 0 (1+ i))
-	 (ps p (cdr ps)))
+	 (ps p (cdr ps)) (sign) (qreln))
 	((null ps))
-      (dolist (q (car ps))
-	(setf (gethash (list i (reln q)) h) q)))
-    (pretty-print h)
+      (dolist (q (car ps))  ; q is an atom, a negative literal, or a disjunction of literals
+	(setq sign (uniquify (signed-relns q)))
+	(when (cdr sign) 
+	  (error 'structural-mismatch :comment (format nil "An embedded OR had differing signs: ~A" q)))
+	(setq sign (first sign))
+	(setq qreln (reln sign))
+	(if (gethash qreln signs)   
+	    (unless (samesigns (gethash qreln signs) sign) 
+	      (error 'structural-mismatch 
+		     :comment (format nil "Two disjuncts had differing signs for pred: ~A " qreln)))
+	    (setf (gethash qreln signs) sign))
+	(setf (gethash (list i (reln q)) h) (drop-not q))))
+    ;(pretty-print h)
+    ;(pretty-print signs)
     ; construct datalog definitions
     (setq result nil)
     (dotimes (i (length p))
@@ -977,7 +1022,10 @@ becomes
     (setq vars nil)
     (dolist (f fields)
       (push (newindvar) vars)
-      (push (list f (car vars)) formula))
+      (push (if (negative-literalp (gethash f signs))
+		(maknot (list f (car vars)))
+		(list f (car vars)))
+	    formula))
     (setq formula (list* '<= (cons newrelnname (nreverse vars)) formula))
     (values formula (nreverse result))))
 
