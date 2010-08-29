@@ -26,6 +26,7 @@
 (load (loadfn "external" :dir '("source" "logic")))
 (load (loadfn "empirical" :dir '("source" "logic")))
 (load (loadfn "esodatalog" :dir '("source" "logic")))
+(load (loadfn "logicobjects" :dir '("source" "logic")))
 
 ; extensions to AR library -- only loaded to ensure we know when
 ;    step on the toes of these routines.

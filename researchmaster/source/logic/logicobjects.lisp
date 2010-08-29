@@ -14,17 +14,16 @@
 	     "(MUTATE-CLASS-BODY O DATALOG CLASSHASH) takes a class definition O,
               DATALOG defining basic types, and a hash-table of types.  Returns a new class definition"
 	     ;(format t "~&(mutate-class-body ~A)~%" (first o))
-	     (let (class vars constraints newconstraints)
+	     (let (class vars constraints)
 	       (setq class (second o))  ; class name
 	       (setq o (cddr o))
 	       (multiple-value-setq (vars constraints) (split #'(lambda (x) (eq (first x) 'vardec)) o))
 	       ; mutate all of the constraint sets
-	       (dolist (c constraints)
-		 (push (cons 'constraints 
-			     (mapcar #'(lambda (x) (configit-mutate-constraint x class datalog classhash))
-				     (cdr c)))
-		       newconstraints))
-	       (nconc vars newconstraints))))
+	       (when constraints
+		 (setq constraints (apply #'nconc (mapcar #'cdr constraints)))
+		 (setq constraints (mapcar #'(lambda (x) (configit-mutate-constraint x class datalog classhash)) constraints))
+		 (setq constraints (and2list (flatten-operator (maksand constraints)))))  ; flatten all toplevel ands
+	       (list* 'class class (nconc vars constraints)))))
   
     ; Assuming just one typeclass and one main per configit problem definition
     (let ((result nil) datalog (classtypehash (make-hash-table))
@@ -67,7 +66,7 @@
    variable types for all classes: hashing on the class name returns a hash table keyed on variable
    names within that class whose value is (scope <class name or basic type>).
    Massages constraint and returns the result."
-  (cond ((atom p) p)
+  (cond ((atom p) (list p 'true))
 	((member (car p) '(forall exists and or not => <= <=>))
 	 (cons (car p) (mapcar #'(lambda (x) (configit-mutate-constraint x class data types)) (cdr p))))
 	((eq (car p) '=<) (configit-mutate-constraint `(>= ,(third p) ,(second p)) class data types))
@@ -108,7 +107,7 @@
 	   (setq p (list '= (configit-mutate-term (second p) class types) (configit-mutate-term (third p) class types)))
 	   (if var2 
 	       (if var3
-		   `(forall ?x (<=> ((second p) ?x) (,(third p) ?x)))
+		   `(forall ?x (<=> (,(second p) ?x) (,(third p) ?x)))
 		   `(,(second p) ,(third p)))
 	       (if var3
 		   (list (third p) (second p))
@@ -172,13 +171,50 @@
 	       ; recurse on lower component
 	       (and scopetype (configit-varp (third term) (second scopetype) classhash)))
 	      (t nil)))))
-  
 
-(defun configit-flatten-classes (classname classdefs)
+(defun dotjoin (x y) (tosymbol (format nil "~A.~A" x y)))
+
+(defun configit-flatten-classes (classdefs)
   "(CONFIGIT-FLATTEN-CLASSES CLASSNAME CLASSDEFS) constructs a new class definition that is
    equivalent to CLASSNAME but that includes no fields that are objects; all fields are 
    explicitly-defined types."
-  (declare (ignore classname classdefs)))
+  (labels ((flatten (name defs classnames h)
+	     ;(format t "~&(flatten ~A ~A ~A ~A)~%" name defs classnames h)
+	     (let (vars constraints classvars newvars newconstraints a avars aconstraints bl)
+	       (multiple-value-setq (vars constraints) (split #'(lambda (x) (and (listp x) (eq (car x) 'vardec)))
+							      (cddr (find name defs :key #'second))))
+	       (multiple-value-setq (classvars vars) (split #'(lambda (x) (member (fourth x) classnames)) vars))
+	       (dolist (v classvars)
+		 (unless (gethash (fourth v) h)  ; unless already flattened
+		   (flatten (fourth v) defs classnames h))
+		 (setq a (gethash (fourth v) h))
+		 (multiple-value-setq (avars aconstraints) (split #'(lambda (x) (and (listp x) (eq (car x) 'vardec))) (cddr a)))
+		 
+		 (setq bl (mapcar #'(lambda (x) (cons (third x) (dotjoin (third v) (third x)))) avars))
+		 ;(setq avars (sublis bl avars))
+		 (setq avars (mapcar #'(lambda (x) (list (first x) (second x) (sublis bl (third x)) (fourth x))) avars))
+		 (setq aconstraints (sublis bl aconstraints))
+		 (setq newvars (nconc newvars avars))
+		 (setq newconstraints (nconc newconstraints aconstraints)))
+	       ; add to hash
+	       (setf (gethash name h) (list* 'class name (nconc vars classvars newvars constraints newconstraints))))))
+	       
+  (let ((h (make-hash-table)) (names (mapcar #'second classdefs)))
+    (dolist (c classdefs)
+      (unless (gethash (second c) h)
+	(flatten (second c) classdefs names h)))
+    (mapcar #'second (hash2list h)))))
+
+(defun configit-class-constraints (o) (remove-if #'configit-vardecp (cddr o)))
+(defun configit-vardecp (x) (and (listp x) (eq (car x) 'vardec)))
+
+(defun compress-spreadsheet-object (o)
+  "(COMPRESS-SPREADSHEET-OBJECTS O) takes a spreadsheet object and returns 2
+   values: a new object but where the constraints have been compressed and a set of datalog statements
+   defining the new symbols in the compressed object."
+  (multiple-value-bind (vars constraints) (split #'configit-vardecp (cddr o))
+    (multiple-value-bind (newc datalog) (mapcaraccum #'compress-to-database constraints)
+      (values (list* (first o) (second o) (nconc vars newc)) datalog))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

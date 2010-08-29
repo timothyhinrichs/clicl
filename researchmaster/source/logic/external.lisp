@@ -1659,17 +1659,11 @@ rule
 ")
 |#
 
-(defun configit2kif (string)
-  "(CONFIGIT2KIF STRING) translates a configit configuration management input
-   format into KIF-like syntax.  Constraints utilize standard KIF operators as
-   well as if/then/else and case operators.  Leaving extra operators so that 
-   we might leverage the additional structure they imply.  (If/then without else 
-   is translated to =>, but with an else we leave as if/then/else.)"
-  (yacc:parse-with-lexer 
-   (dso-lex:lex-inc '*configitlexer* 
-		    (strip-blocks string "/*" "*/") 
-		    '(whitespace))
-   *configitparser*))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun infix2prefix (x op y) (list op x y))
+  (defun k-1-2 (x y) (declare (ignore y)) x)
+  (defun k-2-3 (x y z) (declare (ignore x z)) y)
+)
 
 (defun configit2kif-testtype (string)
   (configit2kif (stringappend "type " string " variable public x : y ;")))
@@ -1825,9 +1819,17 @@ rule
   (basicterm symbol string)
 )
 
-(defun infix2prefix (x op y) (list op x y))
-(defun k-1-2 (x y) (declare (ignore y)) x)
-(defun k-2-3 (x y z) (declare (ignore x z)) y)
+(defun configit2kif (string)
+  "(CONFIGIT2KIF STRING) translates a configit configuration management input
+   format into KIF-like syntax.  Constraints utilize standard KIF operators as
+   well as if/then/else and case operators.  Leaving extra operators so that 
+   we might leverage the additional structure they imply.  (If/then without else 
+   is translated to =>, but with an else we leave as if/then/else.)"
+  (yacc:parse-with-lexer 
+   (dso-lex:lex-inc '*configitlexer* 
+		    (strip-blocks string "/*" "*/") 
+		    '(whitespace))
+   *configitparser*))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
