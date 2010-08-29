@@ -1,6 +1,6 @@
 1) Install CCL (Clozure Common Lisp).
 
-o  Download CCL from an appropriate directory.
+o  Download CCL
 	svn co http://svn.clozure.com/publicsvn/openmcl/release/1.5/<version>/ccl
 	where <version> is one of linuxx86, freebsdx86, solarisx86, windows, darwinppc, or linuxppc.
 
@@ -14,7 +14,7 @@ o  Set the variable CCL_DEFAULT_DIRECTORY to the path to CCL (not ending the pat
 o  Download and install per included instructions
 	http://minisat.se/downloads/minisat2-070721.zip
 
-o  Edit line in /path/to/clicl/clicl-init.lisp
+o  Edit line in /path/to/clicl/bin/clicl-init.lisp
 	(setq *minisat* "/path/to/minisat.exe")
 
 
@@ -24,12 +24,12 @@ o  Download and install per included instructions
 	http://www.ai.sri.com/~stickel/snark.tar.gz	
 
 o  Add sym link to clicl directory naming the link 'snark'
-	ln -s /path/to/snark/dir /path/to/clicl/dir/snark
+	ln -s /path/to/snark /path/to/clicl/snark
 
 
 3) Compile CLICL
 
-	cd /to/path/with/clicl
+	cd /path/to/clicl
 	make
 
 
