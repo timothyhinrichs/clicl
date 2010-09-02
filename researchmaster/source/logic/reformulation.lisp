@@ -922,7 +922,7 @@ becomes
    returns (i) a new KIF formula and (ii) a set of database tables such that the 
    semantics is preserved." 
   (setq p (nnf p))
-  (unless (compressiblep p) (setq p (coerce-to-compressible p)))  ; since coersion is sometimes inefficient
+  (unless (or (clausep p) (compressiblep p)) (setq p (coerce-to-compressible p)))  ; since coersion is sometimes inefficient
   (if (compressiblep p)
       (handler-case (compress-or-and p)
 	(structural-mismatch () (values p nil)))
@@ -947,6 +947,7 @@ becomes
 
 (defun compressiblep (p)
   (and (listp p) 
+       (not (clausep p))
        (eq (first p) 'or)
        (every #'(lambda (x) (setq x (flatten-operator x)) 
 			(or (literalp x)

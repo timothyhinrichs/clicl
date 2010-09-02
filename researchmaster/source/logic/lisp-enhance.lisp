@@ -457,17 +457,13 @@ rest of the given `string', if any."
     (values (* 1.0 (/ m internal-time-units-per-second)) result)))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;; Processes ;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (defvar *kill* nil "kill the process at hand")
-
 (defvar *run-time-result*)
 (defvar *run-time-time*)
 (defun run-time (time func &rest args)
   (setq *run-time-result* 'timeout)
   (setq *run-time-time* nil)
+  (when (and (numberp time) (not (integerp time))) (setq time (ceiling time)))
   (cond ((and (integerp time) (>= time 0))
   ; initialize answer in case function times out  
 	 (let* ((start (get-universal-time))

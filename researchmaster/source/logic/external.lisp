@@ -1687,6 +1687,7 @@ rule
   ("\\\(" lparen)
   ("\\\)" rparen)
   (":" colon)
+  ("\\.\\." dotdot)
   ("," comma)
   ("'" singlequote)
   (";" semicolon)
@@ -1718,20 +1719,24 @@ rule
   (">=" gte configit-symbol)
   ("<" lt configit-symbol)
   (">" gt configit-symbol)
+  ("[0-9]+" int configit-symbol)
   ("\"[a-zA-Z0-9_\" \\.\\\\-]*\"" string drop-quotes)
-  ("[a-zA-Z0-9_-]+" symbol configit-symbol)
+  ("[a-zA-Z0-9_-]*[a-zA-Z_][a-zA-Z0-9_-]*" symbol configit-symbol)
   ("\\s+" whitespace))
 
 (yacc:define-parser *configitparser*
   (:start-symbol start)
-  (:terminals (lbracket rbracket lcurly rcurly lparen rparen colon string comma semicolon 
-			symbol public private 
+  (:terminals (lbracket rbracket lcurly rcurly lparen rparen colon string comma semicolon dotdot 
+			symbol public private int
 			and or neg implies reduces bicond if then casesymbol of esac vertbar default
 			equal lt lte gt gte dot notequal
 			typesymbol variablesymbol rulesymbol))
   (:precedence ((:left neg) (:left and) (:left or) (:right implies) (:right reduces) (:left bicond)))
 
-  (start (typesymbol typeclasslist variablesymbol classblock
+  (start (variablesymbol classblock #'(lambda (x y)
+					(declare (ignore x))
+					(list (cons 'main y)))) 
+	 (typesymbol typeclasslist variablesymbol classblock
 		     #'(lambda (x types y classblock)
 			 (declare (ignore x y))
 			 (list (cons 'typeclasses types)
@@ -1793,10 +1798,17 @@ rule
   (vardeclist (vardec #'list)
 	      (vardec vardeclist #'cons))
 
-  (vardec (scope var colon symbol semicolon #'(lambda (scope var colon symbol semicolon)
-						(declare (ignore colon semicolon))
-						`(vardec ,scope ,var ,symbol))))
+  (vardec (var colon typedef semicolon #'(lambda (var x typedef y)
+					   (declare (ignore x y))
+					   `(vardec public ,var ,typedef)))
+	  (scope var colon typedef semicolon #'(lambda (scope var colon typedef semicolon)
+						 (declare (ignore colon semicolon))
+						 `(vardec ,scope ,var ,typedef))))
+  (typedef symbol range)
 
+  (range (lbracket int dotdot int rbracket #'(lambda (lb num1 dot num2 rb)
+						(declare (ignore lb dot rb))
+						`(range ,num1 ,num2))))
   (basictermlist (basicterm #'list)
 		 (basicterm comma basictermlist #'(lambda (term comma commalist) 
 						    (declare (ignore comma)) 
@@ -1809,12 +1821,13 @@ rule
 
 
   (term string dotterm functionalterm)
-  (dotterm symbol #'tosymbol 
+  (dotterm int
+	   symbol
 	   (symbol dot dotterm #'(lambda (x y z) (declare (ignore y)) `(dot ,x ,z))))
   (functionalterm (symbol lparen termlist rparen #'(lambda (f lparen list rparen)
 						 (declare (ignore lparen rparen))
 						 (cons f list))))
-  (var (symbol #'tosymbol))
+  (var symbol)
 
   (basicterm symbol string)
 )
