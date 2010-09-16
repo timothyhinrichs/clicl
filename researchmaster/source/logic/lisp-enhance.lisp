@@ -5,6 +5,18 @@
 
 (defvar *globaltmp* nil "global temporary variable used in various routines")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;; Functions ;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#| Need to finish.  If I start using (mapcar (c func1 func2 func3) list) instead of (mapcar func1 (mapcar func2 (mapcar func3 list))), it
+   will significantly reduce the amount of consing being done (on large lists).
+(defun c (&rest funcs)
+  "(C FUNCS) composes the functions FUNC to produce a single function"
+  (cond ((null (cdr funcs)) 
+  (let (v (gensym))
+    `(lambda (,v) (car funcs
+|#
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;; Symbols ;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -157,20 +169,17 @@
       (setq neg (cons (car ls) neg)))))
 
 (defun group-by (list func &key (test #'eq))
-  (let (h v res)
+  (hash2bl (group-by-hash list func :test test)))
+
+(defun group-by-hash (list func &key (test #'eq))
+  (let (h v)
     ; group list elements by function
     (setq h (make-hash-table :test test))
     (dolist (l list)
       (setq v (funcall func l))
       (setf (gethash v h) (cons l (gethash v h))))
-    ; put into an association list
-    (setq res nil)
-    (with-hash-table-iterator (it h)
-      (loop
-	   (multiple-value-bind (entry-p key value) (it)
-	     (if entry-p 
-		 (push (cons key value) res)
-		 (return res)))))))
+    h))
+
 
 (defun filter (test list)
   (mapcan #'(lambda (x) (if (funcall test x) (list x) nil)) list))
@@ -414,13 +423,13 @@ rest of the given `string', if any."
   "(READ-ANY-FILE FILENAME) reads the contents of filename
    as a string--not necessarily a Lisp file."
   (if (not filename) nil
-  (let ((result (make-array 0 :element-type 'character 
-			    :adjustable t 
-			    :fill-pointer 0)))
-    (with-open-file (ifile filename :direction :input)
-      (do ((next (read-char ifile nil 'eof) (read-char ifile nil 'eof)))
-          ((eq next 'eof) result)
-        (format result "~A" next))))))
+      (let ((result (make-array 0 :element-type 'character 
+				:adjustable t 
+				:fill-pointer 0)))
+	(with-open-file (ifile filename :direction :input)
+	  (do ((next (read-char ifile nil 'eof) (read-char ifile nil 'eof)))
+	      ((eq next 'eof) result)
+	    (format result "~A" next))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;; Time ;;;;;;;;;;;;;;;;;
@@ -628,7 +637,7 @@ rest of the given `string', if any."
 
 (defvar *graph-debug* nil)
 
-; Same as above, but with smaller memory footprint.  Does not preserve the order nodes/edges were inserted.
+; Graph.  Does not preserve the order nodes/edges were inserted.
 ;   Includes labels on edges. 
 
 (defstruct agraph (adjacency-list nil))
@@ -731,10 +740,96 @@ rest of the given `string', if any."
   (dolist (n alist)
     (setf (agraph-node-slot n) nil)))
 
+(defun agraph-transpose (g &key (test #'eq))
+  "(AGRAPH-TRANSPOSE G) takes an agraph G and returs a new agraph G' where
+   the edges are exactly those (u,v) such that (v,u) is in G.
+   Note: only copies node names and labels."
+  (let ((newg (make-agraph)) r)
+    (dolist (adj (agraph-adjacency-list g))
+      (setq r (agraph-source-node adj))
+      (agraph-adjoin-noded (agraph-node-name r) newg)
+      (dolist (edge (agraph-dest-nodes adj))
+	(agraph-adjoin-edged (agraph-node-name (agraph-source-node (agraph-edge-node edge))) 
+			     (agraph-node-name r) 
+			     (agraph-edge-label edge)
+			     newg
+			     :test test)))
+    newg))
+
+(defvar *agraph-counter*)
+
+(defun agraph-strongly-connected-components (g &key (test #'eq))
+  "(AGRAPH-STRONGLY-CONNECTED-COMPONENTS G TEST) returns a list of the maximal strongly connected 
+   components of the directed agraph G.  Each component is a list of the names of nodes in G.
+   A strongly-connected component is a set of nodes such that if x,y in the set there is a path
+   from x to y."
+  (let ((alist nil) components finishtimes (*agraph-counter* 0) adj)
+    (agraph-dfs g)
+    (setq finishtimes (mapcarnot #'(lambda (x) (if (eq (first (second x)) 'finish) (list (first x) (second (second x))) nil)) 
+				 (hash2list (agraph-dfs-visittimes g))))
+    (reset-node-slots alist)
+    (setq alist nil)
+    (setq g (agraph-transpose g))
+    (setq finishtimes (sort finishtimes #'> :key #'first))
+    (dolist (finish finishtimes)
+      (setq adj (agraph-find-node (second finish) g :test test))
+      (push (agraph-dfs-mark adj g) components))
+    (reset-node-slots alist)
+    (delete-if #'not components)))
+
+(defun agraph-strongly-connected-components* (g &key (test #'eq))
+  "(AGRAPH-STRONGLY-CONNECTED-COMPONENTS* G TEST) differs from strongly-connected-components
+   in the definition for connected component.  Requires that every pair of nodes x,y there
+   must be a path from x to y of length 1 or more.  Thus, a node with no edges is not
+   returned as its own component in this version."
+  (remove-if #'(lambda (x) (let (n)
+			     (and (not (cdr x))
+				  (setq n (agraph-find-node (first x) g))
+				  (not (some #'(lambda (y) (eq (first x) (agraph-node-name (agraph-source-node (agraph-edge-node y)))))
+					     (agraph-dest-nodes n))))))
+	     (agraph-strongly-connected-components g :test test)))
+
+
+(defun agraph-dfs (g)
+  "(AGRAPH-DFS G TEST) runs DFS on agraph G and returns a hash from visit times to (start|finish adjlist).
+   Assumes all slots of G's nodes are empty and when finished leaves slots as (start finish) times.
+   Puts all marked nodes (which should be ALL the nodes) on alist."
+  (let ((*agraph-counter* 0))
+    (dolist (adj (agraph-adjacency-list g))
+      (agraph-dfs-mark adj g))))
+
+(defun agraph-dfs-mark (adjlist g)
+  "(AGRAPH-DFS-MARK ADJLIST G TEST) takes an adjlist as a starting point in
+   agraph G and runs DFS, marking slots with (start finish).  Adds visited nodes
+   to alist.  Returns list of names that are reachable from given node in 0 steps or more."
+  (cond ((agraph-node-slot (agraph-source-node adjlist)) nil)
+        (t
+	 (let (result)
+	   (setf (agraph-node-slot (agraph-source-node adjlist)) (list *agraph-counter* nil))   ; mark the node
+	   (setq *agraph-counter* (1+ *agraph-counter*)) ; bump the counter
+	   (setf alist (cons (agraph-source-node adjlist) alist))  ; remember so we can reset quickly
+	   (setq result (cons (agraph-node-name (agraph-source-node adjlist))
+			      (mapcan #'(lambda (x) (agraph-dfs-mark (agraph-edge-node x) g))
+				      (agraph-dest-nodes adjlist))))
+	   (setf (second (agraph-node-slot (agraph-source-node adjlist))) *agraph-counter*)  ; set finish time
+	   (setq *agraph-counter* (1+ *agraph-counter*))
+	   result))))
+
+(defun agraph-dfs-visittimes (g)
+  "(AGRAPH-DFS-VISITTIMES G) after running agraph-dfs on a graph, this function
+   extracts the start/finish times for each node (adjacency list, actually) 
+   and puts them in a hash."
+    ; walk over the nodes, put start/finish times in hash
+  (let ((h (make-hash-table)) times)
+    (dolist (adj (agraph-adjacency-list g))
+      (setq times (agraph-node-slot (agraph-source-node adj)))
+      (setf (gethash (first times) h) (list 'start (agraph-node-name (agraph-source-node adj))))
+      (setf (gethash (second times) h) (list 'finish (agraph-node-name (agraph-source-node adj)))))
+    h))
+
 (defun agraph-connected-components (g &key (test #'eq))
   "(CONNECTED-COMPONENTS G) returns a list of the components of graph G.  Each component
-   is represented as a list of the names of nodes in G.  Assumes undirected graph, i.e.
-   that there is an edge u->v iff there is an edge u<-v."
+   is represented as a list of the names of nodes in G."
   (let (comps comp n sofar)
     (setq comps nil sofar nil)
     (dolist (adj (agraph-adjacency-list g))

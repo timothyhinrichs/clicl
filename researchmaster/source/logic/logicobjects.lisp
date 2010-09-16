@@ -291,6 +291,13 @@
 		    (first pair) compressed (complexity p) clausems (length clauses) (complexity (maksand clauses)) resms (length resclauses)))
 	  (if (= i 0) (format t "[finished compressed] ") (format t "[finished uncompressed]~%"))) ))))
 
+(defun configit-time-csv (file &optional (stream t))
+  (let ((data (read-file file)))
+    (dolist (d data)
+      (format stream "~&~A, ~A, ~A, ~A, ~A, ~A, ~A, ~A~%" 
+	      (second d) (fourth d) (sixth d) (eighth d) (tenth d) (nth 11 d) (nth 13 d) (nth 15 d)))
+    nil))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

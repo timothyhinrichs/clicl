@@ -4,43 +4,68 @@
 
 ;;;;;;;;;;;;;;;;;;;; Grounding in the context of a Database  ;;;;;;;;;;;;;;;;;;;;
 
-(defun dbgrounds (preds constraints rules types) 
+(defun dbgrounds (preds constraints rules types &optional (rulesp nil)) 
   "(DBGROUND PREDS CONSTRAINTS RULES TYPES) takes a list of PREDS,
-   a theory of CONSTRAINTS, a theory of RULES, and a hash table of
-   TYPES mapping (pred int) to unary preds. 
+   a theory of CONSTRAINTS, a theory of RULES, a hash table of
+   TYPES mapping (pred int) to unary preds, and a boolean RULESP. 
+   RULESP controls whether or not
+   CONSTRAINTS are treated as rules, i.e. where all constraints are of the form
+   (<= atom body) and the results must be rules where all heads are instantiations of atom.
    Returns a list of ground clauses where the only occurring predicates 
    are PREDS.  Reserves UNIV for the universal type and = as in Herbrand Logic."
   (let ((objs (compute-dca rules)))
     ; quantify constraints
-    (setq constraints (mapcar #'quantify (contents constraints)))
+    (setq constraints (mapcar #'(lambda (x) (uniquify-vars (quantify x))) (contents constraints)))
     ; add univ(x) and x=x for all objs x to rules
     (setq rules (definemore rules (mapcar #'(lambda (x) (list 'univ x)) objs)))
     (setq rules (definemore rules (mapcar #'(lambda (x) (list '= x x)) objs)))
-    (mapcar #'(lambda (x) (dbground preds x rules types)) constraints)))
+    (and2list (flatten-operator (maksand (mapcar #'(lambda (x) (dbground preds x rules types rulesp)) constraints))))))
 
-(defun dbground (preds constraint rules types)
+(defun dbground (preds constraint rules types rulep)
   "(DBGROUND PREDS CONSTRAINT RULES TYPES) Same as dbgrounds but
    accepts a single, closed CONSTRAINT."
-  (cond ((literalp constraint) constraint)
+  (cond ((groundp constraint) constraint)
+	(rulep  ; constraint is (forall * (<= atom sent1 ... sentn)) and 
+	        ;   the result needs to be a bunch of reductions with instances of atom in the head
+	 (when (and (listp constraint) (member (car constraint) '(forall exists))) (setq constraint (third constraint)))
+	 (let (dbquery rule dbpreds grules)
+	   (setq dbpreds (set-difference (relns constraint) preds))
+	   (multiple-value-setq (dbquery rule) (split #'(lambda (x) (subsetp (relns x) dbpreds)) (body constraint)))
+	   (setq rule (list* '<= (head constraint) rule))
+	   (setq dbquery (dbground-prep-dbquery (maksand dbquery) rule types))
+	   (setq grules (dbground-ground dbquery rule rules))
+	   (maksand (mapcar #'(lambda (arule) 
+				      (if (body arule)
+					  (list* '<= (second arule) (mapcar #'(lambda (bodysent) 
+										(dbground preds (nnf bodysent) rules types nil))
+									    (body arule)))
+					  arule))
+			    grules))))
+	((literalp constraint) 
+	 (assert nil nil (format nil "DBGROUND must be passed closed sentences (or rules with RULEP true).  Found ~A" constraint)))
 	((member (car constraint) '(or and not => <= <=>))
 	       (cons (car constraint) 
-		     (mapcar #'(lambda (x) (dbground preds x rules types)) (cdr constraint))))
+		     (mapcar #'(lambda (x) (dbground preds x rules types rulep)) (cdr constraint))))
 	(t  ; quantified
 	 (let (dbquery remainder q dbpreds)
-	   ; isolate the predicates defined in the database
+	   ; rewrite query so that as many of the free vars in qf sentence are bound by db preds as possible
 	   (setq dbpreds (set-difference (relns constraint) preds))
 	   (setq q (isolate-relations constraint dbpreds))
 	   (if (eq (car q) 'forall)
 	       (setq q (list (first q) (second q) (toimp (third q))))
 	       (setq q (list (first q) (second q) (toand (third q)))))
+	   ; construct database query that guards all free vars in qf fragment
 	   (setq dbquery (second (third q)))
 	   (setq remainder (third (third q)))
 	   (setq dbquery (dbground-prep-dbquery dbquery remainder types))
+	   ; ground all free variables in qf fragment and throw away db fragment
 	   (setq remainder (dbground-ground dbquery remainder rules))
-	   (if (eq (car constraint) 'exists) 
-	       (setq remainder (maksor remainder)) 
-	       (setq remainder (maksand remainder)))
-	   (dbground preds remainder rules types)))))
+	   ; disjoin or conjoin results
+	   (if (eq (car constraint) 'forall) 
+	       (setq remainder (maksand remainder)) 
+	       (setq remainder (maksor remainder)))
+	   ; recurse to address remaining variables in qf fragment
+	   (dbground preds remainder rules types rulep)))))
 
 (defun dbground-prep-dbquery (dbquery remainder types)
   "(DBGROUND-PREP-DBQUERY DBQUERY REMAINDER TYPES) takes the database query DBQUERY being used to 

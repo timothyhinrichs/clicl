@@ -1,0 +1,141 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Blocks World
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; block, time, succ, clear_init, on_init, table_init, clear_goal, on_goal, table_goal are inputs
+; Want definitions for actions to_stack(block,block,time) and to_table(block,time) that transition 
+;   the initial state to a new state that satisfies the properties of clear_goal, on_goal, and 
+;   table_goal
+; Includes recursive rules dependent on the ESODBs.
+; ESODB: to_stack, to_table
+
+
+;// explicit ordering on time, for compatability with other systems
+(=> (succ ?x ?y) (and (time ?x) (time ?y)))
+(=> (firsttime ?x) (time ?x))
+
+(<= (firsttime ?x) (succ ?x ?y) (not (somepred ?x)))
+(<= (somepred ?x) (succ ?y ?x))
+(<= (lasttime ?x) (succ ?y ?x) (not (somesucc ?x)))
+(<= (somesucc ?x) (succ ?x ?y))
+
+
+;// fluents
+(=> (clear ?b ?t) (and (block ?b) (time ?t)))
+(=> (on ?a ?b ?t) (and (block ?a) (block ?b) (time ?t)))
+(=> (table ?a ?t) (and (block ?a) (time ?t)))
+
+;// actions
+(=> (to_stack ?a ?b ?t) (and (block ?a) (block ?b) (time ?t)))
+(=> (to_table ?a ?t) (and (block ?a) (time ?t)))
+
+;// preconditions
+(=> (poss_tostack ?a ?b ?t) (and (block ?a) (block ?b) (time ?t)))
+(=> (poss_totable ?a ?t) (and (block ?a) (time ?t)))
+
+(<= (poss_tostack ?a ?b ?t) (block ?a) (block ?b) (not (= ?a ?b)) (time ?t) (clear ?a ?t) (clear ?b ?t))
+(<= (poss_totable ?a ?t) (block ?a) (time ?t) (clear ?a ?t))
+
+(=> (to_stack ?a ?b ?t) (poss_tostack ?a ?b ?t))
+(=> (to_table ?a ?t) (poss_totable ?a ?t))
+
+
+;// no simultaneous actions
+(=> (to_stack ?a ?b ?t) (to_stack ?c ?d ?t) (and (= ?a ?c) (= ?b ?d)))
+(=> (to_table ?a ?t) (to_table ?b ?t) (= ?a ?b))
+(not (and (to_stack ?x ?y ?t) (to_table ?z ?t)))
+
+
+;// effects
+
+;// clear if was clear and nothing stacked on,
+;//     or if was stacked on but that block then stacked somewhere else or tabled
+(<= (clear ?a ?t)
+    (succ ?t2 ?t)
+    (clear ?a ?t2)
+    (not (stackedon ?a ?t2)))
+(<= (clear ?a ?t)
+    (succ ?t2 ?t)
+    (on ?b ?a ?t2)
+    (moved-from ?b ?a ?t2))
+
+;// on if was on and not unstacked, or was stacked
+(<= (on ?a ?b ?t)
+    (succ ?t2 ?t)
+    (on ?a ?b ?t2)
+    (not (moved-from ?a ?b ?t2)))
+(<= (on ?a ?b ?t)
+    (succ ?t2 ?t)
+    (to_stack ?a ?b ?t2))
+
+;// table if was tabled and not stacked, or was tabled
+(<= (table ?a ?t)
+    (succ ?t2 ?t)
+    (table ?a ?t2)
+    (not (stacked ?a ?t2)))
+(<= (table ?a ?t)
+    (succ ?t2 ?t)
+    (to_table ?a ?t2))
+
+;// helpers
+(<= (moved-from ?b ?a ?t) (to_stack ?b ?c ?t) (not (= ?c ?a)))
+(<= (moved-from ?b ?a ?t) (to_table ?b ?t) (block ?a))
+(<= (stackedon ?a ?t) (to_stack ?x ?a ?t))
+(<= (stacked ?a ?t) (to_stack ?a ?x ?t))
+
+
+;// initialization
+(=> (clear_init ?x) (block ?x))
+(=> (table_init ?x) (block ?x))
+(=> (on_init ?x ?y) (and (block ?x) (block ?y)))
+
+(=> (firsttime ?t) (<=> (clear ?x ?t) (clear_init ?x)))
+(=> (firsttime ?t) (<=> (table ?x ?t) (table_init ?x)))
+(=> (firsttime ?t) (<=> (on ?x ?y ?t) (on_init ?x ?y)))
+
+
+;// goal
+(=> (clear_goal ?x) (block ?x))
+(=> (table_goal ?x) (block ?x))
+(=> (on_goal ?x ?y) (and (block ?x) (block ?y)))
+
+(=> (clear_goal ?x) (lasttime ?t) (clear ?x ?t))
+(=> (table_goal ?x) (lasttime ?t) (table ?x ?t))
+(=> (on_goal ?x ?y) (lasttime ?t) (on ?x ?y ?t))
+
+;;;;; Instance data
+; blocks
+(block a)
+(block b)
+(block c)
+;(block d)
+;(block e)
+;(block f)
+;(block g)
+;(block h)
+;(block i)
+;(block j)
+
+; time
+(time t1)
+(time t2)
+(time t3)
+
+(succ t1 t2)
+(succ t2 t3)
+ 
+; init
+(clear_init a)
+(clear_init c)
+
+(table_init c)
+(table_init b)
+
+(on_init a b)
+
+; goal
+(on_goal b c)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

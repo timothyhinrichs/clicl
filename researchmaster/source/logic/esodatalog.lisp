@@ -37,9 +37,11 @@
   "(ESOMATERIALIZE ESODBS TH) computes extensions for the ESODB predicates in theory or file TH.
    TH is an existential second order stratified datalog theory."
   (setq esodb (tolist esodb))
-  (let (rules constraints)
+  (let (rules constraints objs)
+    (setq objs (compute-dca (maksand (contents th))))
     (multiple-value-setq (rules constraints) 
       (split #'(lambda (x) (or (atomicp x) (eq (signifier x) '<=))) (contents th)))
+    (setq rules (definemore rules (mapcar #'(lambda (x) (list '= x x)) objs)))
     ;(setq rules (define-theory (make-instance 'prologtheory) "" rules))
     (eso-materialize-csp esodb constraints rules)))
 
@@ -49,16 +51,27 @@
   "(ESO-MATERIALIZE-CSP ESODB CONSTRAINTS RULES) takes a theory of RULES, a theory of CONSTRAINTS, 
    and a set of ESODB predicates.  Constructs extensions for those predicates such that when 
    added to RULES, the resulting stratified model satisfies CONSTRAINTS."
-  (let (types g esodeps funcs)
+  (let (types g esodeps funcs knowns rec solvingfor recrules)
     ; turn functions into relations
     (setq funcs (funcs (makand (maksand constraints) (maksand rules))))
     (setq constraints (mapcar #'functions-to-relations constraints))
     (setq rules (mapcan #'to-canonical-datalog (mapcar #'functions-to-relations rules)))
 
-    ; using the dependency graph, grab those preds dependent on esodbs (including esodbs)
+    ; Need to ground: (1) constraints relevant to unknowns and (2) rules with heads defining recursive preds
+    ;   Grounding should mention (a) esodb preds, (b) recursive preds.
+    ; Constraints might include references to known preds.  Will happen during grounding.
+    ; Constraints might include references to preds known once given the esodbs and recursive preds.  Eliminate via interpolation.
+    ; Rules might include references to known preds; thus, after grounding, these rules should be simplified
+    ;   with respect to known preds.
+    ; Rules might include references to preds known once given the esodbs and recursive preds.  Eliminate via interpolation.
+
     (setq g (dependency-graph rules))
     (mapc #'(lambda (x) (agraph-adjoin-noded x g)) esodb) 
-    (setq esodeps (mapunion #'(lambda (x) (agraph-find-connected x g)) esodb))
+    (setq esodeps (mapunion #'(lambda (x) (agraph-find-connected x g)) esodb))  ; dependent on esodbs
+    (setq knowns (set-difference (union (relns (maksand constraints)) (relns (maksand rules))) esodeps)) ; basic datalog
+    (setq rec (intersection (apply #'nconc (agraph-strongly-connected-components* g)) esodeps)) ; recursives dependent on esodbs
+    ;(print rec)
+    (setq solvingfor (union esodb rec)) ; what we need to solve for
 
     ; grab the types
     (multiple-value-setq (types constraints rules) (eso-materialize-csp-extracttypes constraints rules esodeps))
@@ -66,16 +79,21 @@
     ; ensure function-to-relation translation preserves equivalence (note we need types)
     (setq constraints (nconc (mapcan #'(lambda (x) (functional-axioms x types)) funcs) constraints))
 
-    ; grab just the constraints that will impact the esodbs, i.e. those constraints including a pred dependent on esodbs
+    ; grab just the constraints/rules that will impact the esodbs, 
+    ;   i.e. those constraints including a pred dependent on esodbs
+    ;    and those rules defining recursive, unknown predicates.
     (setq constraints (remove-if-not #'(lambda (c) (intersection (relns c) esodeps)) constraints))
+    (setq recrules (remove-if-not #'(lambda (r) (member (relation (head r)) rec)) rules))
 
-    ; rewrite each constraint so that the only preds dependent on esodbs that appear are the esodbs.
-    ;  NOTE: For now we're assuming the rules dependent on esodbs are non-recursive
-    (setq constraints (interpolate-datalog (set-difference esodeps esodb) constraints esodb rules))
-    
-    ; construct a solution to the given constraints 
+    ; rewrite each constraint/rule so that the only preds dependent on esodbs that appear are the solvingfor + knowns.
+    ;  i.e. eliminate preds that are known once we have definitions for esodbs and rec.
+    (setq constraints (interpolate-datalog (set-difference esodeps solvingfor) constraints (append solvingfor knowns) rules))
+    (setq recrules (interpolate-datalog (set-difference esodeps solvingfor) recrules (append solvingfor knowns) rules))
+
+    ; construct a solution to the given constraints/rules, where only appearing preds are solvingfor + knowns
     (cond ((null constraints) nil)
-	  (t (car (last (eso-materialize-csp-strata esodb constraints rules types)))))))
+	  (t (remove-if-not #'(lambda (x) (member (relation x) esodb)) 
+			    (car (last (eso-materialize-csp-strata solvingfor knowns constraints recrules rules types))))))))
 
 (defun eso-materialize-csp-extracttypes (constraints rules &optional (nontypes nil))
   "(ESO-MATERIALIZE-CSP-EXTRACTTYPES CONSTRAINTS RULES) computes a hash table of (pred num) keys
@@ -123,15 +141,24 @@
  1 5 5 1)
 |#
 
-(defun eso-materialize-csp-strata (esodb constraints rules types)
+(defun eso-materialize-csp-strata (solvingfor dbpreds constraints recrules rules types)
   "(ESO-MATERIALIZE-CSP-STRATA ESODB CONSTRAINTS RULES TYPES) given a theory of constraints, a theory
    of rules, a set of ESODB predicates, and a hash table of types,
    construct extensions for all those predicates by first grounding the constraints, invoking a SAT 
    solver, and extracting the extensions from the model returned by the SAT solver.  The hash table
    maps (pred position) to unary predicates, where position is in {1,...,arity(p)}."
-  (let (p groundtime cnftime sattime (*timesofar* 0) groundcomp cnfcomp)
-    ; ground constraints
-    (add-time (setq p (delete 'true (dbgrounds esodb constraints rules types))))
+  (let (p groundtime cnftime sattime (*timesofar* 0) groundcomp cnfcomp loops)
+    ; ground constraints, remove remaining DBpredicates, and add loop formulas
+    (when recrules
+      (add-time (setq recrules (dbgrounds solvingfor recrules rules types t)))
+      (add-time (setq recrules (brfs (simplify-complete (maksand recrules) dbpreds rules))))
+      (add-time (setq loops (loop-formulas* recrules))))
+    (add-time (setq constraints (dbgrounds solvingfor constraints rules types)))
+    (add-time (setq constraints (and2list (simplify-complete (maksand constraints) dbpreds rules))))
+    ;(pprint recrules)
+    ;(pprint loops)
+    ;(pprint constraints)
+    (setq p (nconc constraints recrules loops))
     (setq groundtime (/ *timesofar* internal-time-units-per-second))
     (setq groundcomp (complexity (maksand p)))
 
@@ -143,13 +170,49 @@
 
     ; invoke SAT solver
     (setq *timesofar* 0)
-    (add-time (setq p (sat-solve p)))
+    (if (eq p 'false)
+	(setq p :unsat)
+	(add-time (setq p (sat-solve p))))
     (setq sattime (/ *timesofar* internal-time-units-per-second))
 
     ; return results and times
     (if (eq p :unsat)
 	`(results ,groundtime ,groundcomp ,cnftime ,cnfcomp ,sattime :unsat)
 	`(results ,groundtime ,groundcomp ,cnftime ,cnfcomp ,sattime ,p))))
+
+
+(defun test-in (dir name) (namestring (loadfn name :root *localrootdir* :dir (list "examples" dir))))
+(defun test-out (dir name) (namestring (loadfn name :root *localrootdir* :dir (list "examples" dir) :type "out")))
+
+(defun test-all () (test-eso-materialize))
+
+(defun test-eso-materialize ()
+  (let (result errors preds fin fout)
+    (setq preds '(("mapcoloring" color)
+		  ("taskscheduling" (task-done-by task-done-on))
+		  ;("gantt" assign)  older, slower version
+		  ("gantt2" (assign-row assign-col))
+		  ("blocksworld" (to_stack to_table))))
+
+    (dolist (p preds)
+      ; grab input/output files
+      (setq fin (test-in "esodatalog" (first p)))
+      (unless (probe-file fin) 
+	(push (format nil "Missing test file: ~A" fin) errors)
+	(setq fin nil))
+      (setq fout (test-out "esodatalog" (first p)))
+      (unless (probe-file fout) 
+	(push (format nil "Missing output file: ~A" fout) errors)
+	(setq fout nil))
+
+      ; test those files
+      (when (and fin fout)
+	(setq result (eso-materialize (second p) fin))
+	(unless (setequal result (read-file fout) :test #'equal)
+	  (push (format nil "Incorrect output for ~A" fin) errors))))
+    errors))
+
+
 
 
 

@@ -1,26 +1,27 @@
 ;;;;;;;; function for loader-file relative paths ;;;;;;;;
 
-(defun loadfn (name &key (dir nil) (type nil))
+(defun loadfn (name &key (dir nil) (type nil) (root *load-pathname*))
   "(LOADFN DIR NAME) computes filename relative to load directory."
   (when (not (listp dir)) (setq dir (list dir)))
     (make-pathname :name name :type type
-      :directory (append (pathname-directory *load-pathname*) dir)))
+      :directory (append (pathname-directory root) dir)))
 
-(defun compilefn (name &key (dir nil) (type nil))
+(defun compilefn (name &key (dir nil) (type nil) (root *compile-file-pathname*))
   "(COMPILEFN DIR NAME) computes filename relative to load directory."
   (when (not (listp dir)) (setq dir (list dir)))
     (make-pathname :name name :type type
-      :directory (append (pathname-directory *compile-file-pathname*) dir)))
+      :directory (append (pathname-directory root) dir)))
 
 ;;;;;;;; Loading subsystems ;;;;;;;;
 
 ; check if snark available
 (ignore-errors (when (probe-file (loadfn "snark")) (push :snark *features*)))
-
 #+snark 
 (format t "~&Snark is available.~%")
 #-snark
 (format t "~&Snark is unavailable.~%")
+
+(defvar *localrootdir* *load-pathname*)
 
 ; external libraries
 (load (loadfn "load" :dir "cl-ppcre-2.0.3"))  ; regular expressions
@@ -52,3 +53,4 @@
 
 ; researchmaster
 (load (loadfn "loader" :dir "researchmaster"))
+

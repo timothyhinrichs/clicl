@@ -6,6 +6,8 @@
 (eval-when (compile load eval)
   (proclaim '(special *real-ops*)))
 
+(defun truthvaluep (thing) (or (eq thing 'true) (eq thing 'false)))
+
 (defun head-literal (rule)
   "(HEAD-LITERAL RULE) returns the relation constants of the head literal in 
    RULE with NOT prepended if the head is negative (return is a string)."
@@ -35,9 +37,9 @@
   (or (and (positive-literalp lit1) (positive-literalp lit2))
       (and (negative-literalp lit1) (negative-literalp lit2))))
 
-(defun literalp (lit) 
-  (or (atomicp lit) 
-      (and (listp lit) (eq (car lit) 'not) (atomicp (second lit)))))
+;(defun literalp (lit) 
+;  (or (atomicp lit) 
+;      (and (listp lit) (eq (car lit) 'not) (atomicp (second lit)))))
 
 (defun positive-literalp (lit) (atomicp lit))
 (defun negative-literalp (lit) (and (listp lit) (eq (car lit) 'not) (atomicp (second lit))))
@@ -512,6 +514,25 @@
 	  (dolist (p preds)
 	    (agraph-adjoin-edged p h nil graph)))))))  
 
+(defun ground-positive-dependency-graph (th &optional (ignorelist nil))
+  "(GROUND-POSITIVE-DEPENDENCY-GRAPH TH IGNORELIST TEST) assumes TH is a ground datalog/prolog theory
+   and does the same thing as dependency-graph but ignores negative literals and makes vertices of
+   graph ground atoms."
+  (let ((graph (make-agraph)) atoms h)
+    ; build dependency graph from rules
+    (dolist (r (contents th) graph)
+      (setq h (head r))
+      (unless (member h ignorelist :test #'equal)
+	(setq atoms nil)
+	(dolist (b (body r))
+	  (if (negative-literalp b) 
+	      (agraph-adjoin-noded (second b) graph :test #'equal)
+	      (unless (member b ignorelist :test #'equal) (push b atoms))))
+	(when atoms
+	  (agraph-adjoin-noded h graph :test #'equal)
+	  (dolist (p atoms)
+	    (agraph-adjoin-edged p h nil graph :test #'equal)))))))  
+
 (defun undirected-dependency-graph-vars (th &optional (ignorelist nil))
   "(UNDIRECTED-DEPENDENCY-GRAPH-VARS TH) returns a graph where the nodes are variables
    and there is an edge between u and v if and only if there is some sentence 
@@ -597,6 +618,52 @@
 	      ((null qs))
 	    (when (not (eq ps qs))
 	      (agraph-adjoin-edged (maknot (car ps)) (car qs) nil graph :test #'equal))))))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;; Loop Formulas ;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun loop-formulas (th)
+  "(LOOP-FORMULAS TH) takes a set of ground logic programming rules and 
+   returns loop formulas in ground classical logic for the maximal loops."
+  (loop-formulas-aux th (max-loops th)))
+
+(defun loop-formulas* (th)
+  "(LOOP-FORMULAS TH) takes a set of ground logic programming rules and 
+   returns loop formulas in ground classical logic for the maximal loops
+   comprised of only atoms in the heads of rules."
+  (let (candidates)
+    (setq candidates (uniquify (mapcar #'head th)))
+    (loop-formulas-aux th (delete-if-not #'(lambda (l) (subsetp l candidates :test #'equal)) (max-loops th)))))
+
+(defun loop-formulas-aux (th loops)
+  (let (result formulas)
+    (setq th (group-by-hash (contents th) #'head :test #'equal))
+    (dolist (l loops)
+      (setq formulas (loop-formulas-es l th))
+      (cond ((equal formulas '(true)) (push (maksand l) result))
+	    ((null formulas) (push (maknot (maksand l)) result))
+	    (t (push `(=> ,(maksand l) ,(maksor formulas)) result))))
+    result))
+
+(defun loop-formulas-es (loop hash)
+  (let (ybodies results)
+    (setq results nil)
+    (dolist (y loop)
+      (setq ybodies (mapcar #'body (gethash y hash)))
+      (setq ybodies (delete-if-not #'(lambda (body) (null (intersection body loop :test #'equal))) ybodies))
+      (setq results (nconc (mapcar #'maksand ybodies) results)))
+    results))
+
+(defun max-loops (th)
+  "(MAX-LOOPS TH) finds all maximal loops in LP theory TH."
+  (agraph-strongly-connected-components (ground-positive-dependency-graph th) :test #'equal))
+  
+(defun max-loops* (th)
+  "(MAX-LOOPS TH) finds all maximal loops in LP theory TH involving just predicates in the rule heads."
+  (agraph-strongly-connected-components* (ground-positive-dependency-graph th) :test #'equal)) 
+  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Detecting Completeness ;;;;;;;;;;;;;;;;;;;;;;;;;;

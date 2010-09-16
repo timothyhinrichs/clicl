@@ -35,6 +35,10 @@
                                  :initial-value (atom-to-string (first a)))
                          "_"))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;; Basic sentence manipulation ;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defun saturate (r arity terms)
   "(SATURATE R ARITY TERMS) computes all the possible atoms of arity ARITY with relation
    constant R using TERMS, of which there are TERMS^ARITY."
@@ -42,10 +46,6 @@
         ((= arity 0) (list '(r)))
         (t
          (mapcar #'(lambda (x) (cons r x)) (cross-product terms arity)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;; Basic sentence manipulation ;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun equantify (vars fact)
   "(EQUANTIFY FACT VARS) existentially quantifies variables VARS in FACT."
@@ -66,6 +66,27 @@
     (if vs
       `(forall ,vs ,fact)
       fact)))
+
+(defun uniquify-vars (p)
+  "(UNIQUIFY-VARS P) takes a closed sentence and ensures all quantified variables are
+   distinct from other variables. 
+   e.g. Ax.(p(x) => Ex.q(x)) ^ Ex.r(x) becomes Ax.(p(x) => Ey.q(y)) ^ Ez.r(z)."
+  (labels ((aux (p bl)
+	     (cond ((atom p) p)
+		   ((member (car p) '(and or not => <= <=>))
+		    (cons (car p) (mapcar #'(lambda (x) (aux x bl)) (cdr p))))
+		   ((member (car p) '(forall exists))
+		    (let (newvs)
+		      (dolist (v (tolist (second p)))
+			(when (member v universals)  ; universals is a global for tracking used vars
+			  (push (cons v (newindvar)) bl)  ;
+			  (setq v (cdr (car bl))))
+			(push v universals)
+			(push v newvs))
+		      (list (car p) (nreverse newvs) (aux (third p) bl))))
+		   (t (sublis bl p)))))
+    (let ((universals nil))
+      (aux p nil))))
 
 (defun maksamesign (lit as)
   "(MAKESAMESIGN LIT AS) returns LIT after ensuring it has the same sign as AS."
@@ -714,6 +735,55 @@
 	((eq (car p) 'and) p)
 	(t `(and true ,p))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Simplification by a complete theory 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun simplify-complete (p preds th)
+  "(SIMPLIFY-COMPLETE P TH) takes a ground sentence P, a set of PREDS defined by
+   the complete theory TH (whose extension is extractable with viewfindp)
+   and returns a version of P with all occurrences of PREDS removed.
+   May return True or False."
+  (assert (groundp p) nil (format nil "Simplify-complete takes only ground sentences, but received ~A" p))
+  (cond ((atom p) (if (member p preds) (if (viewfindp p th) 'true 'false) p))
+	((member (car p) '(and or not <= => <=>))
+	 (simplify-truth-top (cons (car p) (mapcar #'(lambda (x) (simplify-complete x preds th)) (cdr p)))))
+	((member (car p) '(forall exists))
+	 (simplify-truth-top (list (car p) (second p) (simplify-complete (third p) preds th))))
+	(t (if (member (relation p) preds) (if (viewfindp p th) 'true 'false) p))))
+  
+(defun simplify-truth-top (p)
+  "(SIMPLIFY-TRUTH-TOP P) returns a sentence equivalent to P but with all truth values
+   (true false) removed (except possibly the top-level). Destructive. Does not recurse."
+  (cond ((atom p) p)
+	((member (car p) '(and or not <=>))
+	 (case (car p)
+	   (and (if (member 'false (cdr p)) 'false (maksand (delete 'true (cdr p)))))
+	   (or (if (member 'true (cdr p)) 'true (maksor (delete 'false (cdr p)))))
+	   (not (maknot (second p)))
+	   (<=> (cond ((and (truthvaluep (second p)) (truthvaluep (third p)))
+		       (if (eq (second p) (third p)) 'true 'false))
+		      ((eq (second p) 'false) (maknot (third p)))
+		      ((eq (second p) 'true) (third p))
+		      ((eq (third p) 'false) (maknot (second p)))
+		      ((eq (third p) 'true) (second p))
+		      (t p)))
+	   (<= (cond ((member 'false (cddr p)) 'true)
+		     ((eq (second p) 'true) 'true)
+		     ((eq (second p) 'false) (maknot (maksand (delete 'true (cddr p)))))
+		     (t (delete 'true p))))
+	   (=> (let (head body)
+		 (setq head (car (last p)))
+		 (cond ((eq head 'true) 'true)
+		       ((and (setq body (cdr (butlast p))) (member 'false body)) 'true)
+		       ((eq head 'false) (maknot (maksand (delete 'true body))))
+		       (t (delete 'true p)))))))
+	((member (car p) '(forall exists))
+	 (if (truthvaluep (third p)) (third p) p))
+	(t p)))
+		 
+	 
+  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Coersion to Horn/negative-horn 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
