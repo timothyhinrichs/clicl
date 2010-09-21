@@ -12,12 +12,3 @@
 (<= (hascolor ?x) (color ?x ?y))
 (=> (region ?x) (hascolor ?x))
 
-; data 
-(region r1) 
-(region r2) 
-(region r3) 
-(hue red) 
-(hue blue) 
-(adj r1 r2) 
-(adj r2 r3) 
-

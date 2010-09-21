@@ -15,22 +15,3 @@
 	(= (task-done-by ?t1) (task-done-by ?t2)) 
 	(not (= (task-done-on ?t1) (task-done-on ?t2))))
 
-; data (the only rules in this example)
-
-(day mon) 
-(day tues) 
-(day wed) 
-(actor tim) 
-(actor bob) 
-(task a) 
-(task b) 
-(task c) 
-(task d) 
-(depends a b) 
-(depends a c) 
-(depends b d) 
-(depends c d) 
-(lt mon tues) 
-(lt mon wed) 
-(lt tues wed)
-

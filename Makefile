@@ -19,6 +19,7 @@ app:
 	ccl --eval "(progn $(LOAD) $(SAVE) $(QUIT))"	
 	echo "$(TGT) --eval \"(progn $(ESODATALOG) $(QUIT))\"" > $(CURDIR)/bin/esodatalog
 	echo "$(TGT) --eval \"(progn $(TEST) $(QUIT))\"" > $(CURDIR)/bin/test
+	echo "cat $(CURDIR)/testerrors" >> $(CURDIR)/bin/test
 	chmod 755 $(CURDIR)/bin/esodatalog
 	chmod 755 $(CURDIR)/bin/test
 	

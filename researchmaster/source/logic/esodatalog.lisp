@@ -19,7 +19,7 @@
 ; task scheduling
 ;(eso-materialize '(does) '((=> (does ?t ?a ?d) (and (task ?t) (actor ?a) (day ?d))) (=> (depends ?x ?y) (and (task ?x) (task ?y))) (=> (does ?t ?a ?d) (does ?t2 ?a ?d) (= ?t ?t2)) (forall ?t (=> (task ?t) (exists (?a ?d) (does ?t ?a ?d)))) (=> (depends ?t1 ?t2) (does ?t1 ?a1 ?d1) (does ?t2 ?a2 ?d2) (lt ?d1 ?d2)) (=> (does ?t ?a1 ?d1) (does ?t ?a2 ?d2) (and (= ?a1 ?a2) (= ?d1 ?d2))) (day mon) (day tues) (day wed) (actor tim) (actor bob) (task a) (task b) (task c) (task d) (depends a b) (depends a c) (depends b d) (depends c d) (lt mon tues) (lt mon wed) (lt tues wed)))
 
-(defmethod eso-materialize (esodb (th symbol))
+#|(defmethod eso-materialize (esodb (th symbol))
   (esomaterialize esodb th))
 (defmethod eso-materialize (esodb (th list))
   (esomaterialize esodb th))
@@ -32,15 +32,17 @@
 (defmethod eso-materialize (esodb th)
   (declare (ignore esodb))
   (assert nil nil (format nil "Error: theory represented by unknown type: ~A." th)))
+|#
 
-(defun esomaterialize (esodb th)
+(defun eso-materialize (esodb th &rest theories)
   "(ESOMATERIALIZE ESODBS TH) computes extensions for the ESODB predicates in theory or file TH.
    TH is an existential second order stratified datalog theory."
   (setq esodb (tolist esodb))
+  (setq th (mapcan #'contents (cons th theories)))
   (let (rules constraints objs)
-    (setq objs (compute-dca (maksand (contents th))))
+    (setq objs (compute-dca (maksand th)))
     (multiple-value-setq (rules constraints) 
-      (split #'(lambda (x) (or (atomicp x) (eq (signifier x) '<=))) (contents th)))
+      (split #'(lambda (x) (or (atomicp x) (eq (signifier x) '<=))) th))
     (setq rules (definemore rules (mapcar #'(lambda (x) (list '= x x)) objs)))
     ;(setq rules (define-theory (make-instance 'prologtheory) "" rules))
     (eso-materialize-csp esodb constraints rules)))
@@ -181,13 +183,12 @@
 	`(results ,groundtime ,groundcomp ,cnftime ,cnfcomp ,sattime ,p))))
 
 
-(defun test-in (dir name) (namestring (loadfn name :root *localrootdir* :dir (list "examples" dir))))
-(defun test-out (dir name) (namestring (loadfn name :root *localrootdir* :dir (list "examples" dir) :type "out")))
 
 (defun test-all () (test-eso-materialize))
 
+(defun test-eso-filename (dir name extension) (namestring (loadfn name :root *localrootdir* :dir (list "examples" dir) :type extension)))
 (defun test-eso-materialize ()
-  (let (result errors preds fin fout)
+  (let (result errors preds fth fdata fout)
     (setq preds '(("mapcoloring" color)
 		  ("taskscheduling" (task-done-by task-done-on))
 		  ;("gantt" assign)  older, slower version
@@ -196,20 +197,24 @@
 
     (dolist (p preds)
       ; grab input/output files
-      (setq fin (test-in "esodatalog" (first p)))
-      (unless (probe-file fin) 
-	(push (format nil "Missing test file: ~A" fin) errors)
-	(setq fin nil))
-      (setq fout (test-out "esodatalog" (first p)))
+      (setq fth (test-eso-filename "esodatalog" (first p) "th"))
+      (unless (probe-file fth) 
+	(push (format nil "Missing test theory: ~A" fth) errors)
+	(setq fth nil))
+      (setq fdata (test-eso-filename "esodatalog" (first p) "data"))
+      (unless (probe-file fdata) 
+	(push (format nil "Missing test data: ~A" fdata) errors)
+	(setq fdata nil))
+      (setq fout (test-eso-filename "esodatalog" (first p) "out"))
       (unless (probe-file fout) 
-	(push (format nil "Missing output file: ~A" fout) errors)
+	(push (format nil "Missing answer: ~A" fout) errors)
 	(setq fout nil))
 
       ; test those files
-      (when (and fin fout)
-	(setq result (eso-materialize (second p) fin))
+      (when (and (or fth fdata) fout)
+	(setq result (eso-materialize (second p) fth fdata))
 	(unless (setequal result (read-file fout) :test #'equal)
-	  (push (format nil "Incorrect output for ~A" fin) errors))))
+	  (push (format nil "Incorrect output for theory ~A and data ~A" fth fdata) errors))))
     errors))
 
 
