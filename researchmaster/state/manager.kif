@@ -219,9 +219,11 @@
     (attribute     paper paper.url)
     (attribute     paper paper.year)
     (attribute     paper paper.rank)
-    (attribute     paper paper.description)
     (attribute     paper paper.topic)
+    (attribute     paper paper.award)
     (attribute     paper paper.related)
+    (attribute     paper paper.experiment)
+    (attribute     paper paper.description)
     (sorter        paper paper.year)
 
     (isa           paper.instance predicaterelation)
@@ -402,6 +404,18 @@
     (option        paper.rank 4)
     (option        paper.rank 5)
 	
+    (isa           paper.experiment attributerelation)
+    (domain        paper.experiment paper)
+    (range         paper.experiment string)
+    (unique        paper.experiment no)
+    (total         paper.experiment no)
+    (createstyle   paper.experiment text)
+    (changestyle   paper.experiment text)
+    (searchstyle   paper.experiment text)
+    (comparestyle  paper.experiment noshow)
+    (inspectstyle  paper.experiment glyph)
+    (prettyname    paper.experiment "Experiment URL")
+
     (isa           paper.description attributerelation)
     (domain        paper.description paper)
     (range         paper.description string)
@@ -425,6 +439,18 @@
     (comparestyle  paper.topic glyph)
     (inspectstyle  paper.topic glyph)
     (prettyname    paper.topic "Topic")
+
+    (isa           paper.award attributerelation)
+    (domain        paper.award paper)
+    (range         paper.award string)
+    (unique        paper.award no)
+    (total         paper.award no)
+    (createstyle   paper.award text)
+    (changestyle   paper.award text)
+    (searchstyle   paper.award text)
+    (comparestyle  paper.award noshow)
+    (inspectstyle  paper.award glyph)
+    (prettyname    paper.award "Award")
 
     (isa           paper.related attributerelation)
     (domain        paper.related paper)
@@ -460,6 +486,7 @@
     (isa           workshop class)
     (superclass    workshop thing)
     (attribute     workshop prettyname)
+    (attribute     workshop shortname)
     (predicate     workshop workshop.instance)
     (sorter        workshop prettyname)
 
@@ -468,6 +495,7 @@
     (isa           conference class)
     (superclass    conference thing)
     (attribute     conference prettyname)
+    (attribute     conference shortname)
     (predicate     conference conference.instance)
     (sorter        conference prettyname)
 
@@ -476,6 +504,7 @@
     (isa           symposium class)
     (superclass    symposium thing)
     (attribute     symposium prettyname)
+    (attribute     symposium shortname)
     (predicate     symposium symposium.instance)
     (sorter        symposium prettyname)
 
@@ -484,6 +513,7 @@
     (isa           journal class)
     (superclass    journal thing)
     (attribute     journal prettyname)
+    (attribute     journal shortname)
     (predicate     journal journal.instance)
     (sorter        journal prettyname)
 
@@ -493,6 +523,7 @@
     (isa           magazine class)
     (superclass    magazine thing)
     (attribute     magazine prettyname)
+    (attribute     magazine shortname)
     (predicate     magazine magazine.instance)
     (sorter        magazine prettyname)
 
@@ -502,6 +533,7 @@
     (isa           miscpub class)
     (superclass    miscpub thing)
     (attribute     miscpub prettyname)
+    (attribute     miscpub shortname)
     (predicate     miscpub miscpub.instance)
     (sorter        miscpub prettyname)
 
@@ -973,6 +1005,8 @@
 (extension repository paper.rank)
 (extension repository paper.description)
 (extension repository paper.topic)
+(extension repository paper.award)
+(extension repository paper.experiment)
 (extension repository paper.related)
 
 (extension repository person.instance)

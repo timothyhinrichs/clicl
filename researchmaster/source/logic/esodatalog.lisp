@@ -13,27 +13,6 @@
 	   (includes mat th)
 	   (viewfinds thing p mat)))))
 
-; map coloring
-;(eso-materialize '(color) '((=> (color ?x ?y) (color ?z ?y) (not (adj ?x ?z))) (forall ?x (=> (region ?x) (exists ?y (color ?x ?y)))) (region r1) (region r2) (region r3) (hue red) (hue blue) (adj r1 r2) (adj r2 r3) (=> (color ?x ?y) (and (region ?x) (hue ?y)))))
-
-; task scheduling
-;(eso-materialize '(does) '((=> (does ?t ?a ?d) (and (task ?t) (actor ?a) (day ?d))) (=> (depends ?x ?y) (and (task ?x) (task ?y))) (=> (does ?t ?a ?d) (does ?t2 ?a ?d) (= ?t ?t2)) (forall ?t (=> (task ?t) (exists (?a ?d) (does ?t ?a ?d)))) (=> (depends ?t1 ?t2) (does ?t1 ?a1 ?d1) (does ?t2 ?a2 ?d2) (lt ?d1 ?d2)) (=> (does ?t ?a1 ?d1) (does ?t ?a2 ?d2) (and (= ?a1 ?a2) (= ?d1 ?d2))) (day mon) (day tues) (day wed) (actor tim) (actor bob) (task a) (task b) (task c) (task d) (depends a b) (depends a c) (depends b d) (depends c d) (lt mon tues) (lt mon wed) (lt tues wed)))
-
-#|(defmethod eso-materialize (esodb (th symbol))
-  (esomaterialize esodb th))
-(defmethod eso-materialize (esodb (th list))
-  (esomaterialize esodb th))
-(defmethod eso-materialize (esodb (th string))
-  (if (probe-file th)
-      (esomaterialize esodb (read-file th))
-      (assert nil nil (format nil "Error: eso-materialize could not find file ~A." th))))
-(defmethod eso-materialize (esodb (th theory))
-  (esomaterialize esodb th))
-(defmethod eso-materialize (esodb th)
-  (declare (ignore esodb))
-  (assert nil nil (format nil "Error: theory represented by unknown type: ~A." th)))
-|#
-
 (defun eso-materialize (esodb th &rest theories)
   "(ESOMATERIALIZE ESODBS TH) computes extensions for the ESODB predicates in theory or file TH.
    TH is an existential second order stratified datalog theory."
@@ -53,7 +32,7 @@
   "(ESO-MATERIALIZE-CSP ESODB CONSTRAINTS RULES) takes a theory of RULES, a theory of CONSTRAINTS, 
    and a set of ESODB predicates.  Constructs extensions for those predicates such that when 
    added to RULES, the resulting stratified model satisfies CONSTRAINTS."
-  (let (types g esodeps funcs knowns rec solvingfor recrules)
+  (let (types g esodeps funcs knowns rec solvingfor recrules result)
     ; turn functions into relations
     (setq funcs (funcs (makand (maksand constraints) (maksand rules))))
     (setq constraints (mapcar #'functions-to-relations constraints))
@@ -94,8 +73,8 @@
 
     ; construct a solution to the given constraints/rules, where only appearing preds are solvingfor + knowns
     (cond ((null constraints) nil)
-	  (t (remove-if-not #'(lambda (x) (member (relation x) esodb)) 
-			    (car (last (eso-materialize-csp-strata solvingfor knowns constraints recrules rules types))))))))
+	  ((eq (setq result (car (last (eso-materialize-csp-strata solvingfor knowns constraints recrules rules types)))) :unsat) :unsat)
+	  (t (remove-if-not #'(lambda (x) (member (relation x) esodb)) result)))))
 
 (defun eso-materialize-csp-extracttypes (constraints rules &optional (nontypes nil))
   "(ESO-MATERIALIZE-CSP-EXTRACTTYPES CONSTRAINTS RULES) computes a hash table of (pred num) keys
@@ -149,18 +128,26 @@
    construct extensions for all those predicates by first grounding the constraints, invoking a SAT 
    solver, and extracting the extensions from the model returned by the SAT solver.  The hash table
    maps (pred position) to unary predicates, where position is in {1,...,arity(p)}."
-  (let (p groundtime cnftime sattime (*timesofar* 0) groundcomp cnfcomp loops)
+  (let (p groundtime cnftime sattime (*timesofar* 0) groundcomp cnfcomp loops missingheads)
     ; ground constraints, remove remaining DBpredicates, and add loop formulas
     (when recrules
-      (add-time (setq recrules (dbgrounds solvingfor recrules rules types t)))
-      (add-time (setq recrules (brfs (simplify-complete (maksand recrules) dbpreds rules))))
-      (add-time (setq loops (loop-formulas* recrules))))
-    (add-time (setq constraints (dbgrounds solvingfor constraints rules types)))
-    (add-time (setq constraints (and2list (simplify-complete (maksand constraints) dbpreds rules))))
+      (add-time
+       (setq recrules (dbgrounds solvingfor recrules rules types t))
+       (setq missingheads (preds (maksand (mapcar #'head recrules))))
+       (setq missingheads (mapcar #'(lambda (x) (cons (parameter-symbol x) (maptimes #'newindvar (parameter-arity x)))) missingheads))
+       (setq missingheads (dbgrounds solvingfor missingheads rules types t))
+       (setq missingheads (mapcar #'head missingheads))
+       (setq missingheads (set-difference missingheads (mapcar #'head recrules) :test #'equal))
+       (setq missingheads (mapcar #'maknot missingheads))
+       (setq recrules (brfs (simplify-complete (maksand recrules) dbpreds rules)))
+       (setq loops (loop-formulas* recrules))))
+    (add-time 
+     (setq constraints (dbgrounds solvingfor constraints rules types))
+     (setq constraints (and2list (simplify-complete (maksand constraints) dbpreds rules))))
     ;(pprint recrules)
     ;(pprint loops)
     ;(pprint constraints)
-    (setq p (nconc constraints recrules loops))
+    (setq p (nconc constraints recrules loops missingheads))
     (setq groundtime (/ *timesofar* internal-time-units-per-second))
     (setq groundcomp (complexity (maksand p)))
 

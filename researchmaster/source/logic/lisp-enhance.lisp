@@ -261,6 +261,13 @@
 
 (defun list2array (l) (make-array (length l) :initial-contents l))
 
+(defun remove-override (item override list &key (test #'eq))
+  (let ((newl))
+    (dolist (l list (nreverse newl))
+      (cond ((funcall test l override) (return override))
+	    ((funcall test l item))
+	    (t (push l newl))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;; Hashtable ;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -291,7 +298,18 @@
 		   (return)))))
 	res)))
 
+(defun bl2hash (bl &optional (test #'eq))
+  (let ((h (make-hash-table :test test)))
+    (dolist (b bl h) (setf (gethash (first b) h) (cdr b)))))
+    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;; Files ;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defun append-file (filename &rest things)
+  (with-open-file (f filename :direction :output :if-does-not-exist :create :if-exists :append)
+    (mapc #'(lambda (x) (print x f)) things)))
+    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;; Arrays ;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -438,10 +456,10 @@ rest of the given `string', if any."
 (defvar *timesofar* 0 
   "global variable for accummulating the time taken so far")
 
-(defmacro add-time (form)
+(defmacro add-time (&rest forms)
   "(ADD-TIME FORM) increments *timesofar* by the result of cpu-time 
    called on FORM."
-  `(setq *timesofar* (+ *timesofar* (internal-time #'(lambda () (progn ,form))))))
+  `(setq *timesofar* (+ *timesofar* (internal-time #'(lambda () ,(cons 'progn forms))))))
 
 (defun internal-time (f)
   "(INTERNAL-TIME F) runs function F and returns two values: the CPU time required 

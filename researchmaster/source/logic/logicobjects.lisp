@@ -248,7 +248,13 @@
 
 ; testing compression impact on resolution performance
 ; example of constructing objectpairs for configit-time-compression problem
-; (configit-time-compression (configit-create-compressed-objectpairs "/Users/thinrich/Research/projects/spreadsheet/configit/bike.kif") 300)
+; (configit-time-compression (configit-create-compressed-objectpairs "/Users/thinrich/Research/projects/webform/configit/bike.kif") 300)
+
+(defun configit-dump-ontologies (kiffile)
+  "(CONFIGIT-DUMP-ONTOLOGIES KIFFILE) extracts 4 ontologies for kiffile: compressed vs. UVA and writes them out to a directory."
+  (setq kiffile (configit-create-compressed-objectpairs kiffile))
+  (configit-time-compression kiffile :uva nil)
+  (configit-time-compression kiffile :uva t))
 
 (defun configit-create-compressed-objectpairs (kiffile)
   (let (objects compressedobjects objectpairs)
@@ -259,7 +265,7 @@
     (setq objectpairs (sort objectpairs #'< :key #'(lambda (x) (length (configit-class-constraints (second x))))))
     objectpairs))
 
-(defun configit-time-compression (objectpairs &key (to 5) (uva t) (outfile "/Users/thinrich/Research/projects/spreadsheet/out-timings.kif"))
+(defun configit-time-compression (objectpairs &key (to 5) (uva t) (outfile "/Users/thinrich/Research/projects/webform/configit/out-timings.kif"))
   "(CONFIGIT-TIME-COMPRESSION OBJECTPAIRS TO) takes a list of (obj compressedobj) as OBJECTPAIRS,
    a timeout value TO in seconds, and a file for outputting timings.  Runs resolution on constraints of all objects
    and stores timings values in the specified file."
@@ -280,6 +286,10 @@
 	(format t "~&Processing ~A ... " (first pair))
 	(dotimes (i 2)
 	  (if (= i 0) (setq p (third pair) compressed t) (setq p (second pair) compressed nil)) 
+	  (with-open-file (f (format nil "/Users/thinrich/Research/projects/webform/configit/ontologies/~(~A~A~A~)" 
+				     (first pair) (if compressed "_comp" "_orig") (if uva "_uva" "_nouva"))
+			     :direction :output :if-does-not-exist :create :if-exists :append)
+	    (dolist (v (and2list (flatten-operator p))) (print v f)))
 	  (with-open-file (f outfile 
 			     :direction :output :if-does-not-exist :create :if-exists :append)
 	    (multiple-value-setq (clauses clausems) (run-time to #'(lambda () (and2list (cnf p)))))
@@ -290,6 +300,7 @@
 	    (format f "~&(class ~A compressed ~A complexity ~A cnftime ~A clausecount ~A clausecomplexity ~A restime ~A resclausecount ~A)~%" 
 		    (first pair) compressed (complexity p) clausems (length clauses) (complexity (maksand clauses)) resms (length resclauses)))
 	  (if (= i 0) (format t "[finished compressed] ") (format t "[finished uncompressed]~%"))) ))))
+
 
 (defun configit-time-csv (file &optional (stream t))
   (let ((data (read-file file)))

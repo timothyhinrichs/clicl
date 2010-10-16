@@ -11,7 +11,8 @@ Notes on inputs.
 - double escape in regexps, e.g. \\w.
 - What do we do with arrays?
 - Use (var "myString") for variables--preserves case
-- Types indicate which variables cannot be assigned empty string.
+- Make sure to type things correctly.  Can't use (type ?x "[0-9]+") and (= ?x 1)
+- So if we're typing ?x with regexp, all constraints need to treat ?x as a string.
 |#
 
 ;(with-open-file (f "~/working/out/ss/allresults" :direction :output :if-exists :supersede :if-does-not-exist :create) (mapc #'(lambda (x) (ssn x :numgood 2 :stream f)) '(form1 form2 form3 form4 form5 form6 form7 form8 form9 form10 form11 form12 form13 form14 form15 form16 form17 form18 form19)))
@@ -26,13 +27,16 @@ Notes on inputs.
 	       :unique '(?x ?y))
  (make-ss-prob :name 'reg2 :phi '(and (= ?x ?y) (in ?x (reg "[a-z]")) (notin ?x (reg "[f-t]")))
 	       :types '(type (in ?x (reg "[a-z]")) (in ?y (reg "[a-z]")))
-	       :unique '(?x ?y))
+	       :unique '(?x ?y)
+	       :variantstatus '((5 :inconsistent)))
  (make-ss-prob :name 'reg3 :phi '(and (= ?x ?y) (notin ?x (reg "[f-t]")))
 	       :types '(type (in ?x (reg "[a-z]")) (in ?y (reg "[a-z]")))
 	       :unique '(?x ?y))
  (make-ss-prob :name 'reg4 :phi '(and (in ?email (reg "^[\\w\\.=-]+@[\\w\\.-]+\\.[\\w\\.-]{2,4}$")) (in ?softlic1 (reg "(^-?\\d\\d*\\.\\d*$)|(^-?\\d\\d*$)|(^-?\\.\\d\\d*$)")) (in ?softlic2 (reg "(^-?\\d\\d*\\.\\d*$)")) (in ?softlic3 (reg "(^-?\\d\\d*$)")) (in ?softlic4 (reg "(^-?\\.\\d\\d*$)"))))
 
- (make-ss-prob :name 'range1 :phi '(and (= ?x ?y) (gte (len ?x) 5) (lte (len ?x) 15) (in ?x (reg "^[\\w\\.=-]+@[\\w\\.-]+\\.[\\w\\.-]{2,4}$")) (= (len ?y) 9) (in ?y (reg "^[\\w\\.=-]+@[\\w\\.-]+\\.[\\w\\.-]{2,4}$")) (= 1 (len ?z)) (in ?z (reg "[a,b,c]")) (in ?w (reg "[a,b,c]")) (!= ?z ?w) (lt ?t (len ?x)) (gt ?t 17) (lte ?t 21) (= ?u ?t) (= ?v false)) :status :inconsistent)
+ (make-ss-prob :name 'range1 :phi '(and (= ?x ?y) (gte (len ?x) 5) (lte (len ?x) 15) (in ?x (reg "^[\\w\\.=-]+@[\\w\\.-]+\\.[\\w\\.-]{2,4}$")) (= (len ?y) 9) (in ?y (reg "^[\\w\\.=-]+@[\\w\\.-]+\\.[\\w\\.-]{2,4}$")) (= 1 (len ?z)) (in ?z (reg "[a,b,c]")) (in ?w (reg "[a,b,c]")) (!= ?z ?w) (lt ?t (len ?x)) (gt ?t 17) (lte ?t 21) (= ?u ?t) (= ?v false)) 
+	       :types '(type (in ?x (reg "[a-z]*")) (in ?y (reg "[a-z]*")))
+	       :status :inconsistent)
 
  (make-ss-prob :name 'toy1 :phi '(and (lt (len ?name) 50) (gte (len ?name) 5) (!= ?oldpwd "") (= ?tile "") (!= ?pwd1 "") (!= ?pwd2 "") (= ?pwd1 ?pwd2) (!= ?oldpwd ?pwd1) (in ?opt1 (reg "[a-d]")) (in ?opt2 (reg "[1-4]"))))
  (make-ss-prob :name 'toy2 :phi '(and (in ?b (reg "[0-1]")) (in ?p (reg "[0-1]")) (in ?r (reg "[0-1]")) (in ?l (reg "[0-1]")) (or (and (!= ?x "") (= ?b "0")) 	(and (!= ?x "") (= ?b "1") (= ?p "1"))	(and (!= ?x "") (= ?b "1") (= ?p "0") (= ?r "1")) (and (!= ?x "") (= ?b "1") (= ?p "0") (= ?r "0") (= ?l "1")))) 
@@ -79,26 +83,27 @@ Notes on inputs.
      (AND (!= ?ban_name "") (= ?full_ban "0") (NOT (= ?cannot_post "1")) (= ?cannot_register "1"))
      (AND (!= ?ban_name "") (= ?full_ban "0") (NOT (= ?cannot_post "1")) (NOT (= ?cannot_register "1")) (= ?cannot_login "1"))))
 
- :types `(types
-    (in ?sc ,*strreg1*)    ; added manually as a required variable
-    (IN ?ban_name ,*strreg*)
-    (IN ?expiration ,*strreg1*)    
+ :types `(types   ; removed below since
+    ;(in ?sc ,*strreg1*)    ; added manually as a required variable
+    ;(IN ?ban_name ,*strreg*)
+    ;(IN ?expiration ,*strreg1*)    
     (IN ?full_ban "/[0-9]+/")
     (IN ?cannot_post "/[0-9]+/")
     (IN ?cannot_register "/[0-9]+/")
     (IN ?cannot_login "/[0-9]+/")
-    (IN ?ban_suggestion[0] ,*strreg*)
-    (IN ?ban_suggestion[1] ,*strreg*)
-    (IN ?ban_suggestion[2] ,*strreg*)
-    (IN ?ban_suggestion[3] ,*strreg*)
-    (IN ?add_ban ,*strreg1*)
+    ;(IN ?ban_suggestion[0] ,*strreg*)
+    ;(IN ?ban_suggestion[1] ,*strreg*)
+    ;(IN ?ban_suggestion[2] ,*strreg*)
+    ;(IN ?ban_suggestion[3] ,*strreg*)
+    ;(IN ?add_ban ,*strreg1*)
     (IN ?expire_date "/[0-9]+/")
-    (IN ?reason ,*strreg1*)
-    (IN ?notes ,*strreg1*)
-    (IN ?main_ip ,*strreg1*)
-    (IN ?hostname ,*strreg1*)
-    (IN ?email ,*strreg1*)
-    (IN ?user ,*strreg1*)))  
+    ;(IN ?reason ,*strreg1*)
+    ;(IN ?notes ,*strreg1*)
+    ;(IN ?main_ip ,*strreg1*)
+    ;(IN ?hostname ,*strreg1*)
+    ;(IN ?email ,*strreg1*)
+    ;(IN ?user ,*strreg1*)))  
+))
 
 
  (make-ss-prob :name 'form3 :metafields '((method "post") (url "http://localhost/ezybiz/ezybiz/gencompanyadd.php") (comment "EZYBIZ-1 : server truncates longer company name (false positive) 
@@ -141,7 +146,7 @@ EZYBIZ-2 : server accepts data without mandatory field email (exploit)"))
     (NOT (contains ?email1 ","))
     (NOT (contains ?email1 ";"))
     (NOT (contains ?email1 ":"))
-    (NOT (contains ?email1 "\\"))
+    ;(NOT (contains ?email1 "\\"))  ; parser error on Kaluza
     (NOT (contains ?email1 "\/"))
     (NOT (contains ?email1 "\""))
     (NOT (contains ?email1 "\["))
@@ -159,8 +164,8 @@ EZYBIZ-2 : server accepts data without mandatory field email (exploit)"))
     (IN ?phone3 "/[0-9]*/")
     (IN ?phone4 "/[0-9]*/")
     (IN ?email1 ,*strreg*)
-    (IN ?web ,*strreg*)
-    (IN ?nonprintable ,*strreg*)))
+    (IN ?web ,*strreg*)))
+    ;(IN ?nonprintable ,*strreg*)))
 
 (make-ss-prob :name 'form4 :metafields '((method "post") (url "http://localhost/ezybiz/ezybiz/gljourupd.php")
 	      (comment "Update voucher and bypass maxlength restriction on description (exploit)"))
@@ -213,9 +218,9 @@ EZYBIZ-2 : server accepts data without mandatory field email (exploit)"))
         (lte (len (var "AIM")) 16)
         (lte (len (var "YIM")) 32)
         (= ?sc "f78b5621d8c08b521cb61f2073a854fe")
-        (= (var "userID") 1)
+        (= (var "userID") "1")
         (= ?sa "forumProfile")
-        (in ?avatar_choice "/server_stored|external|upload/")
+        (in ?avatar_choice "server_stored|external|upload")
         (in ?cat "blank.gif|Actors/|Musicians/")
         (in ?file "/null/")
         (in ?gender "/0|1|2/")
@@ -592,7 +597,7 @@ EZYBIZ-2 : server accepts data without mandatory field email (exploit)"))
 
 (make-ss-prob :name 'form15 :metafields '((method "") (url "OpenIT/index.php?Edit=Software&amp;ID=3")
 	      (comment "By pass this restriction to create entries without titles. "))
- :variantstatus '((3 :inconsistent) (15 :inconsistent))
+ :variantstatus '((3 :inconsistent) (15 :inconsistent) (17 :contingent) (16 :inconsistent))
  :phi '(and 
 	 (= (var "software_ID") "3")
 	 (= (var "software_Title") "testme")
@@ -800,17 +805,16 @@ EZYBIZ-2 : server accepts data without mandatory field email (exploit)"))
 	(= ?FlgFirstTimeVisit "1")
 	(= ?hdnWarranty "12.93")
 	(= ?hdnShipping "")
-	(lte (len ?qty-8661) 2)
+	(lte ?qty-8661 100)
 	(NOT (lt 37 ?qty-8661 )) 
-	(= ?Checkout "Checkout Now")
-	(IN ?qty-8661 "/[\\.0-9]*/"))
+	(= ?Checkout "Checkout Now"))
 
  :types `(type 
 	 (IN ?selProducts "/[a-zA-Z]*/" )
 	 (IN ?FlgFirstTimeVisit "/[\\-xX0-9a-f]*/" )
 	 (IN ?hdnWarranty "/[\\.1239]*/" )
-	 (IN ?hdnShipping "/[a-zA-Z]*/" )
-	 (IN ?qty-8661 "/[\\-xX0-9a-f]*/")))
+	 (IN ?hdnShipping "/[a-zA-Z]*/" )))
+	 ;(IN ?qty-8661 "/[\\-xX0-9a-f]*/")))
 
 (make-ss-prob :name 'real2
   :phi '(and 

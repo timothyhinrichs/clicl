@@ -402,6 +402,16 @@
 	      (= (parameter-arity x) (parameter-arity y))))
 	(t (funcall test x y))))
 
+(defun find-atoms (p)
+  "(FIND-ATOMS P) takes an arbitrarily complex sentence and returns 
+   a list of all atoms, as they occur.  Useful for type inference."
+  (cond ((atom p) (list p))
+	((member (car p) '(and or not => <= <=>))
+	 (mapcan #'find-atoms (cdr p)))
+	((member (car p) '(forall exists))
+	 (find-atoms (third p)))
+	(t (list p))))
+
 (defun get-vocabulary (p)
   "(GET-VOCABULARY P) returns a list of parameters representing all
     the function and relation constants in the sentence P.  Assumes

@@ -20,7 +20,6 @@
 (load (loadfn "grounding" :dir '("source" "logic")))
 (load (loadfn "interpolation" :dir '("source" "logic")))
 (load (loadfn "reformulation" :dir '("source" "logic")))
-(load (loadfn "fhlc" :dir '("source" "logic")))
 (load (loadfn "solvers" :dir '("source" "logic")))
 (load (loadfn "fhlc" :dir '("source" "logic")))
 (load (loadfn "external" :dir '("source" "logic")))

@@ -1264,6 +1264,39 @@
 
 ;(defun newseqvar () (gensym "@V"))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; IDP ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun kifdata2idp (th stream &optional (constmap nil))
+  "(KIFDATA2IDP TH STREAM RELNMAP) outputs the set of ground facts TH as data
+   in the IDP format.  CONSTMAP is a hash table that maps relation constants
+   to strings to handle the case-sensitivity of IDP; used for both
+   relations and object; NIL outputs via format ~A."
+  (let (vocab val)
+    (setq vocab (preds (maksand (contents th))))
+    (setq th (group-by-hash (contents th) #'relation))
+    (format stream "Data:~%")
+    (dolist (r (sort vocab #'< :key #'parameter-arity))
+      (setq r (parameter-symbol r))
+      (setq val (if constmap (gethash r constmap) nil))
+      (format stream "~A = {" (if val val r))
+      (dolist (p (reverse (gethash r th)))
+	(assert (listp p) nil (format nil "IDP requires data to be relational but found atom sentence: ~A" p))
+	(arglist2infix (cdr p) stream constmap)
+	(format stream "; "))   ; IDP tolerates a trailing semicolon
+      (format stream "}~%"))))
+      
+(defun arglist2infix (args stream &optional (constmap nil))
+  (cond ((atom args) nil)
+	(t (let (val)
+	     (setq val (if constmap (gethash (car args) constmap) nil))
+	     (format stream "~A" (if val val (car args)))
+	     (dolist (v (cdr args))
+	       (setq val (if constmap (gethash (car args) constmap) nil))
+	       (format stream ", ~A" (if val val v)))))))
+	  
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Datalog ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

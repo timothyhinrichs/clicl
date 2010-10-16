@@ -700,7 +700,7 @@
 (defun output-paper-html (handle s &key (minimal nil) (imageurl "/docserver/infoserver/examples/researchmaster/") (shortenauthor t) )
   "(OUTPUT-PAPER-HTML HANDLE S MINIMAL) prints an HTML depiction of the paper with id HANDLE to stream S.
    If MINIMAL is true, doesn't output additional functionality."
-  (let (handles author title year bibtex link description booktitle publisher publication volume number startpage endpage rating related tags (*namer* 'prettyname))
+  (let (handles author title year bibtex link description booktitle publisher publication volume number startpage endpage rating related tags (*namer* 'prettyname) award experiments)
     (setq handles (format nil "~(~A~)" handle))
     (setq author (prorequest `(ask-all ?x (paper.author ,handle ?x))))
     (setq title (prorequest `(ask-one ?x (paper.title ,handle ?x))))
@@ -719,6 +719,8 @@
     (setq endpage (prorequest `(ask-one ?x (paper.endpage ,handle ?x))))
     (setq rating (prorequest `(ask-one ?x (paper.rank ,handle ?x))))
     (setq related (prorequest `(ask-all ?x (paper.related ,handle ?x))))
+    (setq award (prorequest `(ask-all ?x (paper.award ,handle ?x))))
+    (setq experiments (prorequest `(ask-all ?x (paper.experiment ,handle ?x))))
     (setq tags (prorequest `(ask-all ?x (paper.topic ,handle ?x))))
 
     (format s "<a name=\"~Ap\"></a><span class=\"paper\">~%" handles)
@@ -752,6 +754,9 @@
     (output-paper-html-source handle bibtex booktitle publication volume number startpage endpage publisher year s)
     ;(when year (format s "            <span class=\"date\">~A</span>.~%" year))
     ;(format s "            <span class=\"link\">~A</span>~%" link)
+    (when award
+      (dolist (a award)
+	(format s "        <b>~A</b>" a)))
     (unless minimal
       (when rating (output-paper-html-rank rating s))
       (format s "        [<a href=\"displaybibtex?paper=~A\">bibtex</a>,~%" handles)
@@ -762,6 +767,8 @@
     (format s "        <td colspan=\"2\">~%")
     (format s "            <p id=\"~A\" style=\"display:none\"><span class=\"description\">~%" handles)
     (when description (format s "~A" description))
+    (when (or experiments related) (format s "<br><br>"))
+    (output-paper-html-experiments handle experiments s)
     (output-paper-html-related handle related s)
     (format s "~&            </span><br><br></p>~%")
     (format s "        </td>~%")
@@ -778,12 +785,20 @@
     (when m (format s "~A. " (subseq m 0 1)))
     (when l (format s "~A" l))))
 
+(defun output-paper-html-experiments (handle experiments s)
+  (declare (ignore handle))
+  (when experiments
+    (format s "~&Experiments:") 
+    (dolist (e experiments)
+      (format s "<a href=\"~A\">~A</a>" e e))))
+
 (defun output-paper-html-related (handle related s)
   (declare (ignore handle))
-  (format s "~&")
-  (dolist (r related)
-    (format s "[<a href=\"#~(~A~)p\">~(~A~)</a>] " r r))
-  (when related (format s "~%")))
+  (when related
+    (format s "~&Related: ")
+    (dolist (r related)
+      (format s "[<a href=\"#~(~A~)p\">~(~A~)</a>] " r r))
+    (when related (format s "~%"))))
 
 (defun output-paper-html-rank (num s)
   (format s "            <span class=\"rank\">[")
@@ -794,7 +809,9 @@
   (declare (ignore handle))
   (setq bibtex (compute-pub-prefix bibtex))
   (cond (booktitle (setq publication (stringappend bibtex booktitle)))
-        (publication (setq publication (stringappend bibtex (iconify publication)))))
+        (publication (let ((short (prorequest `(ask-one ?x (shortname ,publication ?x)))))
+		       (setq publication (stringappend bibtex (iconify publication)))
+		       (when short (setq publication (stringappend publication " (" short ")"))))))
   (format s "            <span class=\"source\">~%")
   (when publication (format s "                <i>~A</i>~A~A" publication (if (or volume number) " " "") (if volume volume "")))
   (when publication (output-pub-number number s))  

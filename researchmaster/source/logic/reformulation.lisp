@@ -104,6 +104,11 @@
         ((member (car p) '(forall exists)) (strip-quantifiers (third p)))
         (t p)))
 
+(defun drop-op (p)
+  (cond ((atom p) p)
+	((atom (car p)) (cdr p))
+	(t p)))
+
 (defun drop-not (p)
   (cond ((atom p) p)
         ((eq (car p) 'not) (second p))
@@ -235,6 +240,40 @@
           (sentences '? th))
     newth))
 
+(defun flatten-functions (p &optional (fullflat nil))
+  "(FLATTEN-FUNCTIONS P) takes a positive boolean combination of literals and returns a likewise sentence 
+   equivalent to p except the depth of function nesting is
+   always at most 1, e.g. (p (f a (g ?x (h ?y)))) becomes
+   (and (p (f a ?z2)) (= ?z2 (g ?x ?z3)) (= ?z3 (h ?y))).
+   FULLFLAT forces all functional terms to be forced outside, e.g.
+   (and (p ?z1) (= ?z1 (f a ?z2)) (= ?z2 (g ?x ?z3)) (= ?z3 (h ?y))).
+   FULLFLAT being NIL makes flatten-functions idempotent."
+  (cond ((atom p) p)
+	((member (car p) '(and or not))
+	 (multiple-value-bind (newps extra) (mapcaraccum #'(lambda (x) (flatten-functions x fullflat)) (cdr p))
+	   (maksand (cons (cons (car p) newps) extra))))
+	(fullflat 
+	 (multiple-value-bind (newargs extra) (mapcaraccum #'flatten-term (cdr p))
+	   (values (cons (car p) newargs) extra)))
+	(t (multiple-value-bind (newargs extra) 
+	       (mapcaraccum 
+		#'(lambda (term) 
+		    (let (newterm newextra)
+		      (if (atom term)
+			  (setq newterm term)
+			  (multiple-value-bind (termargs termextra) (mapcaraccum #'flatten-term (cdr term))
+			    (setq newterm (cons (car term) termargs))
+			    (setq newextra termextra)))
+		      (values newterm newextra)))
+		(cdr p))
+	     (maksand (cons (cons (car p) newargs) extra))))))
+
+(defun flatten-term (term)
+  (cond ((atom term) (values term nil))
+	(t (let (newargs extra var)
+	     (multiple-value-setq (newargs extra) (mapcaraccum #'flatten-term (cdr term)))
+	     (setq var (tosymbol (gentemp "?flat")))
+	     (values var (cons `(= ,var ,(cons (car term) newargs)) extra))))))	
 
 (defun functions-to-relations (p)
   "(FUNCTIONS-TO-RELATIONS P) returns P but where all functions have been turned into
@@ -524,6 +563,43 @@
 	   (multiple-value-bind (newlits bl) (delete= (nsubst val var (delete l lits :test #'equal)))
 	     (values newlits (acons var val bl)))))))
 
+(defun delete-simple= (lits &key (test #'eq))
+  "(DELETE-SIMPLE= LITS) takes a list of literals and returns a logically equivalent list of literals
+   without any lits of the form var = ground or ground=ground
+   (and the binding list as a second value).  Or returns :UNSAT. Destructive.
+   TEST determines truth of ground=ground.  Assumes UNA."
+  (flet ((plugsimp (ps bl)
+	   (setq ps (nsublis bl ps))
+	   (values ps (nconc bl '((t . t))))))
+    (do ((ls lits (cdr ls)) (prev nil) (newl) (l) (del nil nil) (v) (h (make-hash-table)))
+	((null ls) (plugsimp newl (hash2bl h)))
+      (setq l (car ls))
+      ; accummulate binding list
+      (when (and (listp l) (eq (car l) '=))
+	(cond ((and (groundp (second l)) (groundp (third l)))
+	       (unless (funcall test (second l) (third l)) (return :unsat))
+	       (setq del t))
+	      ((and (varp (second l)) (groundp (third l)))
+	       (setq v (gethash (second l) h))
+	       (when (and v (not (funcall test v (third l)))) (return :unsat))
+	       (when (not v) (setf (gethash (second l) h) (third l)))
+	       (setq del t))
+	      ((and (groundp (second l)) (varp (third l)))
+	       (setq v (gethash (third l) h))
+	       (when (and v (not (funcall test v (second l)))) (return :unsat))
+	       (when (not v) (setf (gethash (third l) h) (second l)))
+	       (setq del t))))
+      ; delete item when necessary
+      (cond ((and del prev)
+	     (setf (cdr prev) (cddr prev)))  ; delete this item
+	    ((and (not del) (not prev)) ; found first element of return list
+	     (setq prev ls)
+	     (setq newl ls))
+	    ((and (not del) prev)
+	     (setq prev (cdr prev)))))))
+
+
+
 (defun equals-for-equals (lits &optional (vars nil))
   "(EQUALS-FOR-EQUALS LITS VARS) removes all x=y in the literals LITS by substituting y for x.
    Ensures never to replace any of VARS.  Destructive."
@@ -541,6 +617,19 @@
 	      ((varp (second l)) (push (cons (second l) (third l)) bl))
 	      ((varp (third l)) (push (cons (third l) (second l)) bl)))))
       (values (delete '(= ?x ?x) (plug lits (setq bl (nreverse (cons '(t . t) bl)))) :test #'matchp) bl)))
+
+(defun remove-truth1 (p)
+  "(REMOVE-TRUTH1 P) removes all truth values (true and false) from the toplevel of P,
+   which is assumed to be in NNF, e.g. a positive boolean combination of literals."
+  (cond ((atom p) p)
+	((eq (car p) 'and) 
+	 (setq p (remove-override 'true 'false (cdr p)))
+	 (if (listp p) (maksand p) p))
+	((eq (car p) 'or)
+	 (setq p (remove-override 'false 'true (cdr p)))
+	 (if (listp p) (maksor p) p))
+	((eq (car p) 'not) (maknot (second p)))
+	(t p)))
 
 #|
 ;;;; remove ground equality -- untested

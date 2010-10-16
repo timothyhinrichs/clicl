@@ -9,6 +9,7 @@
 
 (defmethod contents ((th list)) th)
 (defmethod contents ((th string)) (if (probe-file th) (read-file th) nil))
+(defmethod contents ((th pathname)) (if (probe-file th) (read-file th) nil))
 
 (defmethod save (p (th list) &optional (f 'samep))
   (adjoin p th :test f))

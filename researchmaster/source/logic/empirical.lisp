@@ -3,16 +3,23 @@
 ;;;     routines for empirically evaluating automated reasoning systems
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defun test-on-files (func testfiles resultsfile &optional (timeout 300))
+  "(TEST-ON-FILES FUNC TESTFILES RESULTSFILE TIMEOUT) runs FUNC on all of TESTFILES
+   and outputs time/results to RESULTSFILE.  FUNC takes as input a list of S-expressions."
+  (if (probe-file resultsfile) (delete-file resultsfile))
+  (dolist (f testfiles)
+    (format t "Testing ~A~%" f)
+    (run-time timeout func (read-file f))
+    (append-file resultsfile
+		 (list f
+		       (if (eq *run-time-time* 'timeout) timeout *run-time-result*)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;; Graph Coloring ;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun print-graphcoloring-results (graphdesc results &optional (stream t))
-  (format stream "(GRAPHCOLORING ~A ~A)~%" graphdesc results))
-
-(defun test-on-graphcoloring (func samplesize minnodes maxnodes incnodes 
-			      &optional (timeout 300) (outputfunc #'print-graphcoloring-results))
+   
+(defun test-on-graphcoloring (func samplesize minnodes maxnodes incnodes resultsfile
+			      &key (timeout 300) (cacheprefix nil))
   "(TEST-ON-GRAPHCOLORING FUNC SAMPLESIZE MINNODES MAXNODES INCNODES)
    FUNC is a function that takes as input a set of ground atoms representing a graph
    coloring problem and a descriptor of the problem instance.  Runs FUNC 
@@ -20,28 +27,33 @@
    MAXNODES incremented by INCNODES, the adjacency matrix is generated randomly
    by gen-random-graph, and the hues tested are k, 2/3k, and 1/3k in size
    (see KR2008 for definition of k).  The number of random graphs generated for
-   each node/hue -size combination is controlled by SAMPLESIZE. TIMEOUT is the number
+   each node/hue -size combination is controlled by SAMPLESIZE. RESULTSFILE is the
+   file to which results are written.  TIMEOUT is the number
    of seconds at which to stop any instance.  Any value besides a
-   positive integer makes TIMEOUT unbounded."
-  (let (g k hue10k hue06k hue03k edgenum)
-    (do ((i minnodes (+ i incnodes)))
-	((> i maxnodes))
-      (dotimes (j samplesize)
-	(setq g (gen-random-graph i))
-	(setq k (max-incident-edges g))
-	(setq edgenum (- (length g) i))
-	(setq hue10k (maptimes #'(lambda () (list 'hue (tosymbol (gentemp "hue")))) (1+ k)))
-	(setq hue06k (maptimes #'(lambda () (list 'hue (tosymbol (gentemp "hue")))) (ceiling (* 2 k) 3)))
-	(setq hue03k (maptimes #'(lambda () (list 'hue (tosymbol (gentemp "hue")))) (ceiling k 3)))	
-	(run-time timeout func (nconc hue10k g))
-	(unless (eq *run-time-time* 'timeout) 
-	  (funcall outputfunc (list 'instance i edgenum (1+ k) '1.0k) *run-time-result*))
-	(run-time timeout func (nconc hue06k g))
-	(unless (eq *run-time-time* 'timeout) 
-	  (funcall outputfunc (list 'instance i edgenum (ceiling (* 2 k) 3) '0.6k) *run-time-result*))
-	(run-time timeout func (nconc hue03k g))
-	(unless (eq *run-time-time* 'timeout) 
-	  (funcall outputfunc (list 'instance i edgenum (ceiling k 3) '0.3k) *run-time-result*))))))
+   positive integer makes TIMEOUT unbounded. CACHEDIR is a directory to which instances
+   are written; assumed to be empty."
+  (flet ((runinstance (th nodenum edgenum huenum type sample)
+	   ;(format t "(runinstance ~A ~A ~A ~A ~A)" nodenum edgenum huenum type sample)
+	   (let (file)
+	     (when cacheprefix
+	       (setq file (tostring (list "mc" "_n" nodenum "_e" edgenum "_h" huenum "_t" type "_s" sample)))
+	       (dump-theory th (stringappend cacheprefix file)))
+	     (run-time timeout func th)
+	     (append-file resultsfile
+			  (list 'graphcoloring
+				(list 'instance nodenum edgenum huenum type file) 
+				(if (eq *run-time-time* 'timeout) *run-time-time* *run-time-result*))))))
+
+    (let (g k edgenum)
+      (do ((i minnodes (+ i incnodes)))
+	  ((> i maxnodes))
+	(dotimes (j samplesize)
+	  (setq g (nsubst 'region 'object (gen-random-graph i)))
+	  (setq k (max-incident-edges g))
+	  (setq edgenum (- (length g) i))
+	  (runinstance (nconc (gen-n-things 'hue (1+ k)) g) i edgenum (1+ k) '10k j)
+	  (runinstance (nconc (gen-n-things 'hue (ceiling (* 2 k) 3)) g) i edgenum (ceiling (* 2 k) 3) '06k j)
+	  (runinstance (nconc (gen-n-things 'hue (ceiling k 3)) g) i edgenum (ceiling k 3) '03k j))))))
 
 (defun gen-random-graph (nodecount)
    "(GEN-RANDOM-GRAPH NODECOUNT) takes a positive integer as input
@@ -68,6 +80,24 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;; Blocks World ;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun generate-blocksworlds (samplesize minblocks maxblocks incblocks storeprefix)
+  (flet ((dump-w-timings (th blocknum timenum samplenum)
+	   (let (time)
+	     (setq time (gen-n-things 'time timenum))
+	     (setq time (nconc time (gen-ordering 'succ time)))
+	     (dump-theory (nconc time th)
+			  (tostring (list storeprefix "bw_b" blocknum "_t" timenum "_s" samplenum ".kif"))))))
+    (let (init final th)
+      (do ((i minblocks (+ i incblocks)))
+	  ((> i maxblocks))
+	(dotimes (j samplesize)
+	  (multiple-value-setq (init final) (gen-random-blocksworld i))
+	  (setq th (union (mapcar #'(lambda (x) (if (member (first x) '(on clear table)) (cons (tosymbol (list (first x) "_init")) (cdr x)) x)) init)
+			  (mapcar #'(lambda (x) (if (member (first x) '(on clear table)) (cons (tosymbol (list (first x) "_goal")) (cdr x)) x)) final)
+			  :test #'equal))
+	  (dump-w-timings th i (* 2 i) j)
+	  (dump-w-timings th i (- (* 2 i) (ceiling (log i 2))) j))))))
 
 (defun print-blocksworld-results (desc results &optional (stream t))
   (format stream "(BLOCKSWORLD ~A ~A)~%" desc results))
