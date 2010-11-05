@@ -3,13 +3,13 @@
 (defun loadfn (name &key (dir nil) (type nil) (root *load-pathname*))
   "(LOADFN DIR NAME) computes filename relative to load directory."
   (when (not (listp dir)) (setq dir (list dir)))
-    (make-pathname :name name :type type
+  (make-pathname :name name :type type
       :directory (append (pathname-directory root) dir)))
 
 (defun compilefn (name &key (dir nil) (type nil) (root *compile-file-pathname*))
   "(COMPILEFN DIR NAME) computes filename relative to load directory."
   (when (not (listp dir)) (setq dir (list dir)))
-    (make-pathname :name name :type type
+  (make-pathname :name name :type type
       :directory (append (pathname-directory root) dir)))
 
 ;;;;;;;; Loading subsystems ;;;;;;;;

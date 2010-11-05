@@ -19,7 +19,6 @@
 (<= (lasttime ?x) (succ ?y ?x) (not (somesucc ?x)))
 (<= (somesucc ?x) (succ ?x ?y))
 
-
 ;// fluents
 (=> (clear ?b ?t) (and (block ?b) (time ?t)))
 (=> (on ?a ?b ?t) (and (block ?a) (block ?b) (time ?t)))
@@ -58,6 +57,9 @@
     (succ ?t2 ?t)
     (on ?b ?a ?t2)
     (moved-from ?b ?a ?t2))
+(<= (clear ?a ?t)
+	(firsttime ?t)
+	(clear_init ?a))
 
 ;// on if was on and not unstacked, or was stacked
 (<= (on ?a ?b ?t)
@@ -67,6 +69,9 @@
 (<= (on ?a ?b ?t)
     (succ ?t2 ?t)
     (to_stack ?a ?b ?t2))
+(<= (on ?a ?b ?t)
+	(firsttime ?t)
+	(on_init ?a ?b))
 
 ;// table if was tabled and not stacked, or was tabled
 (<= (table ?a ?t)
@@ -76,23 +81,15 @@
 (<= (table ?a ?t)
     (succ ?t2 ?t)
     (to_table ?a ?t2))
+(<= (table ?a ?t)
+	(firsttime ?t)
+	(table_init ?a))
 
 ;// helpers
 (<= (moved-from ?b ?a ?t) (to_stack ?b ?c ?t) (not (= ?c ?a)))
 (<= (moved-from ?b ?a ?t) (to_table ?b ?t) (block ?a))
 (<= (stackedon ?a ?t) (to_stack ?x ?a ?t))
 (<= (stacked ?a ?t) (to_stack ?a ?x ?t))
-
-
-;// initialization
-(=> (clear_init ?x) (block ?x))
-(=> (table_init ?x) (block ?x))
-(=> (on_init ?x ?y) (and (block ?x) (block ?y)))
-
-(=> (firsttime ?t) (<=> (clear ?x ?t) (clear_init ?x)))
-(=> (firsttime ?t) (<=> (table ?x ?t) (table_init ?x)))
-(=> (firsttime ?t) (<=> (on ?x ?y ?t) (on_init ?x ?y)))
-
 
 ;// goal
 (=> (clear_goal ?x) (block ?x))

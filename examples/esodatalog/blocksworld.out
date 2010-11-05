@@ -1,4 +1,4 @@
 
 (TO_TABLE A T1) 
 (TO_STACK B C T2) 
-(TO_TABLE A T3) 
+(TO_STACK A B T3)
