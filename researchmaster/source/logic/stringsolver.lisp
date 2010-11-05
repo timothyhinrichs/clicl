@@ -1,7 +1,8 @@
 ; all regexps are pcre (perl compatible regular expressions)
-; requires Hampi as a helper, which only runs on Linux
+; requires Kaluza as a helper, which only runs on Linux
 (defun r () 
   (load "/homes/thinrich/tool/solver/ss/stringsolver.lisp")
+  (load "/homes/thinrich/tool/solver/ss/stringsolverapps.lisp")
   (load "/homes/thinrich/tool/solver/ss/stringsolvertests.lisp"))
 
 (defvar *ss-max-length* 300 
@@ -19,8 +20,6 @@
   "whether or not to break when hampi returns an error")
 (defvar *check-dynamic-regexp* t
   "whether or not to ensure that our dynamically created regexps can be translated")
-(defparameter *notamp-raw-output* "/tmp/ss/raw.lisp"
-  "location to store raw notamp results in lisp-friendly format.  Not currently used.")
 (defvar *command-line* nil
   "whether being executed from the command line.  If NIL, errors result in CCL breaks; otherwise, errors quit.")
 
@@ -49,11 +48,11 @@
 |#
 
 ; Kaluza invocation info
-(defparameter *solver-input-file* "/tmp/ss/b.kaluza" 
+(defvar *solver-input-file* "/tmp/ss/b.kaluza" 
   "base temp filename for Kaluza input")
-(defparameter *solver-max-storage* 100 
+(defvar *solver-max-storage* 100 
   "max number of files stored on disk for any one solution attempt")
-(defparameter *store-external-solver-files* nil
+(defvar *store-external-solver-files* nil
   "whether to store all external solver attempts (up to *solver-max-storage*)")
 
 (defparameter *solver-init* "echo")
@@ -64,14 +63,9 @@
 (defparameter *solver-kill-args* '("noop"))
 
 
-(defparameter *app-location* "./ss"
-  "location for application--only used when saving application")
-(defparameter *app-init-location* 
-  "./ss-init.lisp"
-  "location for application initialization--used for application")
-
 ; internal globals
 (defparameter *reg-special-chars* (list #\\ #\^ #\$ #\( #\) #\[ #\] #\{ #\} #\. #\* #\? #\| #\+ #\-))
+(define-condition ss-type-error (error) ((comment :initarg :comment)))
 
 (defun ss-regesc (s &optional (charlist *reg-special-chars*))
   "(SS-REGESC S) translates s so that all special characters are escaped for regular expressions."
@@ -96,7 +90,7 @@
 (defvar *ss-vars* nil "var list for cleansing variables")
 (defvar *external-solver-errored* nil "whether or not the external solver errored")
 
-; problem structure
+; input problem structure
 ; possible statuses: inconsistent, valid, contingent
 (defstruct ss-prob 
   ; user-supplied 
@@ -105,70 +99,40 @@
   ; internal
   (varnames nil) (variantstatus nil))
 
+(defun ss-hampi-init () (run-program *solver-init* *solver-init-args*) (sleep 1))
+(defun ss-hampi-kill () (run-program *solver-kill* *solver-kill-args*))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Exceptional behavior ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun ss-assert (condition dc msg)
+  (declare (ignore dc))
+  (unless condition (ss-error msg)))
+
+(defun ss-break (msg)
+  (ss-error msg))
+
+(defun ss-error (msg)
+  (let ((s t))
+    (cond (*command-line*
+	   (format s "Fatal error. ~%")
+	   (print msg s)
+	   (quit))
+	  (t (break msg)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Test Routines ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-; save-application call
-(defun savess ()
-  ;(ignore-errors (load *app-init-location*))
-  (save-application *app-location* :prepend-kernel t))
-; :toplevel-function #'ssx
-
-; toplevel for application
-(defun ssx (file &key (numgood 1) (unique 'unknown) (required 'unknown) (stream t))
-  (load *app-init-location*)
-  (format stream "<testcases>~%")
-  (dolist (p (read-file file))
-    (ssn (eval p)
-	 :numgood numgood :unique unique :required required :stream stream))
-  (format stream "</testcases>~%")
-  (quit))
 
 ; grab a test by name
 (defun ss-findtest (name)
   "(SS-TEST NAME) finds the problem with name NAME."
   (find name (ss-deftests) :key #'ss-prob-name))
 
-; test ssn on all tests
-(defun ssnall (&key (numgood 1) (unique 'unknown) (required 'unknown) (stream t))
-  (dolist (p (ss-deftests) t)
-    (when (and (ss-prob-phi p) (ss-prob-types p))
-      (unless *quiet* (format t "~&****** Testing ~S~%" (ss-prob-name p)))
-      (ssn p :numgood numgood :unique unique :required required :stream stream))))
-
-; input generation routine for notamper tool with all kinds of correctness checks
-(defun ssn (prob &key (numgood 1) (unique 'unknown) (required 'unknown) (stream t) (outputfun #'notamper2xml))
-  "(SSN PROB &key NUMGOOD UNIQUE REQUIRED STREAM) 
-   Run a single notamper problem and output result to STREAM.
-   PROB can either be a ss-prob or the name of an ss-prob.
-   The unique and required fields of the given problem can be overridden with
-   UNIQUE and REQUIRED."
-  (when (not (ss-prob-p prob)) 
-    (setq prob (ss-findtest prob)) (when (not prob) (return-from ssn nil)))
-  (setq prob (ss-cleanse prob))
-
-  (when (eq unique 'unknown) (setq unique (ss-prob-unique prob)))
-  (when (eq required 'unknown) (setq required (ss-prob-required prob)))
-
-;  (cond ((not (ss-test-all-regexps (ss-prob-phi prob)))
-;	 (format t "Regexp failure in formula~%"))
-;	((not (ss-test-all-regexps (ss-prob-types prob)))
-;	 (format t "Regexp failure in type~%"))
-;	(t
-	 (let ((start (get-universal-time)) val (*ss-solve-count* 0))
-	   (format t "~&")
-	   
-	   (setq val
-		 (notamp (ss-prob-phi prob) :numgood numgood :unique unique :required required 
-			 :types (ss-prob-types prob) :space (ss-prob-space prob)))
-	   (when *ss-debug* (format t "~&Solution:~%") (pprint val))
-
-	   (funcall outputfun (ss-uncleanse val prob) prob 
-			 :time (- (get-universal-time) start) :stream stream :count *ss-solve-count*)))
-
 ; test stringsolver on all variants of all test cases  
-(defun sst (&key (name nil) (variant nil) (stopearly t) (s t) (extratests t) (required 'unknown))
+(defun sst (&key (name nil) (variant nil) (stopearly t) (s t) (extratests t) 
+	    (required 'unknown) (errorfile "/tmp/ss/sst.error") (delerrorfile nil))
   "(SST &optional NAME STOPEARLY S) 
     Toplevel testing routine for string solver.  NAME limits the testing to the
     specified test case NAME.  If NAME is not supplied, runs through all test cases.
@@ -176,21 +140,31 @@
     S is the stream to which results are written.
     If EXTRATESTS is T (the default), also runs solver tests on the negation of each
     problem, and each disjunct of the DNF of the problem and its negation.
-    NAME can also be a filename consisting of (formname variant) pairs."
+    NAME can also be a filename consisting of (formname variant) pairs.
+    VARIANT is either a number of a list of numbers."
   (ss-hampi-init)
   (let (variants phi res status i l failures *external-solver-errored* total namehash varis)
     (setq failures 0)
     (setq total 0)
     (setq namehash (make-hash-table))
+    (when delerrorfile (delete-file errorfile))
 
     ; set up data structure recording desired test cases
     (ss-assert (or (not variant) name) nil (format nil "sst requires a test :NAME if :VARIANT is supplied"))
-    (when (and (stringp name) (probe-file name)) (setq name (read-file name)))
-    (when (and name (symbolp name)) (setq name (list name (if variant variant t))))
-    (ss-assert (listp name) nil (format nil "sst requires :NAME be either NIL, a filename, or a symbol; found ~A" name))
+    (cond ((not name))
+	  ((stringp name) 
+	   (ss-assert (probe-file name) nil (format nil "the filename passed to sst does not exist: ~A" name)) 
+	   (setq name (read-file name)))
+	  ((and name (symbolp name))
+	   (cond ((not variant) (setq name (list (list name t))))
+		 ((listp variant) (setq name (mapcar #'(lambda (x) (list name x)) variant)))
+		 (t (setq name (list (list name variant))))))
+	  (t (ss-break (format nil "sst requires :NAME be either NIL, a filename, or a symbol; found ~A" name))))
     (dolist (n (group-by name #'first))
       (setf (gethash (first n) namehash) (mapcar #'second (cdr n))))
 
+    ; walk over all the tests, running the ones we want.  (Not worth doing better b/c variants are referenced
+    ;    by the order in which they are generated by the following code.)
     (dolist (p (ss-deftests) t)
       (setq varis (gethash (ss-prob-name p) namehash))
       (when (or (not name) varis)
@@ -201,7 +175,7 @@
 	(setq status (ss-prob-status p))
 	(setq variants nil)
 	(when extratests 
-	  (setq variants (append (list (list (maknot phi) (sst-invert-status status))) 
+	  (setq variants (append (list (list (maknot phi) (sst-invert-status status)))
 				 (mapcar #'(lambda (x) (list x status)) (or2list (dnf phi)))
 				 (mapcar #'(lambda (x) (list x (sst-invert-status status))) 
 					 (or2list (dnf (maknot phi)))))))
@@ -209,11 +183,11 @@
 	(setq l (length variants))
 	(setq i 1)
 	(dolist (v variants)
-	  (when (or (not name) (eq varis t) (member i varis))
+	  (when (or (not name) (member t varis) (member i varis))
 	    (format s "~&****** Testing ~S (variant ~A of ~A)~%" (ss-prob-name p) i l)
 	    (setq status (second (assoc i (ss-prob-variantstatus p))))
 	    (unless status (setq status (second v)))
-	    (setq res (sst-aux (first v) status (ss-prob-types p) required (ss-prob-space p) s))
+	    (setq res (sst-aux (ss-prob-name p) i (first v) status (ss-prob-types p) required (ss-prob-space p) s errorfile))
 	    (setq total (1+ total))
 	    (when (not res) (setq failures (1+ failures)))
 	    (when (and stopearly (not res)) (return-from sst nil)))
@@ -226,13 +200,15 @@
 
 (defun sst-invert-status (x) (case x (:inconsistent :valid) (:contingent :contingent) (:valid :inconsistent)))
 
-(defun sst-aux (phi status types required space s)
+(defun sst-aux (name variant phi status types required space s errorfile)
   (when (and required (atom required)) (setq required (ss-guess-required phi types)))
   (let (result correctp (tme (get-universal-time)))
     (setq *external-solver-errored* nil)
     (multiple-value-setq (correctp result) (ss-test-solve phi status types required space))
     (setq tme (- (get-universal-time) tme))
     (cond (correctp
+	   (when *ss-debug* 
+	     (dolist (v result) (print v s)))
 	   (format s "~&****** Success in ~A seconds~%" tme))
 	  (t
 	   (format s "~&****** Failure in ~A seconds on ~A problem~%" tme status)
@@ -243,7 +219,8 @@
 	   (format s "~&SPACE: ~S~%" space)
 	   (format s "~&PROBLEM STATUS: ~A~%" status)
 	   (format s "~&SOLVER RETURNED: ~%")
-	   (dolist (v result) (print v s))))
+	   (dolist (v result) (print v s))
+	   (append-file errorfile (list name variant))))
     correctp))
 
 (defun ss-delimit-regexp (s)
@@ -281,7 +258,7 @@
 (defun ss-test-solve (p status types required space) 
   (let (bl)
     (setq p (makand p space))
-    (setq bl (hash2bl (ss-solve p :types types :required (union required (vars p)))))
+    (setq bl (hash2bl (ss-solve p :types types :required required)))
     (unless *quiet* (format t "~&Solution: ~S~%" bl))
     (cond ((eq status :inconsistent) (values (not bl) bl))
 	  ((not bl) (values nil nil))
@@ -289,7 +266,9 @@
 
 (defun ss-checksat (p types bl)
   (and (ss-checksat-types bl types)
-       (eq (ss-simplify (nnf (plug p bl))) 'true)))
+       (eq (handler-case (ss-evaluate (plug p bl))
+	     (ss-type-error () 'false))
+	   'true)))
 
 (defun ss-checksat-types (bl types)
   (let (y)
@@ -297,10 +276,28 @@
       (when (varp (car b))
 	(setq y (gethash (car b) types))
 	(when y
-	  (unless (ss-checkreg (ss-cast-tostring (cdr b)) (ss-makreg (third y)))
-	    (when *ss-debug* (format t "~&Checksat type failure: ~A~%" b))
-	    (return nil)))))))
+	  (cond ((eq (car y) 'typedecl)
+		 (cond ((eq (third y) 'bool) 
+			(unless (member (cdr b) '(true false))
+			  (when *ss-debug* (format t "~&Checksat type failure: ~A should be bool" (cdr b)))
+			  (return nil)))
+		       ((eq (third y) 'num)
+			(unless (numberp (cdr b))
+			  (when *ss-debug* (format t "~&Checksat type failure: ~A should be num" (cdr b)))
+			  (return nil)))
+		       ((eq (third y) 'str)
+			(unless (stringp (cdr b))
+			  (when *ss-debug* (format t "~&Checksat type failure: ~A should be str" (cdr b)))
+			  (return nil)))
+		       (t 
+			(when *ss-debug* (format t "~&Checksat type failure: unknown typedecl ~A" (third y)))
+			(return nil))))			
+		(t
+		 (unless (ss-checkreg (ss-cast-tostring (cdr b)) (ss-makreg (third y)))
+		   (when *ss-debug* (format t "~&Checksat type failure: ~A~%" b))
+		   (return nil)))))))))
 #|
+; not sure why I thought this was useful.  Now we just simplify.
 (defun ss-checksat-aux (p)
   (3val-true (3val-rewrite p)))
 
@@ -348,558 +345,8 @@
 	   (gte (>= (second p) (third p)))
 	   (otherwise nil)))))
 |#
-(defun ss-assert (condition dc msg)
-  (declare (ignore dc))
-  (unless condition (ss-error msg)))
 
-(defun ss-break (msg)
-  (ss-error msg))
 
-(defun ss-error (msg)
-  (let ((s t))
-    (cond (*command-line*
-	   (format s "Fatal error. ~%")
-	   (print msg s)
-	   (quit))
-	  (t (break msg)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Problem Cleansing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun ss-cleanse (prob)
-  "(SS-CLEANSE PROBLEM) takes possibly screwy outside problem definitions and cleanses
-   it for use in included routines.  Destructively modifies PROB."
-  (setq *ss-varmapping* nil)
-
-  ; remove (var "myCaseSensitiveVar") and augment ss-prob-varnames as appropriate
-  (ss-cleanse-varcases prob)
-
-  ; tweak regular expressions
-  (setf (ss-prob-phi prob) (ss-fix-innotin (ss-prob-phi prob)))
-  (setf (ss-prob-space prob) (ss-fix-innotin (ss-prob-space prob)))
-  (setf (ss-prob-types prob) (mapcar #'ss-in2type (drop-op (ss-prob-types prob))))
-
-  ; variable name fixes (for Hampi, not us)
-  (setf (ss-prob-phi prob) (maptree #'make-nice-variable (ss-prob-phi prob)))
-  (setf (ss-prob-space prob) (maptree #'make-nice-variable (ss-prob-space prob)))
-  (setf (ss-prob-types prob) (maptree #'make-nice-variable (ss-prob-types prob)))
-
-  (setf (ss-prob-varnames prob)
-	(mapcar #'(lambda (x) (cons (car x) (list 'var (cdr x))))
-		(butlast (compose-mgus (list (append (ss-prob-varnames prob) truth)
-					     (append *ss-varmapping* truth))))))
-
-  ; do type inference and cast objs in constraints to satisfy types.
-  (ss-cleanse-typeinference prob)
-
-  ; turn types into a hash table
-  (let ((e (make-hash-table)))
-    (mapc #'(lambda (x) (setf (gethash (second x) e) x)) (ss-prob-types prob))
-    (setf (ss-prob-types prob) e))
-
-  prob)
-
-(defun ss-uncleanse (thing prob)
-  "(SS-UNCLEANSE THING PROB) undoes the externally important changes made by ss-cleanse.
-   Destructive."
-  (cond ((atom thing) (nsublis (ss-prob-varnames prob) thing))  
-	((listp thing) (nsublis (ss-prob-varnames prob) thing))
-	((ss-prob-p thing)
-	 (setf (ss-prob-phi thing) (nsublis (ss-prob-varnames prob) (ss-prob-phi thing)))
-	 (setf (ss-prob-space thing) (nsublis (ss-prob-varnames prob) (ss-prob-space thing)))
-	 (setf (ss-prob-types thing) (nsublis (ss-prob-varnames prob) (ss-prob-types thing)))
-	 thing)
-	(t thing)))
-
-(defun ss-cleanse-typeinference (prob)
-  (let (types p)
-    (setq p (list* (ss-prob-phi prob) (ss-prob-space prob) (ss-prob-types prob)))
-    ; need to extract all of p's atoms and then flatten them.
-    (setq p (find-atoms (maksand p)))
-    (setq p (flatten-operator (maksand (mapcar #'flatten-functions p))))
-    ; grab types
-    (setq types (ss-type-inference (and2list p)))
-    ; resolve conflicts
-    (setq types (mapcar #'(lambda (x) (cons (car x) (ss-resolve-types (cdr x)))) types))
-    ; fix constraints
-    (setf (ss-prob-phi prob) (ss-force-types (ss-prob-phi prob) types))
-    prob))
-    
-
-(defun ss-force-types (p types)
-  (flet ((argtype (a) (cond ((varp a) (cdr (assoc a types)))
-			    ((stringp a) 'str)
-			    ((member a '(true false)) 'bool)
-			    ((numberp a) 'num)
-			    ((listp a) (viewfindx '?x `(argtype ,a ?x) 'sstypes))  ; all funcs return str
-			    (t 'str))))
-    (cond ((atom p) p)
-	  ((member (car p) '(and or not => <= <=> forall exists)) 
-	   (cons (car p) (mapcar #'(lambda (x) (ss-force-types x types)) (cdr p))))
-	  (t (let (type rtype)
-	       (setq type (ss-resolve-types (mapcar #'argtype (cdr p))))
-	       (setq rtype (viewfindx '?x `(reltype ,(car p) ?x) 'sstypes))
-	       (ss-assert (or (not rtype) (eq rtype type)) nil
-			  (format nil "Type mismatch: one of args in ~A is of type ~A but must be of type ~A"
-				  p type rtype))		 
-	       (cond ((eq type 'str) (cons (car p) (mapcar #'ss-cast-tostring (cdr p))))
-		     ((eq type 'num) (cons (car p) (mapcar #'ss-cast-tonum (cdr p))))
-		     ((eq type 'bool) (cons (car p) (mapcar #'ss-cast-tobool (cdr p))))
-		     (t p)))))))
-
-(defun ss-resolve-types (types)
-  (cond ((atom types) types)
-	((member 'str types) 'str)
-	((member 'num types) 'num)
-	((member 'bool types) 'bool)
-	((listp types) (first types))))
-    
-(defun ss-cleanse-varcases (prob)
-  (let (*ss-varmapping* *ss-vars*)
-    (setq *ss-varmapping* nil)
-    (setq *ss-vars* (union* (vars (ss-prob-phi prob))
-			    (vars (ss-prob-types prob))
-			    (vars (ss-prob-space prob))))
-    (setf (ss-prob-phi prob) (ss-cleanse-varcases-aux (ss-prob-phi prob)))
-    (setf (ss-prob-space prob) (ss-cleanse-varcases-aux (ss-prob-space prob)))
-    (setf (ss-prob-types prob) (ss-cleanse-varcases-aux (ss-prob-types prob)))
-    (setf (ss-prob-varnames prob) *ss-varmapping*)))
-
-(defun ss-cleanse-varcases-aux (p)
-  "(SS-CLEANSE-VARCASES-AUX P VARS) replaces all (var 'varName') in P with a new variable name ?v
-  and returns a new P, modifying *ss-varmapping* and *ss-vars*."
-  (cond ((atom p) p)
-	((eq (first p) 'var) 
-	 (let (v p2)
-	   (cond ((setq p2 (rassoc (second p) *ss-varmapping* :test #'equal))
-		  (car p2))
-		 (t
-		  (setq p2 (tostring (list "?" (second p))))
-		  (setq v (read-from-string p2))
-		  (do () ((not (member v *ss-vars*))) 
-		    (setq v (read-from-string (tostring (gentemp p2)))))
-		  (push (cons v (second p)) *ss-varmapping*)
-		  (push v *ss-vars*)
-		  v))))
-	(t (cons (car p) (mapcar #'ss-cleanse-varcases-aux (cdr p))))))
-
-(defun ss-in2type (p)
-  (cond ((atom p) p)
-	((find (car p) '(and or not <= => <=> forall exists))
-	 (cons (car p) (mapcar #'ss-in2type (cdr p))))
-	((eq (car p) 'in) (list 'type (second p) (ss-makreg (third p))))
-	(t p)))
-
-(defun ss-fix-innotin (p)
-  (cond ((atom p) p)
-	((find (car p) '(and or not <= => <=> forall exists))
-	 (cons (car p) (mapcar #'ss-fix-innotin (cdr p))))
-	((member (car p) '(in notin nin))
-	 (list (car p) (second p) (ss-makreg (third p))))
-	(t p)))
-
-(defun ss-makreg (thing)
-  "(MAKREG THING) attempts to coerce thing to a regular expression string."
-  (cond ((stringp thing)
-	 (setq thing (ss-fix-reg thing)))
-#|
-	 (when *check-dynamic-regexp*
-	   (assert (ss-test-all-regexps `(in ?x ,thing)) nil 
-		   (format nil "ss-makreg constructed untranslatable regexp: ~S~%run ~A on ~A~%" 
-			   thing *hampi-regtest* *hampi-regtest-tmp*)))
-|#
-	((atom thing) (ss-break (format nil "Couldn't make ~S into a regexp" thing)))
-	((eq (car thing) 'reg) (ss-makreg (second thing)))
-	(t (setq thing (ss-simplify thing))
-	   (if (stringp thing) (ss-makreg thing) (ss-break (format nil "Couldn't make ~S into a regexp" thing))))))
-  
-(defun ss-fix-reg (str)
-  "(SS-FIX-REG STR) drops surrounding / and / off of string."
-  (setq str (string-trim '(#\Space #\Return #\Linefeed) str))
-  (let ((l (length str)))
-    (cond ((= l 0) str)
-	  ((= l 1) str)
-	  (t
-	   (if (and (char= (aref str 0) #\/) (char= (aref str (1- l)) #\/))
-	       (subseq str 1 (1- l))
-	       str)))))
-#|  Adding / / around reg
-	   (setq pre (if (char= (aref str 0) #\/) "" "/"))
-	   (setq post (if (char= (aref str (1- l)) #\/) "" "/"))
-	   (stringappend pre str post)))))
-|#
-
-(defun make-nice-variable (a)
-  (cond ((not (varp a)) a)
-	(t
-	 (push (cons nil a) *ss-varmapping*)  ; storing for easy reversal: (newvar . oldvar)
-	 (setq a (tostring a))
-	 (dotimes (i (length a))
-	   (dolist (s '((#\[ . #\_) (#\] . #\_) (#\- . #\_)))
-	     (if (char= (aref a i) (car s))
-		 (setf (aref a i) (cdr s)))))
-	 (setq a (read-from-string a))
-	 (if (eq a (cdr (first *ss-varmapping*)))
-	     (pop *ss-varmapping*)
-	     (setf (car (first *ss-varmapping*)) a))
-	 a)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Toplevel Invocations ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-; These wrappers are necessary to ensure Hampi is initialized and terminated correctly.
-(defun ss-main (f)
-  (ss-hampi-init)
-  (multiple-value-prog1 (funcall f)
-    (ss-hampi-kill)))
-
-(defun notamp (p &key (numgood 1) (unique nil) (required nil) (types nil) (space 'true)) 
-  (ss-main #'(lambda () (notamper p :numgood numgood :unique unique :required required :types types
-				  :space space))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Testcase generation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun notamper (p &key (numgood 1) (unique nil) (required nil) (types nil) (space 'true))
-  "(NOTAMPER P NUMGOOD UNIQUE) 
-   takes a KIF formula P (in the notamper constraint language defined below)
-   and generates NUMGOOD distinct variable assignments for P and multiple variable assignments
-   satisfying (NOT P).  Notamper returns a list of two elements 
-         ((good P bl1 ... bln) (bad (Pvariation1 bl1) ... (Pvariationm blm))).  
-   Each bli is a binding list, i.e. a list of (var val).
-   For all variables included in the UNIQUE list, the values assigned to those variables
-   are unique across good and bad.
-   The REQUIRED list is the set of variables required to have values.
-   The SPACE argument is a set of constraints that all variable assignments must satisfy.
-   The TYPES argument is a list of IN statements."
-  (let ((history nil) bl (good nil) (bad nil) firstgood orlist tmp)
-    (ss-assert (and (integerp numgood) (>= numgood 0)) nil 
-	    "NOTAMPER requires NUMGOOD to be a non-negative integer.")
-
-    ; compute required and unique if set to T
-    (when (and (atom required) required) (setq required (ss-guess-required p types)))
-    (when (and (atom unique) unique) (setq unique (ss-guess-unique p required)))
-
-    ; compute NUMGOOD unique good answers, distributed across DNF pieces of P
-    (unless *quiet* (format t "~&~%~%**** Generating Good Answers ****~%~%"))
-    (setq firstgood nil)
-    (setq orlist (or2list (dnf p)))
-    (do ((i 0))
-	((or (>= i numgood) (null orlist)))
-      (dolist (d orlist)
-	(when (>= i numgood) (return))
-	(unless *quiet* 
-	  (format t "~&**Solving ~S (~A of ~A good)~%" p (1+ i) numgood))
-	(setq bl (notamper-solve-good d required types space history))
-	(cond (bl
-	       (unless firstgood (setq firstgood (remove-if #'(lambda (x) (member (first x) unique)) bl)))
-	       (push bl good)
-	       (setq history (notamper-newhist history bl unique))
-	       (setq i (1+ i)))
-	      (t ; this disjunct has no more solutions
-	       (setq orlist (delete d orlist :test #'equal))))
-	(when *ss-debug* (format t "~&  Solution: ~S~%" bl))))
-    (setq good (remove-duplicates good :test #'equal))
-    (when (not good) 
-      (unless *quiet* (format t "~&~%**** No good answers found.  Aborting.****~%~%"))
-      (return-from notamper nil))
-
-    ; compute one bad answer for each disjunct in DNF
-    (unless *quiet* (format t "~&~%~%**** Generating Bad Answers ****~%~%"))
-    (dolist (v (or2list (dnf (maknot p))))
-      (unless *quiet* (format t "~&**Solving ~S~%" v))
-      (setq bl (notamper-solve-bad v required types space history p firstgood))
-      (when *ss-debug* (format t "~&  Solution: ~S~%" bl))
-      (when bl (push (list v bl) bad))
-      (setq history (notamper-newhist history bl unique)))
-    (setq bad (remove-duplicates bad :test #'blequal :key #'second))
-
-    ; check if an element of good is an element of bad. If so, warn and then throw out. 
-    (setq tmp nil)
-    (dolist (b bad)
-      (when (member (second b) good :test #'blequal)
-	(unless *quiet* 
-	  (format t "~&!! Warning: bad solution also a good solution.  Throwing out bad. !!~%")
-	  (format t "~S~%" b))
-	(push b tmp)))
-    (setq bad (delete-if #'(lambda (x) (member x tmp :test #'equal)) bad))
-
-    ; return two lists
-    (list (list* 'good p (nreverse good))
-	  (cons 'bad (nreverse bad)))))
-
-(defun notamper-solve-good (p required types space history)
-  (let (bl)
-    (setq p (makand (notamper-addhist p history (union (vars p) required)) space))
-    ; asking for solution including all vars in P plus required so we can checksat
-    (setq bl (ss-solve p :required (union (vars p) required) :types types))
-    (when bl
-      (ss-assert (ss-checksat p types (append (hash2bl bl) '((t . t)))) nil 
-	      (format nil "In notamper-solve-good, ss-solve failed on ~%~S~%producing ~S" p (hash2bl bl)))
-      (setq bl (hash2list bl)))
-    bl))
-
-(defun notamper-solve-bad (p required types space history origp goodbl)
-  "(NOTAMPER-SOLVE-BAD P HISTORY REQUIRED TYPES SPACE ORIGP GOODBL) finds a solution to
-   (and P SPACE) with at least REQUIRED variables having assignments.  TYPES includes
-   the type for each variable; HISTORY includes the history of assignments up
-   to this point for those variables that must be unique.  ORIGP is a sentence such that
-   P implies (not ORIGP).  GOODBL includes a binding for all required, non-unique variables
-   that jointly satisfy ORIGP.  "
-  (let (bl unassigned vs p2 bl2)
-    (setq vs (vars p))
-    (setq p2 (makand (notamper-addhist p history vs) space))
-    (setq bl (ss-solve p2 :required vs :types types)) ; required are just those in p
-    (when bl
-      (ss-assert (ss-checksat p2 types (append (hash2bl bl) truth)) nil 
-	      (format nil "In notamper-solve-bad, ss-solve failed initially on ~%~S~%producing ~S" p2 (hash2bl bl)))
-      (setq bl (hash2list bl))
-      (setq bl (delete-if-not #'(lambda (x) (member (first x) vs)) bl))  ; reduce var assign to original vs
-      ; add variables that were required from good solution
-      (setq unassigned (set-difference required (mapcar #'first bl)))
-      (when *ss-debug* (format t "~&BL: ~S, unassigned: ~A~%" bl unassigned))
-      (when unassigned
-	; augment bl with goodbl (which includes assignments for all REQUIRED but no UNIQUE variables)
-	(setq goodbl (remove-if-not #'(lambda (x) (member (first x) unassigned)) goodbl))
-	(setq unassigned (set-difference unassigned (mapcar #'first goodbl)))
-	(setq bl (nconc goodbl bl))
-	(when *ss-debug* (format t "~&BL: ~S, unassigned: ~A~%" bl unassigned))
-	(when unassigned
-	  ; augment bl with remaining variables (which must be UNIQUE) by invoking solver on origp
-	  ; since we only care about unassigned vars, there is no need to update history because previous
-	  ;    BL left the unassigned variables unassigned.
-	  (setq p2 (makand (notamper-addhist origp history unassigned) space))
-	  (setq bl2 (ss-solve p2 :types types :required (union unassigned (vars p2))))
-	  (cond ((not bl2) (setq bl nil))
-		(t
-		 (ss-assert (ss-checksat p2 types (append (hash2bl bl2) truth)) nil 
-			 (format nil "In notamper-solve-bad, ss-solve failed secondarily on ~%~S~%producing ~S" 
-				 p2 (hash2bl bl)))
-		 (setq bl2 (hash2list bl2))
-		 (setq bl2 (remove-if-not #'(lambda (x) (member (first x) unassigned)) bl2))
-		 (setq bl (nconc bl2 bl)))))))
-    bl))
-
-(defun notamper-newhist (history bl unique) 
-  "(NOTAMPER-NEWHIST HISTORY BL UNIQUE) augments HISTORY to reflect most recent
-   assignment BL, where we only need store variables occurring in UNIQUE list."
-  (when (not (hash-table-p history)) (setq history (make-hash-table)))
-  (dolist (b bl history)
-    (when (member (first b) unique)
-      (push (second b) (gethash (first b) history)))))
-;  (nconc (remove-if-not #'(lambda (x) (member (first x) unique)) bl) history))
-
-(defun notamper-addhist (p history vs)
-  "(NOTAMPER-ADDHIST P HISTORY) augments P to include constraints from HISTORY
-   on variables VS."
-  (makand (maksand (mapcarnot #'(lambda (x) (if (member (car x) vs)
-						(list 'nin (car x) (ss-set2reg (cdr x)))
-						nil)) 
-			     (hash2bl history))) 
-	  p))
-
-(defun ss-set2reg (s)
-  (setq s (mapcar #'(lambda (x) (ss-regesc (tostring x))) s))
-  (setq s (tostring (cons (first s) (mapcan #'(lambda (x) (list "|" x)) (cdr s)))))
-  (ss-makreg s))
-
-(defun blequal (l1 l2) (setequal l1 l2 :test #'equal))
-
-(defun setequal (l1 l2 &key (test #'eq) (key #'identity))
-  (and (null (set-difference l1 l2 :test test :key key))
-       (null (set-difference l2 l1 :test test :key key))))
-
-(defun ss-guess-required (p types)
-  (when (hash-table-p types) (setq types (hash2list types)))
-  (union (vars p) (vars types)))
-
-(defun ss-guess-unique (p required)
-  "(SS-GUESS-UNIQUE P) returns all variables not appearing in a positive = statement."
-  (let (v)
-    (setq p (nnf p))
-    (setq v (find-pos-eq-vars p))
-    (setq v (union v (find-pos-in-vars p)))
-    (set-difference required v)))
-
-(defun ss-guess-maxlen (p)
-  "(SS-GUESS-MAXLEN P) guesses a maxlength for the constraints in P."
-  (let ((m (find-terms #'numberp p)))
-    (if m (+ 10 (apply #'max m)) 20)))
-
-(defun find-pos-eq-vars (p)
-  "(FIND-POS-EQ-VARS P) finds all variables appearing in positive = literals.
-   Assumes P is in NNF."
-  (cond ((atom p) nil)
-	((find (car p) '(and or => <= <=> forall exists))
-	 (mapcan #'find-pos-eq-vars (cdr p)))
-	((eq (car p) 'not) nil)
-	((eq (car p) '=) (cond ((varp (second p)) 
-				(if (varp (third p)) (list (second p) (third p)) (list (second p))))
-			       ((varp (third p)) (list (third p)))
-			       (t nil)))
-	(t nil)))
-
-(defun find-pos-in-vars (p)
-  "(FIND-POS-IN-VARS P) finds all variables appearing in positive in literals.
-   Assumes P is in NNF."
-  (cond ((atom p) nil)
-	((find (car p) '(and or => <= <=> forall exists))
-	 (mapcan #'find-pos-in-vars (cdr p)))
-	((eq (car p) 'not) nil)
-	((eq (car p) 'in) (if (varp (second p)) (list (second p)) nil))
-	(t nil)))
-
-;;;;;;;;;;;;;;; Testcase Output ;;;;;;;;;;;;;;;
-
-(defun notamper2xml (notamperout prob &key (stream t) (time nil) (count nil)) 
-  "(NOTAMPER2XML NOTAMPEROUT S) takes the output of notamper and prints to stream S
-   an XML representation of it."
-  (format stream "<form name=\"~A\">~%" (ss-prob-name prob))
-  (printspaces 2 stream) (format stream "<attributes>~%")
-  (dolist (m (ss-prob-metafields prob))
-    (printspaces 4 stream)
-    (format stream "<~(~A~)>~A</~(~A~)>~%" (first m) (second m) (first m)))
-  (printspaces 4 stream) (format stream "<time>~A</time>~%" time)
-  (printspaces 4 stream) (format stream "<count>~A</count>~%" count)
-  (printspaces 2 stream) (format stream "</attributes>~%")
-  (printspaces 2 stream) (format stream "<good>~%")
-  (dolist (bl (cddr (first notamperout)))
-    (when bl
-      (printspaces 4 stream)
-      (format stream "<case>~%")
-      (notamper2xml-varassign nil bl 6 stream)
-      (printspaces 4 stream)
-      (format stream "</case>~%")))
-  (printspaces 2 stream) (format stream "</good>~%")
-  (printspaces 2 stream) (format stream "<bad>~%")
-  (dolist (bl (cdr (second notamperout)))
-    (when (second bl)
-      (printspaces 4 stream)
-      (format stream "<case>~%")
-      (notamper2xml-varassign (ss-vars (first bl)) (second bl) 6 stream)
-      (printspaces 4 stream)
-      (format stream "</case>~%")))
-  (printspaces 2 stream) (format stream "</bad>~%")
-  (format stream "</form>~%"))
-
-(defun ss-vars (p)
-  (cond ((varp p) (list p))
-	((atom p) nil)
-	((member (car p) '(and or not => <= <=> forall exists)) (mapcan #'ss-vars (cdr p)))
-	((eq (car p) 'var) (list (second p)))
-	(t (mapcan #'ss-vars (cdr p)))))
-
-(defun notamper2xml-varassign (tamperedvars bl n s)
-  (let (v)
-    (dolist (x bl)
-      (setq v (if (atom (first x)) (first x) (second (first x))))
-      (printspaces n s) 
-      (format s "<bl><var tamper=\"~A\">~A</var><val>~A</val></bl>~%" 
-	      (if (member v tamperedvars) "true" "false")
-		  (urlify (notamper2web-varspelling (first x)))
-		  (urlify (second x))))))
-#|
-(defun notamper2web (notamperout prob &key (stream t) (time nil) (count nil)) 
-  "(NOTAMPER2WEB NOTAMPEROUT PROB &KEY STREAM TIME) takes the output of notamper and prints to stream 
-   STREAM an http representation of it with headers described in PROB."
-  (let (cnt)
-    (setq cnt (+ (length (cddr (first notamperout)))
-		 (length (cdr (second notamperout)))))
-    (format stream "~&")
-    (dolist (m (ss-prob-metafields prob))
-      (format stream "~A: ~A~%" (first m) (second m)))
-    (when count (format stream "Number of string problems solved: ~A~%" count))
-    (when time (format stream "Time: ~A seconds~%" time))
-    (format stream "Number of testcases generated: ~A~%" cnt)
-    (format stream "~%")
-
-    (if (ss-prob-multipart prob)
-	(notamper2web-multi notamperout stream)
-	(notamper2web-std notamperout stream))))
-
-(defun notamper2web-std (notamperout stream)
-    ; good
-    (dolist (bl (cddr (first notamperout)))
-      (notamper2web-std-bl bl stream "&"))
-    (format stream "~%")
-    
-    ; bad
-    (dolist (entry (cdr (second notamperout)))
-      (notamper2web-std-bl (second entry) stream "&"))
-    (format stream "~%"))
-
-(defun notamper2web-std-bl (bl s sep)
-  (when bl
-    (format s "~A=~A" 
-	    (urlify (notamper2web-varspelling (first (car bl)))) 
-	    (urlify (second (car bl))))
-    (dolist (b (cdr bl))
-      (format s "~A~A=~A" sep 
-	      (urlify (notamper2web-varspelling (first b))) 
-	      (urlify (second b))))
-    (format s "~%")))
-	 
-(defun notamper2web-multi (notamperout stream)
-  ; good
-  (format stream "~&**good~%~%")
-  (dolist (bl (cddr (first notamperout)))
-    (notamper2web-multi-bl bl stream))
-    
-  ; bad
-  (format stream "~&**bad~%~%")
-  (dolist (entry (cdr (second notamperout)))
-    (notamper2web-multi-bl (second entry) stream)))
-
-(defun notamper2web-multi-bl (bl s &optional (boundary "--AaB03x"))
-  (when bl
-    (format s "Content-Type: multipart/form-data; boundary=~A~%~%" boundary)
-    (dolist (b bl)
-      (format s "~A~%" boundary)
-      (format s "Content-Disposition: form-data; name=\"~(~A~)\"~%~%"
-	       (notamper2web-varspelling (first b)))
-      (format s "~A~%"  (second b)))
-    (format s "~&**nazari~%~%")))
-|#
-
-(defun notamper2web-varspelling (v)
-  (cond ((varp v) (format nil "~(~A~)" (droparrayindex (devariable v))))
-	((atom v) v)
-	((eq (car v) 'var) (second v))
-	(t v)))
-
-(defun droparrayindex (s)
-  (setq s (split-string (tostring s) '(#\[ #\])))
-  (when (second s)
-    (setf (second s) "[]"))
-  (apply #'stringappend s))
-
-; borrowed from Mike
-(defun urlify (s)
-  (unless (stringp s) (setq s (princ-to-string s)))
-  (with-output-to-string (o)
-    (do ((i 0 (1+ i)) (c) (n (length s)))
-        ((= i n) o)
-        (setq c (elt s i))
-        (cond ((alphanumericp c) (write-char c o))
-              ((find c '(#\$ #\- #\_ #\. #\+) :test #'char=) (write-char c o))
-              (t (format o "%~:@(~2,'0x~)" (char-code c)))))))
-
-;(notamper-build-negative-variations '(and (eq ?email1 ?email2) (eq ?pwd1 ?pwd2) (not (eq ?userid ""))))
-(defun notamper-build-negative-variations (p)
-  "(SS-BUILD-VARIATIONS P) takes a conjunction of literals P and constructs
-   a set of conjunctions of literals--one for each conjunct in P but negated."
-  (ss-assert (or (literalp p)
-	      (and (listp p) (eq (car p) 'and) (every #'literalp (cdr p))))
-	  nil "SS-BUILD-VARIATIONS requires a conjunction of literals as input")
-  (setq p (and2list p))
-  (do ((s p (cdr s))
-       (res nil) (sofar nil))
-      ((null s) res)
-    (push (maksand (revappend sofar (cons (maknot (car s)) (cdr s)))) res)
-    (push (car s) sofar)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; String Solving ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -910,16 +357,17 @@
     (setq h (ss-solve (makand p (maksand (contents th))) :required (vars thing)))
     (if h (plug thing (nconc (hash2bl h) truth)) nil))) 
 
-(defun ss-solve (p &key (types nil) (required t))
+(defun ss-solve (p &key (types nil) (required t) (forbidden nil))
   "(SS-SOLVE P) is the top-level solver routine.  P is assumed to be a logical
    KIF expression. SS-SOLVE converts P to DNF  and solves each conjunction independently.
    TYPES is either NIL or a list of IN expressions giving types for each variable.
    REQUIRED is a list of variables that are required to have values or T to indicate
-   all variables occurring in P.  Return is a hash table of mappings from variables to values
+   all variables occurring in P.  FORBIDDEN is a list of variables not allowed to
+   be assigned values.  Return is a hash table of mappings from variables to values
    for all variables either occurring in P or belonging to REQUIRED.  "
   (setq *ss-solve-count* (1+ *ss-solve-count*))
   (let (e (*ss-max-length* *ss-max-length*))
-    (when (and required (atom required)) (setq required (ss-guess-required p types)))
+    (when (eq required 't) (setq required (vars p)))
     (when (and types (not (hash-table-p types)))  ; when types is a list
       (setq e (make-hash-table))
       (mapc #'(lambda (x) (setf (gethash (second x) e) x)) types)
@@ -931,18 +379,32 @@
       (mapc #'(lambda (x) (setf (gethash x types) `(in ,x (reg ,*strreg*)))) e))
 |#
 
+    ; Ugly hack to ensure bool/num types are satisfied.  If solver allowed typedecls, wouldn't need this.
+    ;     There's no good way to declare boolean or numeric variables to Kaluza.
+    ;     Instead of adding a boolean variable decl, we simply add a toplevel disjunct var=true | var=false.
+    ;     Instead of adding a numeric variable decl, we add var < 0 | var >= 0.
+    (dolist (y (hash2bl types))
+      (setq y (cdr y))
+      (when (eq (car y) 'typedecl)
+	(cond ((eq (third y) 'num)
+	       (setq p (makand `(or (gte ,(second y) 0) (lt ,(second y) 0)) p)))
+	      ((eq (third y) 'bool)
+	       (setq p (makand `(or (= ,(second y) true) (= ,(second y) false)) p))))))
+
     (unless *store-external-solver-files* (setq *counter* 1))
 
     ;(setq e (ss-invalid-inputs p))
-    (when e 
-      (unless *quiet* (format t "Syntax error: ~A~%" e))
-      (return-from ss-solve :error))
+    ;(when e 
+    ;  (unless *quiet* (format t "Syntax error: ~A~%" e))
+    ;  (return-from ss-solve :error))
 
-    ; convert to dnf, remove syntactic sugar, convert to DNF again, and solve disjuncts independently
+    ; convert to dnf, remove syntactic sugar, convert to DNF again, and solve disjuncts independently.
+    ;    Seems faster to convert to DNF twice.
     (dolist (origconj (or2list (dnf p)) nil)
       (dolist (c (or2list (dnf (ss-drop-syntactic-sugar origconj))))
 	(setq c (copy-tree c))   ; so that we can use destructive ops below
-	(setq c (ss-solve-atoms (mapcar #'ss-simplify-not (and2list c)) types required))
+	(handler-case (setq c (ss-solve-atoms (mapcar #'ss-simplify-not (and2list c)) types required forbidden))
+	  (ss-type-error () (setq c nil)))
 	(when c (return-from ss-solve c))))))
 
 #| Version with Hampi   
@@ -980,31 +442,37 @@
       (when c (return c)))))
 |#
 
-(defun ss-drop-syntactic-sugar (p)
-  "(SS-DROP-SYNTACTIC-SUGAR P) takes a conjunction of literals P,
-   flattens functions in P, and rewrites functions/relations that 
-   cannot be solved by the core external solver."
-  ; flatten sentences fully or Kaluza sometimes breaks
-  (multiple-value-bind (newp extra) (flatten-functions p t)
-    (setq p (maksand (cons newp extra))))
-  (flatten-operator (ss-drop-sugar p 'sentence)))
+(defun ss-drop-syntactic-sugar (p) (ss-drop-sugar-sent p))
+(defun ss-drop-sugar-sent (p) (mapopands #'ss-drop-sugar-atom p))
 
-(defmethod ss-drop-sugar (term (type (eql 'sentence)))
-  "(SS-DROP-SUGAR TERM TYPE) assumes TERM has no embedded functions (with one exception -- when type is unflatterm)
-   and rewrites sugar functions in terms of primitive functions."
-  (cond ((atom term) (values term nil))
-	((member (car term) '(and not)) 
-	 (multiple-value-bind (newp extra) (mapcaraccum #'(lambda (x) (ss-drop-sugar x 'sentence)) (cdr term))
-	   (values (cons (car term) newp) extra)))
-	(t (multiple-value-bind (args extra) (mapcaraccum #'(lambda (x) (ss-drop-sugar x (signifier x))) (cdr term))
-	     (maksand (cons (cons (car term) args) extra))))))
+(defun ss-drop-sugar-atom (p)
+  (cond ((varp p) `(= ,p true))
+	((atom p) p)
+	(t (multiple-value-bind (args extra) (mapcaraccum #'ss-drop-sugar-term (cdr p))
+	     (setq p (cons (car p) args))
+	     (setq p (ss-drop-sugar p (car p)))
+	     (setq extra (mapcar #'ss-drop-sugar-sent extra))
+	     (maksand (cons p extra))))))
 
+(defun ss-drop-sugar-term (term)
+  (cond ((atom term) (ss-drop-sugar term term))
+	(t (multiple-value-bind (args extra) (mapcaraccum #'ss-drop-sugar-term (cdr term))
+	     (setq term (cons (car term) args))
+	     (multiple-value-bind (newterm extra2) (ss-drop-sugar term (signifier term))
+	       (values newterm (nconc extra extra2)))))))
+#|
 (defmethod ss-drop-sugar (term (type (eql 'unflatterm)))
   (multiple-value-bind (newterm extra) (flatten-term term)
     (when extra
       (multiple-value-bind (sentnew sentextra) (ss-drop-sugar (maksand extra) 'sentence)
 	(setq extra (cons sentnew sentextra))))
     (values newterm extra)))
+|#
+
+(defgeneric ss-drop-sugar (term type))
+;  "(SS-DROP-SUGAR TERM TYPE) removes the sugar from TERM, which is either
+;   an atom or a functional term whose arguments have already been desugared.
+;   Returns 2 values: the new term and a list of supporting statements.")
 
 (defmethod ss-drop-sugar (term (type (eql 'ltrim)))
   (let ((thing (second term))
@@ -1028,8 +496,8 @@
 
 (defmethod ss-drop-sugar (term (type (eql 'trim)))
   (if (cddr term)
-      (ss-drop-sugar (list 'ltrim (cons 'rtrim (third term)) (third term)) 'unflatterm)
-      (ss-drop-sugar `(ltrim (rtrim ,(second term))) 'unflatterm)))
+      (ss-drop-sugar-term (list 'ltrim (cons 'rtrim (third term)) (third term)))
+      (ss-drop-sugar-term `(ltrim (rtrim ,(second term))))))
 
 (defmethod ss-drop-sugar (term (type (eql 'chop)))
   (ss-drop-sugar term 'rtrim))
@@ -1084,13 +552,32 @@
     (values `(concat ,leftvar (concat ,(third term) ,rightvar))
 	    sents)))
 
+(defmethod ss-drop-sugar (term (type (eql 'empty)))
+   ; PHP 5 notion of empty (skipping NULL and objects)
+  `(or (= ,(second term) "")
+       (= ,(second term) 0)
+       (= ,(second term) "0")
+       (= ,(second term) false)
+       (forbid ,(second term))))
+
+(defmethod ss-drop-sugar (term (type (eql 'isset)))
+  ; PHP 5 notion of isset
+  `(require ,(second term)))
+
 (defmethod ss-drop-sugar (term type)
   (declare (ignore type))
   term)
-
+#|
+  (cond ((atom term) term)
+	(t
+	 (multiple-value-bind (args extra) 
+	     (mapcaraccum #'(lambda (x) (ss-drop-sugar x (signifier x))) (cdr term))
+	   (values (cons (car term) args) extra)))))
+|#
 
 
 ;;;;;;;;;;;; Vocabulary checking ;;;;;;;;;;;;
+;  OUT OF DATE--NOT BEING USED CURRENTLY.
 ; only tricky thing.  regexp "L" represented as (reg "L")
 ; variables represented as ?x
 (defparameter *ssvocab* (list (make-parameter :symbol 'lt :arity 2 :type 'relation)
@@ -1119,27 +606,36 @@
 
 ;;;;;;;;;;;; Conjunctive Constraint solving ;;;;;;;;;;;;
 ; actual solving.
-;(define-condition ss-type-error (error))
 
-(defun ss-solve-atoms (ps types required)
+(defun ss-solve-atoms (ps types &optional required forbidden)
   "(SS-SOLVE-ATOMS PS TYPES REQUIRED) uses External Solver to find a solution to the atoms given as input.
    Each atom takes the following form or one of the symmetric instances of the below.
-   REQUIRED is the minimal set of variables that must be given values.  Returns a variable assignment including all
+   REQUIRED is the minimal set of variables that must be given values.  
+   FORBIDDEN is a set of vars not allowed to be assigned values.
+   Returns a variable assignment including all
    variables occurring in REQUIRED plus those occurring in PS (to witness satisfiability).
+   Tailored for Kaluza.
        numop :=  lt | lte | gt | gte
        eqop  :=  = | !=
        regop :=  in | notin | nin
        op    :=  numop | eqop | regop
        term  :=  var | str | num | bool | (len term) | (concat term term)
        atom  :=  (op term term)"
-  (let (bl bl2 blvars psvars solvervars h vs)
+  (let (bl bl2 blvars psvars solvervars h vs r f)
+    ; rip out require/forbid atoms and add to required/forbidden lists
+    (multiple-value-setq (r ps) (split #'(lambda (x) (member (reln x) '(require forbid))) ps))
+    (multiple-value-setq (r f) (split #'(lambda (x) (eq (reln x) 'require)) r))
+    (setq required (union (mapcarnot #'(lambda (x) (if (varp (second x)) (second x) nil)) r) required))
+    (setq forbidden (union (mapcarnot #'(lambda (x) (if (varp (second x)) (second x) nil)) f) forbidden))
+
     ; simplify constraints, evaluating what we can
     (setq ps (ss-solve-atoms-simplify ps))
-    (setq psvars (vars ps))
     (when (not (listp ps)) (return-from ss-solve-atoms nil))
-    (setq ps (and2list (flatten-operator (maksand (mapcar #'flatten-functions ps)))))
+    (setq psvars (vars ps))
+    (when (intersectionp psvars forbidden) (return-from ss-solve-atoms nil))  ; if var shows up in PS, we're finding value
+    (setq ps (and2list (flatten-operator (flatten-functions (maksand ps) t))))
 
-    ; remove equality for (= var ground); leave (= var unground) since we need flat terms.
+    ; remove equality for (= var ground); leave (= var unground) since we need flat terms for Kaluza.
     (multiple-value-setq (ps bl) (delete-simple= ps :test #'equal))
     (when (eq ps :unsat) (return-from ss-solve-atoms nil))
     ; remove != for boolean variables with ground arg
@@ -1169,7 +665,8 @@
     (when types
       (dolist (v solvervars)
 	(when (setq v (gethash v types))
-	  (push v ps))))
+	  (unless (eq (car v) 'typedecl)   ; already taken care of by ss-solve
+	    (push v ps)))))
 
     ; add types for vars without types; otherwise Kaluza chokes
     (dolist (v (set-difference solvervars (mapcar #'car (ss-type-inference ps))))
@@ -1181,7 +678,7 @@
       (when (listp p)
 	(dolist (a (cdr p))
 	  (when (varp a) (setq vs (delete a vs))))))
-    (dolist (v vs)  ; only vars appearing in functional terms are string variables
+    (dolist (v vs)  ; all vars appearing in functional terms are string variables
       (push `(in ,v ,*strreg*) ps))
 
     ; crunch the numbers
@@ -1190,8 +687,8 @@
 	nil
 	(ss-augment-result3 (bl2hash h) bl required))))
 
-#|  Version with Hampi
-(defun ss-solve-atoms (ps types required)
+#|
+(defun ss-solve-atoms-hampi (ps types required)
   "(SS-SOLVE-ATOMS PS TYPES REQUIRED) uses Hampi to find a solution to the atoms given as input.
    Each atom takes the following form or one of the symmetric instances of the below.
    REQUIRED is the minimal set of variables that must be given values.  TYPES is a hash
@@ -1295,19 +792,11 @@
 |#
 
 (defun ss-solve-atoms-simplify (ps)
-  "(SS-SOLVE-ATOMS SIMPLIFY PS) takes a list of atoms and simplifies them.  Returns 'error
+  "(SS-SOLVE-ATOMS SIMPLIFY PS) takes a list of atoms and simplifies them.  Throws ss-type-error
    if an error was found.  Returns :unsat if unsatisfiability discovered.  Otherwise, returns
    simplification of PS."
   (let (simps)
-    (setq simps (mapcar #'ss-simplify (mapcar #'ss-orient ps)))
-    (when (member 'error simps)
-      (unless *quiet*
-	(format t "~&Type errors found during simplification.  Aborting.~%")
-	(do ((e simps (cdr e))
-	     (p ps (cdr p)))
-	    ((null e))
-	 (when (eq (car e) 'error) (format t "  ~S~%" (car p)))))
-      (return-from ss-solve-atoms-simplify 'error))
+    (setq simps (mapcar #'(lambda (x) (ss-simplify (ss-orient x))) ps))
     (when (member 'false simps)
       (unless *quiet*
 	(format t "~%Unsatisfiability found during simplification.  Simplified result: ~&  ~S~%" simps))
@@ -1468,7 +957,7 @@
 	((find (car p) '(<= => or and not <=> forall exists))
 	 (cons (car p) (mapcar #'ss-orient (cdr p))))
 	; (op non-atom atom)
-	((find (car p) '(in notin nin contains notcontains)) p)
+	((find (car p) '(in notin nin contains notcontains require forbid)) p)
 	((and (not (atom (second p))) (atom (third p)))
 	     (list (ss-symmetric (car p)) (third p) (second p)))
 	; (op non-atom-non-var var)
@@ -1511,11 +1000,21 @@
 ;  (regop notin)
   (<= (op ?x) (or (numop ?x) (eqop ?x) (regop ?x)))
   (<= (atom (?x ?y ?z)) (op ?x) (term ?y) (term ?z)))
-
   
+(defun ss-evaluate (p)
+  "(SS-EVALUATE P) assumes P is ground with the exception of modals.  Returns true or false."
+  (labels ((e (p)
+	     (cond ((atom p) p)
+		   ((find (car p) '(or and not)) (remove-truth1 (cons (car p) (mapcar #'e (cdr p)))))
+		   ((eq (car p) 'require) (if (varp (second p)) 'false 'true))
+		   ((eq (car p) 'forbid) (if (varp (second p)) 'true 'false))
+		   (t p))))
+    (e (ss-simplify p))))
+
+
 (defun ss-simplify (p)
   "(SS-SIMPLIFY P) Evaluates p if it is a ground atom to either true or false.
-   Returns new p or 'error.  Also casts where necessary."
+   Returns new p or throws an ss-type-error.  Also casts where necessary."
   ;(declare (notinline ss-simplify))
   (cond ((atom p) p)
 	((find (car p) '(or and not))
@@ -1533,14 +1032,16 @@
 	 (setq p (ss-cast-tostring (ss-simplify (second p))))
 	 (cond ((stringp p) (length p))
 	       ((varp p) `(len ,p))
-	       (t 'error))) 
-	 
+	       (t (error 'ss-type-error)))) 
+
+	; modals
+	((eq (car p) 'require) (if (varp (second p)) p 'true))
+	((eq (car p) 'forbid) (if (varp (second p)) p 'false))
+
 	; relational operators
 	((member (car p) '(= != lt lte gt gte in notin nin contains notcontains))
-	 (setq p (ss-toerr (cons (car p) (mapcar #'ss-simplify (cdr p)))))
-	 (when (eq p 'error) (return-from ss-simplify 'error))
+	 (setq p (cons (car p) (mapcar #'ss-simplify (cdr p))))
 	 (setq p (ss-cast p))  ; get types right to the extent that we can
-	 (when (eq p 'error) (return-from ss-simplify 'error))
 	 (cond ((and (not (varp (second p))) (not (varp (third p))))
 		(cond ((and (atom (second p)) (atom (third p))) ; ground objs
 		       (cond ((eq (car p) '=) (if (equal (second p) (third p)) 'true 'false))
@@ -1563,40 +1064,41 @@
   "(SS-CAST P) takes an atom and casts its arguments to the correct type
    and returns the result or ERROR.  Assumes P has already been simplified via ss-simplify."
   (cond ((find (car p) '(lt lte gt gte))
-	 (ss-toerr (list (car p) (ss-cast-tonum (second p)) (ss-cast-tonum (third p)))))
+	 (list (car p) (ss-cast-tonum (second p)) (ss-cast-tonum (third p))))
 	((find (car p) '(= !=))
-	 (cond ((and (listp (second p)) (eq (car (second p)) 'reg)) 'error)
-	       ((and (listp (third p)) (eq (car (third p)) 'reg)) 'error)
-	       ((stringp (second p)) (ss-toerr (list (car p) (second p) (ss-cast-tostring (third p)))))
-	       ((stringp (third p)) (ss-toerr (list (car p) (ss-cast-tostring (second p)) (third p))))
-	       ((numberp (second p)) (ss-toerr (list (car p) (second p) (ss-cast-tonum (third p)))))
-	       ((numberp (third p)) (ss-toerr (list (car p) (ss-cast-tonum (second p)) (third p))))
-	       ((boolp (second p)) (ss-toerr (list (car p) (second p) (ss-cast-tobool (third p)))))
-	       ((boolp (third p)) (ss-toerr (list (car p) (ss-cast-tobool (second p)) (third p))))
-	       ((lenp (second p)) (ss-toerr (list (car p) (second p) (ss-cast-tonum (third p)))))
-	       ((lenp (third p)) (ss-toerr (list (car p) (ss-cast-tonum (second p)) (third p))))
+	 (cond ((and (listp (second p)) (eq (car (second p)) 'reg)) (error 'ss-type-error))
+	       ((and (listp (third p)) (eq (car (third p)) 'reg)) (error 'ss-type-error))
+	       ((stringp (second p)) (list (car p) (second p) (ss-cast-tostring (third p))))
+	       ((stringp (third p))  (list (car p) (ss-cast-tostring (second p)) (third p)))
+	       ((numberp (second p)) (list (car p) (second p) (ss-cast-tonum (third p))))
+	       ((numberp (third p)) (list (car p) (ss-cast-tonum (second p)) (third p)))
+	       ((boolp (second p)) (list (car p) (second p) (ss-cast-tobool (third p))))
+	       ((boolp (third p)) (list (car p) (ss-cast-tobool (second p)) (third p)))
+	       ((lenp (second p)) (list (car p) (second p) (ss-cast-tonum (third p))))
+	       ((lenp (third p)) (list (car p) (ss-cast-tonum (second p)) (third p)))
 	       (t p)))
 	((find (car p) '(in notin nin))
-	 (ss-toerr (list (car p) (ss-cast-tostring (second p)) (ss-cast-toreg (third p)))))
+	 (list (car p) (ss-cast-tostring (second p)) (ss-cast-toreg (third p))))
 	((find (car p) '(contains notcontains))
-	 (ss-toerr (list (car p) (ss-cast-tostring (second p)) (ss-cast-tostring (third p)))))
+	 (list (car p) (ss-cast-tostring (second p)) (ss-cast-tostring (third p))))
 	(t p)))
-
+#|
 (defun ss-toerr (x) 
   (cond ((atom x) (if (eq x 'error) 'error x))
 	((listp x) (if (member 'error x) 'error x))
 	(t x)))
+|#
 
 (defun ss-cast-tonum (x) 
   (cond ((boolp x) (if (eq x 'true) 1 0))
 	((numberp x) x)
 	((stringp x) 
-	 (cond ((equal x "") 'error) 
+	 (cond ((equal x "") (error 'ss-type-error)) 
 	       (t (setq x (ignore-errors (read-from-string x nil nil))) 
-		  (if (numberp x) x 'error))))
+		  (if (numberp x) x (error 'ss-type-error)))))
 	((varp x) x)
 	((lenp x) x)
-	(t 'error)))
+	(t (error 'ss-type-error))))
 
 (defun ss-cast-tostring (x)
   (cond ((boolp x) (tostring x))
@@ -1604,22 +1106,22 @@
 	((stringp x) x)
 	((varp x) x)
 	((lenp x) x)
-	(t 'error)))
+	(t (error 'ss-type-error))))
 
 (defun ss-cast-tobool (x)
   (cond ((boolp x) x)
 	((numberp x) (if (= x 0) 'false 'true))
 	((stringp x) (cond ((or (equal x "1") (equal x "true")) 'true)
 			   ((or (equal x "0") (equal x "false")) 'false)
-			   (t 'error)))
+			   (t (error 'ss-type-error))))
 	((varp x) x)
 	((lenp x) x)
-	(t 'error)))
+	(t (error 'ss-type-error))))
 
 (defun ss-cast-toreg (x)
   (if (or (stringp x) (numberp x) (boolp x))
       (tostring x)
-      'error))
+      (error 'ss-type-error)))
     
 (defun ss-simplify-not (p)
   "(SS-SIMPLIFY-NOT P) Given a literal p, translates to equivalent literal
@@ -1637,8 +1139,58 @@
 	       ((eq (car p) 'notin) (cons 'in (cdr p)))
 	       ((eq (car p) 'nin) (cons 'in (cdr p)))
 	       ((eq (car p) 'contains) (cons 'notcontains (cdr p)))
-	       ((eq (car p) 'notcontains) (cons 'contains (cdr p)))))	       
-	(t p)))    
+	       ((eq (car p) 'notcontains) (cons 'contains (cdr p)))
+	       ((eq (car p) 'require) (cons 'forbid (cdr p)))
+	       ((eq (car p) 'forbid) (cons 'require (cdr p)))))       
+	(t p)))
+
+(defun ss-simplify-aggressive (plist)
+  "(SS-SIMPLIFY-AGGRESSIVE PLIST) takes a list of atoms PLIST and returns an
+   equivalent but simplified list of atoms or :unsat.  "
+  (let (bl bl2 len range unsat var low high ne)
+    ; drop = and simplify !=, but keep bl to add back on at end
+    (multiple-value-setq (plist bl) (delete= plist))
+    (multiple-value-setq (plist bl2) (delete!=bool plist))
+    (when (eq plist :unsat) (return-from ss-simplify-aggressive :unsat))
+    (setq bl (compose-mgus (list bl bl2)))
+    ; look for unsat via required/forbidden
+    (when (tautp plist '((require . forbid))) (return-from ss-simplify-aggressive :unsat))
+    ; extract len bounds
+    (setq plist (mapcar #'ss-orient plist))
+    (multiple-value-setq (plist len unsat) (ss-len-bounds plist))
+    (when unsat (return-from ss-simplify-aggressive :unsat))
+    ; extract range bounds
+    (multiple-value-setq (plist range unsat) (ss-range-bounds plist))
+    (when unsat (return-from ss-simplify-aggressive :unsat))
+    ; evaluate what we can
+    (setq plist (mapcar #'ss-simplify plist))
+    (when (member 'false plist) (return-from ss-simplify-aggressive :unsat))
+    ; run poor man's subsumption: should probably do some simple in/notin/nin comparisons
+    (setq plist (remove-duplicates plist :test #'equal))
+
+    ; NEED TO FIX LEN BOUNDS AND ADD RANGE BOUNDS
+    ; add extracted info back, but canonically
+    (setq plist (nconc (mapcarnot #'(lambda (x) (if (varp (car x)) `(= ,(car x) ,(cdr x)) nil)) bl) plist))
+    ; var lengths
+    (dolist (bl (hash2bl len))
+      (setq var (car bl))
+      (setq low (first (car (cdr bl))))
+      (setq high (second (car (cdr bl))))
+      (setq ne (cdr (cdr bl)))
+      (when low (push `(lte ,low (len ,var)) plist))
+      (when high (push `(gte (len ,var) ,high) plist))
+      (when ne (setq plist (nconc (mapcar #'(lambda (x) `(!= (len ,var) ,x)) ne) plist))))
+    ; var values
+    (dolist (bl (hash2bl range))
+      (setq var (car bl))
+      (setq low (first (car (cdr bl))))
+      (setq high (second (car (cdr bl))))
+      (setq ne (cdr (cdr bl)))
+      (when low (push `(lte ,low ,var) plist))
+      (when high (push `(gte ,var ,high) plist))
+      (when ne (setq plist (nconc (mapcar #'(lambda (x) `(!= ,var ,x)) ne) plist))))
+    plist))
+
 
 ;;;;;;;;;;;; Type inference/checking ;;;;;;;;;;;;
 ; kinds of terms: str num bool reg  (variables have computed types)
@@ -1754,8 +1306,8 @@
 	((eq (car x) 'reg) (stringp (second x)))))
 			       
 (deftheory sstypes ""
-  (atype num)
   (atype str)
+  (atype num)
   (atype bool)
 
   (numericop lt)
@@ -1769,30 +1321,71 @@
   (regexp nin)
   (contop contains)
   (contop notcontains)
-  
-
   (bool true)
   (bool false)
 
-  ; type checking
-  (basic num)
-  (basic str)
-  (<= (type ?op num num) (numericop ?op))
-  (<= (type ?op ?y ?z) (equality ?op) (basic ?y) (basic ?z))
-  (<= (type ?op str reg) (regexp ?op))
 
-  ; type inference
+  ;;;; basic types
   (<= (argtype num num))
   (<= (argtype bool bool))
   (<= (argtype str str))
   (<= (argtype ?x bool) (bool ?x))
+  (<= (argtype ?x bool) (atom ?x) (evaluate (varp ?x) t))
   (<= (argtype ?x num) (evaluate (numberp ?x) t))
   (<= (argtype ?x str) (evaluate (stringp ?x) t))
-  (<= (argtype ?x str) (term (len ?x)))
+
+
+  ;;;;; functional term types
+  ; len
   (<= (argtype (len ?x) num))
+  (<= (argtype ?x str) (term (len ?x)))
+  ; concat
   (<= (argtype (concat ?x ?y) str))
   (<= (argtype ?x str) (term (concat ?x ?y)))
   (<= (argtype ?x str) (term (concat ?y ?x)))
+  ; ltrim
+  (<= (argtype (ltrim ?x) str))
+  (<= (argtype ?x str) (term (ltrim ?x)))
+  ; rtrim
+  (<= (argtype (rtrim ?x) str))
+  (<= (argtype ?x str) (term (rtrim ?x)))
+  ; trim
+  (<= (argtype (trim ?x) str))
+  (<= (argtype ?x str) (term (trim ?x)))
+  ; chop
+  (<= (argtype (chop ?x) str))
+  (<= (argtype ?x str) (term (chop ?x)))
+  ; strlen
+  (<= (argtype (strlen ?x) str))
+  (<= (argtype ?x str) (term (strlen ?x)))
+  ; strpos (string, string, num) num is optional
+  (<= (argtype (strpos @x) num))
+  (<= (argtype ?x str) (term (strpos ?x ?y)))
+  (<= (argtype ?y str) (term (strpos ?x ?y)))
+  (<= (argtype ?x str) (term (strpos ?x ?y ?z)))
+  (<= (argtype ?y str) (term (strpos ?x ?y ?z)))
+  (<= (argtype ?z num) (term (strpos ?x ?y ?z)))
+  ; strstr(string, string)
+  (<= (argtype (strstr @x) str))
+  (<= (argtype ?x str) (term (strstr ?x ?y)))
+  (<= (argtype ?y str) (term (strstr ?x ?y)))
+  ; substr(string, start, length) length optional
+  (<= (argtype (substr @x) str))
+  (<= (argtype ?x str) (term (substr ?x ?y)))
+  (<= (argtype ?y str) (term (substr ?x ?y)))
+  (<= (argtype ?x str) (term (substr ?x ?y ?z)))
+  (<= (argtype ?y str) (term (substr ?x ?y ?z)))
+  (<= (argtype ?z num) (term (substr ?x ?y ?z)))
+  ; substr_replace(string, replacement, start, <length>)
+  (<= (argtype ?x str) (term (substr_replace ?x ?y ?z)))
+  (<= (argtype ?y str) (term (substr_replace ?x ?y ?z)))
+  (<= (argtype ?z num) (term (substr_replace ?x ?y ?z)))
+  (<= (argtype ?x str) (term (substr_replace ?x ?y ?z ?w)))
+  (<= (argtype ?y str) (term (substr_replace ?x ?y ?z ?w)))
+  (<= (argtype ?z num) (term (substr_replace ?x ?y ?z ?w)))
+  (<= (argtype ?w num) (term (substr_replace ?x ?y ?z ?w)))
+  
+  ; basic operations
   (<= (argtype ?x str) (atom (type ?x ?y)))
   (<= (argtype ?x str) (atom (?p ?x ?y)) (regexp ?p))
   (<= (argtype ?y str) (atom (?p ?x ?y)) (regexp ?p))
@@ -1804,18 +1397,13 @@
   (<= (argtype ?x ?type) (atom (?p ?y ?x)) (equality ?p) (argtype ?y ?type))
   (<= (argtype ?x ?type) (atom (type ?x ?y)) (argtype ?y ?type))
 
-  (<= (reltype lt num))
-  (<= (reltype lte num))
-  (<= (reltype gt num))
-  (<= (reltype gte num))
-  (<= (reltype in str))
-  (<= (reltype notin str))
-  (<= (reltype nin str))
-  (<= (reltype contains str))
-  (<= (reltype contains str))
-
+  (<= (term ?x) (atom (?p ?x)))
   (<= (term ?x) (atom (?p ?x ?y)))
   (<= (term ?y) (atom (?p ?x ?y)))
+  (<= (term ?x) (atom (?p ?x ?y ?z)))
+  (<= (term ?y) (atom (?p ?x ?y ?z)))
+  (<= (term ?z) (atom (?p ?x ?y ?z)))
+
 
 )
 
@@ -1831,7 +1419,7 @@
    Assumes PS have all been oriented."
   (let ((h (make-hash-table)) v n new unsat (unused nil) inval)
     (dolist (p ps)
-      (cond ((and (numberp (second p)) (lenp (third p)))
+      (cond ((and (numberp (second p)) (lenp (third p)) (varp (second (third p))))
 	     (setq n (second p))
 	     (setq v (second (third p)))  ; arg to len must be a variable by now
 	     (unless (gethash v h) (setf (gethash v h) (cons nil nil)))
@@ -2156,11 +1744,14 @@
    that satisfy CONSTRAINTS, which is a list of literals treated as a conjunction."
   (cond ((or (eq constraints 'true) (null constraints)) (mapcar #'(lambda (x) (cons x "42")) vars))
 	((eq constraints 'false) :unsat)
-	((atom constraints) (ss-assert nil nil (format nil "ss-invoke-kaluza requires a list of constraints; found ~A" constraints)))
+	((atom constraints) 
+	 (ss-assert nil nil (format nil "ss-invoke-kaluza requires a list of constraints; found ~A" constraints)))
 	(t
-	 (let ((f (tostring (list *solver-input-file* *counter*))) out newvars)
-	   (setq newvars (mapcar #'(lambda (x) (read-user-string (format nil "TLH_~A" (devariable x)))) vars))
-	   (setq constraints (sublis (mapcar #'cons vars newvars) constraints))
+	 (let ((f (tostring (list *solver-input-file* *counter*))) starttime out newvars allvars)
+	   (setq allvars (vars constraints))
+	   (setq starttime (get-universal-time))
+	   (setq newvars (mapcar #'(lambda (x) (read-user-string (format nil "TLH_~A" (devariable x)))) allvars))
+	   (setq constraints (sublis (mapcar #'cons allvars newvars) constraints))
 	   (if (< *counter* *solver-max-storage*) (setq *counter* (1+ *counter*)) (setq *counter* 0))
 	   (with-open-file (out f :direction :output :if-does-not-exist :create :if-exists :supersede)
 	     (ss-invoke-kaluza-writefile constraints out))
@@ -2171,12 +1762,15 @@
 	   (when (listp out)
 	     (dolist (v newvars)
 	       (unless (assoc v out) (push (cons v "") out))))
+	   (format t "~&Kaluza required ~A seconds~%" (- (get-universal-time) starttime))
 	   (cond ((eq out :error)
 		  (setq *external-solver-errored* t)
 		  (if *break-on-external-solver-error*
 		      (ss-break (format nil "Kaluza errored in file ~A~%" f))
 		      nil))
-		 (t (nsublis (mapcar #'cons newvars vars) out)))))))
+		 ((eq out :unsat) :unsat)
+		 (t (delete-if-not #'(lambda (x) (member (car x) vars))
+				   (nsublis (mapcar #'cons newvars allvars) out))))))))
 
 (defun ss-invoke-kaluza-writefile (constraints s)
   "(SS-INVOKE-KALUZA-WRITEFILE CONSTRAINTS S) writes Kaluza-legal 
@@ -2387,8 +1981,6 @@
       (when (equalp i "unsat") (return nil))
       (when (search "{VAR" i) (return (second (split-string i '(#\= #\}))))))))
 
-(defun ss-hampi-init () (run-program *solver-init* *solver-init-args*) (sleep 1))
-(defun ss-hampi-kill () (run-program *solver-kill* *solver-kill-args*))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

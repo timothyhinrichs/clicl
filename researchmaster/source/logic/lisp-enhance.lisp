@@ -17,6 +17,27 @@
     `(lambda (,v) (car funcs
 |#
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;; Environment ;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; same code as read-sentences
+(defun read-lines (s)
+  (ignore-errors
+   (with-input-from-string (s s)
+     (do ((sentence (read s nil) (read s nil)) (nl))
+         ((null sentence) (nreverse nl))
+       (setq nl (cons sentence nl))))))
+
+(defun exec-commandline (&rest cmds)
+  "(EXEC-COMMANDLINE &rest CMDS) takes an arbitrary number of arguments,
+   converts them all to strings, adds a space between each cmd, executes that cmd
+   in the shell, and returns the result as a string."
+  (setq cmds (tostring (cons (car cmds) (mapcan #'(lambda (x) (list " " x)) (cdr cmds)))))
+  (with-output-to-string (s)
+    (run-program "sh" (list "-c" cmds) :output s)
+    s))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;; Symbols ;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -24,7 +45,7 @@
 (defun tosymbol (p)
   "(TOSYMBOL LIST) takes a list and returns a symbol made out of that list.  
    The list elements must be coercable to strings via string."
-  (cond ((stringp p) (tosymbol (read-sentences p)))
+  (cond ((stringp p) (tosymbol (read-lines p)))
 	((atom p) (read-user-string (tostring p)))
         (t (read-user-string (tostring (mapcar #'tosymbol p))))))
 
@@ -115,6 +136,9 @@
     (dotimes (i n (nreverse newl))
       (multiple-value-setq (val l) (slice-n (random (- n i)) l))
       (push val newl))))
+
+(defun intersectionp (list1 list2 &key (test #'eq))
+  (some #'(lambda (x) (if (member x list2 :test test) t)) list1))
 
 (defun slice-n (index list)
   "(SLICE-N INDEX LIST) returns the INDEXth value in list LIST and removes that value from LIST destructively."
@@ -301,7 +325,7 @@
 (defun bl2hash (bl &optional (test #'eq))
   (let ((h (make-hash-table :test test)))
     (dolist (b bl h) (setf (gethash (first b) h) (cdr b)))))
-    
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;; Files ;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

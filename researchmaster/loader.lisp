@@ -31,6 +31,7 @@
 ;    step on the toes of these routines.
 (load (loadfn "educational" :dir '("source" "logic")))
 (load (loadfn "stringsolver" :dir '("source" "logic")))
+(load (loadfn "stringsolverapps" :dir '("source" "logic")))
 (load (loadfn "stringsolvertests" :dir '("source" "logic")))
 
 ; still need updating before compatible with current system

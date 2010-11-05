@@ -226,9 +226,11 @@
 (defun mapopands (func p)
   "(MAPOPANDS FUNC P) applies function FUNC to all of the operands of the sentence P and
    returns the result."
-  (cond ((atomicp p) (funcall func p))
+  (cond ((atom p) (funcall func p))
+	((member (car p) '(or not and => <= <=>)) 
+	 (cons (car p) (mapcar #'(lambda (x) (mapopands func x)) (cdr p))))
 	((member (car p) '(forall exists)) (list (first p) (second p) (funcall func (third p))))
-	(t (cons (car p) (mapcar func (cdr p))))))
+	(t (funcall func p))))
 
 (defun transform-theory (f th &optional (saver #'save))
   "(TRANSFORM-THEORY F TH) applies F to all the sentences in TH, putting the
@@ -254,7 +256,7 @@
 	   (maksand (cons (cons (car p) newps) extra))))
 	(fullflat 
 	 (multiple-value-bind (newargs extra) (mapcaraccum #'flatten-term (cdr p))
-	   (values (cons (car p) newargs) extra)))
+	   (maksand (cons (cons (car p) newargs) extra))))
 	(t (multiple-value-bind (newargs extra) 
 	       (mapcaraccum 
 		#'(lambda (term) 

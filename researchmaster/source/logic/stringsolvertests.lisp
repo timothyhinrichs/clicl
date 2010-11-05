@@ -833,4 +833,23 @@ EZYBIZ-2 : server accepts data without mandatory field email (exploit)"))
 	 (IN ?Reset1 "[Clear]*"))
   :space '(and (in ?fromaccount "/32008-000|32008-001|47001-000|47001-001/")))
 
+(make-ss-prob :name 'white1
+ ;:variantstatus '((4 :inconsistent) )
+ :phi '(and 
+	(not (= (var "action") "redirect")) 
+	(or (and (isset (var "user")) (isset (var "password"))) 
+	    (and (isset (var "admin")) (isset (var "passwordDB")))) 
+	(and (isset (var "admin")) (isset (var "passwordDB"))) 
+	(not (or (not (var "subject")) 
+	         (not (var "titletext")))) 
+	(= (var "break") 1) 
+	(not (= (var "break") 2)) 
+	(= (var "break") 1) 
+	(not (= (var "break") 2)) 
+	(not (var "catid")) 
+	(not (not (empty ""))) 
+	(not (not (empty ""))) 
+	(not (not (empty ""))) 
+	(var "post")))
+
 ))

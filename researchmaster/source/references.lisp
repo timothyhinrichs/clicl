@@ -775,7 +775,6 @@
     (format s "    </tr>~%")
     (format s "    </table></span>~%")))
 
-
 (defun output-paper-html-author (author s)
   (let (f m l)
     (setq f (prorequest `(ask-one ?x (person.firstname ,author ?x))))
