@@ -77,6 +77,78 @@
     (apply #'max (mapcar #'second (hash2list h)))))
  
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;; Gantt Chart ;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defstruct range (min 1) (max 1) (inc 1))
+(defun generate-ganttforms (samplesize ranges event-len-dist storeprefix &optional (stream t))
+  "(GENERATE-GANTTS ...) generates a bunch of random examples of gantt charts and stores to STOREPREFIX.
+   RANGES describes the ranges and increments for rows/days/forms.  Number of events is computed.
+   RANGES is an association list of (thing . rangestruct) where 'thing' is event,row,day, or form.
+   EVENT-LEN-DIST is a pair (mean . stddev).
+   SAMPLESIZE determines the number of instances for each size problem in that space.
+   STREAM is a stream to which an index should be output."
+  (flet ((builddump (f r d mean stddev sample density)
+	   (let (file)
+	     (setq file (tostring (list storeprefix "gantt" "_f" f "_r" r "_d" d 
+					"_mean" (first event-len-dist) "_stddev" (second event-len-dist)
+					"_den" density "_s" sample ".kif")))
+	     (dump-theory (gen-random-ganttform f r d mean stddev density) file)
+	     (format stream "(gantt :forms ~A :rows ~A :days ~A :mean ~A :stddev ~A :density ~A :sample ~A :file \"~A\")~%"
+		     f r d mean stddev density sample file))))
+    (let (rowrange dayrange formrange)
+      (setq rowrange (cdr (find 'row ranges :key #'first)))
+      (setq dayrange (cdr (find 'day ranges :key #'first)))
+      (setq formrange (cdr (find 'form ranges :key #'first)))
+      (do ((f (range-min formrange) (+ f (range-inc formrange))))  ; forms don't impact solutions--just the number of solutions
+	  ((> f (range-max formrange)))      
+	(do ((r (range-min rowrange) (+ r (range-inc rowrange))))  ; size of grid impacts solutions
+	    ((> r (range-max rowrange)))
+	  (do ((d (range-min dayrange) (+ d (range-inc dayrange))))
+	      ((> d (range-max dayrange)))
+	    (dotimes (i samplesize)
+	      (builddump f r d (first event-len-dist) (second event-len-dist) i 0.3)
+	      (builddump f r d (first event-len-dist) (second event-len-dist) i 0.5)
+	      (builddump f r d (first event-len-dist) (second event-len-dist) i 0.8))))))))
+
+(defun gen-random-ganttform (formcnt rowcnt daycnt lenmean lenstddev density)
+  ; Build events for each form independently.
+  (let (dates results events form es eventcnt)
+    (setq dates (gen-n-things 'date daycnt))
+    (setq results (nconc (gen-n-things 'row rowcnt) 
+			 dates 
+			 (gen-ordering 'date-lte dates t)))
+    (setq eventcnt 0)
+    (dotimes (i formcnt results)	
+      (setq form (tosymbol 'form i))
+      (setq events (gen-random-gantt-events rowcnt daycnt lenmean lenstddev density eventcnt))
+      (setq es (remove-if-not #'(lambda (x) (eq (relation x) 'event)) events))
+      (setq eventcnt (+ eventcnt (length es)))
+      (setq events (nconc (mapcar #'(lambda (x) `(formevent ,(second x) ,form)) es) events))
+      (push `(form ,form) events)
+      (setq results (nconc events results)))))
+
+(defun gen-random-gantt-events (rowcnt daycnt lenmean lenstddev density &optional (eventcnt 0))
+  ; randomly generate events until density of the total grid is occupied
+  (let (max)
+    (setq max (floor (* density rowcnt daycnt)))
+    (do ((i eventcnt (1+ i)) (events nil) e len startrange start (occupied 0))
+	((>= occupied max) events)
+      (setq e (tosymbol (list 'event i)))
+      (push `(event ,e) events)
+      (setq len (min daycnt (max 1 (ceiling (sample-normal lenmean lenstddev)))))
+      (setq startrange (- daycnt len))
+      (if (= startrange 0)
+	  (setq start 0)
+	  (setq start (random startrange)))
+      (push `(= (event-start ,e) ,(tosymbol 'date start)) events)
+      (push `(= (event-end ,e) ,(tosymbol 'date (+ start len))) events)
+      (setq occupied (+ occupied len)))))      
+
+(defun sample-normal (mean stddev)
+  (+ (* stddev (sapa::ranorm)) mean))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;; Blocks World ;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -93,8 +165,12 @@
 	  ((> i maxblocks))
 	(dotimes (j samplesize)
 	  (multiple-value-setq (init final) (gen-random-blocksworld i))
-	  (setq th (union (mapcar #'(lambda (x) (if (member (first x) '(on clear table)) (cons (tosymbol (list (first x) "_init")) (cdr x)) x)) init)
-			  (mapcar #'(lambda (x) (if (member (first x) '(on clear table)) (cons (tosymbol (list (first x) "_goal")) (cdr x)) x)) final)
+	  (setq th (union (mapcar #'(lambda (x) (if (member (first x) '(on clear table)) 
+						    (cons (tosymbol (list (first x) "_init")) (cdr x)) 
+						    x)) init)
+			  (mapcar #'(lambda (x) (if (member (first x) '(on clear table)) 
+						    (cons (tosymbol (list (first x) "_goal")) (cdr x)) 
+						    x)) final)
 			  :test #'equal))
 	  (dump-w-timings th i (* 2 i) j)
 	  (dump-w-timings th i (- (* 2 i) (ceiling (log i 2))) j))))))
@@ -276,12 +352,13 @@
     (dolist (r2 (cdr r1))
       (when (> (random 2) 0) (push (list name (second (car r1)) (second r2)) adj)))))
 
-(defun gen-ordering (name relation)
+(defun gen-ordering (name relation &optional (reflexive nil))
   "(GEN-ORDERING NAME RELATION) computes an ordering on the unary RELATION
    named NAME."
   (do ((ts relation (cdr ts))
-       (succ nil))
+       (succ (if reflexive (list (list name (second (first relation)) (second (first relation)))) nil)))
       ((null (cdr ts)) (nreverse succ))
+    (when reflexive (push (list name (second (second ts)) (second (second ts))) succ))
     (push (list name (second (first ts)) (second (second ts))) succ)))
 
 (defun gen-transitive-closure (name relation)

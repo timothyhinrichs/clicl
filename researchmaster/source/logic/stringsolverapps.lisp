@@ -27,14 +27,13 @@
 (defvar *ss-component-paths* '((:narcissus . "narcissus_js/js/narcissus")
 			       (:jsdist . "narcissus_js/dist/bin")
 			       (:htmlext . "formula-extractor/formula-generator")
-			       (:respgen . "response-generator")))
+			       (:respgen . "response-generator")
+			       (:serverformula . "server-formula-wpk")))
 (defvar *ss-history-unique* nil
   "global storage of all the assignments made for the unique variables")
 (defvar *ss-global-unique* nil
   "global storage for the set of all unique vars for an entire server")
 
-; NEED TO ADD CALL TO SS-CLEANSE FOR TYPE INFERENCE (at least).  
-;   PERHAPS CONSTRUCT SS-PROB FOR EACH FCLIENT AND THEN CALL.
 (defun ss-whitebox (url &key (unique 'unknown) (required 'unknown) (stream t) (outputfun #'ss-output-whitebox))
   "(SS-WHITEBOX URL) is the toplevel function for invoking the whitebox program analysis routine
    using the stringsolver.  It takes a URL as an argument."
@@ -71,54 +70,112 @@
     ; try to find 1 hostile per disjunct in DNF(fclient)
     (dolist (i insts)
       (multiple-value-bind (hostile explanation) 
-	  (ss-whitebox-find-benignhostile (first i) (second i) :required (third i) :unique (fourth i))
+	  (ss-whitebox-find-benignhostilepatch (first i) (second i) :required (third i) :unique (fourth i))
 	(when hostile (push (ss-uncleanse (cons hostile explanation) prob) hostiles))))
     hostiles))
 
-(defun ss-whitebox-find-benignhostile (p prob &key (required nil) (unique nil))
+(defun ss-whitebox-find-benignhostilepatch (p prob &key (required nil) (unique nil))
   "(SS-WHITEBOX-FIND-BENIGNHOSTILE P PROB ...) explores application to find a benign input of (a refinement of)
-   P and then uses it to find a hostile input.  Returns 2 values: hostile binding list and an explanation 
+   P and then uses it to find a hostile input.  Returns 3 values: hostile binding list, a patch, and an explanation 
    for how it was generated."
   (when *ss-debug* 
     (ss-trace (with-output-to-string (s) 
 		(format s "Searching for benign for ~A using " (ss-prob-name prob)) (pprint p s)) 1))
-  (let (queue q newq history successp constraints benign)
+  (let (queue q newq history successp constraints benign servervars tracefile patch)
     (setq history nil)   ;  a list of conjunctions of literals.
     (push 'true queue)
     (do () ((null queue) nil)
       (setq q (pop queue))
       (setq benign (ss-whitebox-solve (makand p q) prob :required required :unique unique :depth 2))
       (when benign
-	(multiple-value-setq (successp constraints) (ss-whitebox-testserver prob benign))
+	(setq tracefile (ss-whitebox-testserver prob benign))
+	(setq successp (ss-whitebox-trace-successp tracefile))
+	(setq constraints (ss-whitebox-trace-extract-formulas tracefile))
+	(setq servervars (vars constraints))
 	(setq constraints (ss-simplify-aggressive constraints))
 	(ss-assert (not (eq constraints :unsat)) nil 
 		   (format nil "SS-WHITEBOX-FIND-BENIGNHOSTILE: server constraint set unsatisfiable: ~A" constraints))
 	(cond (successp  ; found benign
-	       (multiple-value-bind (hostile expl) (ss-whitebox-construct-hostile p (maksand (cons q constraints)) prob)
-		 (when hostile (return (values hostile expl)))))
+	       (multiple-value-bind (hostile expl) 
+		   (ss-whitebox-construct-hostile p (maksand (cons q constraints)) prob :tamperable servervars)
+		 (when hostile 
+		   (setq patch (ss-whitebox-construct-patch tracefile (ss-prob-phi prob) :tamperable servervars))
+		   (return (values hostile patch expl)))))
 	      (t ; need to keep trying benign: depth first
 	       (dolist (s constraints)
 		 (setq newq (makand q (maknot s)))
 		 (unless (ss-whitebox-redundantp history newq)
 		   (push newq queue)
 		   (push newq history)))))))))
- 
-(defun ss-whitebox-construct-hostile (fclient constraint prob &key (required nil) (unique nil))
-  "(SS-WHITEBOX-CONSTRUCT-HOSTILE FCLIENT CONSTRAINT PROB) assuming that there is a solution to 
-   FCLIENT ^ CONSTRAINT that hits a success sink at the server, construct a solution to
-   ~FCLIENT  ^ CONSTRAINT and test if it too hits a success sink."
+
+(defun ss-whitebox-construct-patch (tracefile fclient &key (tamperable t))
+  "(SS-WHITEBOX-CONSTRUCT-PATCH ...) takes a trace and fclient and constructs a conditional that when placed at the
+   top of the server code that generated the trace ensures fclient(inputs) | fclient(sanitize(inputs)) 
+   is satisfied before any of the sinks on the server are executed."
+    ; interpolate fclient to just the tamperable variables
+  (setq fclient (ss-interpolate fclient tamperable))
+  `(if (and ,(maknot fclient) ,(ss-whitebox-trace-wpk tracefile (maknot fclient))) exit))
+
+(defun ss-interpolate (p vars)
+  "(SS-INTERPOLATE P VARS) reduce P so that the only variables that appear are in VARS."
+  (setq p (maksor (remove-if-not #'(lambda (x) (subsetp (vars (ss-simplify-aggressive (and2list x))) vars)) 
+				 (or2list (dnf p)))))
+  (when (eq p 'false) (format t "Could not interpolate the following to vars ~A~%~A~%" vars p))
+  p)
+
+(defun ss-whitebox-construct-hostile (fclientdisj constraint prob &key (tamperable t) (required nil) (unique nil))
+  "(SS-WHITEBOX-CONSTRUCT-HOSTILE FCLIENTDISJ CONSTRAINT PROB) assuming that there is a solution to 
+   FCLIENTDISJ ^ CONSTRAINT that hits a success sink at the server, construct a solution to
+   ~FCLIENT  ^ CONSTRAINT and test if it too hits a success sink.  TAMPERABLE is a list of variables
+   we are allowed to tamper with."
   (when *ss-debug* (ss-trace "Searching for hostile" 1))
   (let (hostile success)
     ; ask each DNF(~fclient) separately so we know which variables have been tampered with
-    (dolist (d (or2list (dnf (maknot fclient))) nil)
-      (setq hostile (ss-whitebox-solve (makand d constraint) prob :required required :unique unique))
-      (setq success (ss-whitebox-testserver prob hostile))
-      (when success (return (values hostile (list fclient (vars d) constraint)))))))
+    (dolist (d (or2list (dnf (ss-prob-phi prob))) nil)
+      (when (or (eq tamperable t) (subsetp (vars d) tamperable))
+	(setq hostile (ss-whitebox-solve (makand d constraint) prob :required required :unique unique))
+	(setq success (ss-whitebox-trace-successp (ss-whitebox-testserver prob hostile)))
+	(when success (return (values hostile (list fclientdisj (vars d) constraint))))))))
 
+(defun ss-whitebox-trace-extract-formulas (tracefile)
+  (let (constraints)
+    (setq constraints (exec-commandline "cd" (ss-abspath :serverformula "formula")
+					"; java ServerFormula " tracefile))
+    (setq constraints (read-lines constraints))
+    constraints))
+
+(defun ss-whitebox-trace-truncate (tracefile)
+  "(SS-WHITEBOX-TRUNCATE-TRACE TRACE) returns a shortened version of trace where
+   the last line is either exit/die or the sink just before the first sink that uses
+   its result.  Just a wrapper around a shell script."
+  (let (newfile)
+    ; want to do this through files b/c tracefiles are large
+    (setq newfile (stringappend tracefile ".short"))
+   ; TODO: call Michelle's trace shortener code here and output to newfile.
+   ;  Her code tells us whether the trace is a success/failure and throws out
+   ;    the trace after the success/failure sink.
+    newfile))
+
+(defun ss-whitebox-trace-successp (tracefile)
+  "(SS-WHITEBOX-TRACE-SUCCESSP TRACEFILE) Checks if tracefile resulted in 
+   a failure or a success.  Just a wrapper around a shell script."
+   ; TODO: call Michelle's code here.
+  )
+
+(defun ss-whitebox-trace-wpk (tracefile p)
+  (let (simplep)
+    (setq simplep (cons 'p (vars p)))
+    ; TODO: call Michelle's wpk code here.
+    ; Returns a KIF formula, eventually.
+    ; For now just returns text.
+    ; We are sending the formula (p ?x1 ... ?xn).  Result then needs to have (p ...) replaced with p.
+    ; Note: Need to output PHP vars, not KIF vars.
+    'true))
+
+  
 (defun ss-whitebox-testserver (prob bl)
-  "(SS-WHITEBOX-TESTSERVER PROB BL) throws BL at the server and returns two values:
-   (i) whether or not the BL drove the server to a success sink and (ii) the set of constraints
-   encountered along the way."
+  "(SS-WHITEBOX-TESTSERVER PROB BL) throws BL at the server and returns the name of a file containing the
+   trace produced by the server."
   (let (blfile notamperout)
     (setq blfile (stringappend *ss-working-prefix* "bl.xml"))
     ; write out binding list in XML
@@ -132,13 +189,13 @@
     (exec-commandline "cd" (ss-abspath :respgen "") 
 		      "; rm -Rf responses results diffsizes.txt; mkdir responses; mkdir results;"
 		      "java -jar HTTPReqGen.jar" blfile (stringappend *ss-working-prefix* "req_gen_out.htm"))
-    ; read results into appropriate data structure
+    ; put trace into its own file
     (ss-whitebox-process-server (ss-abspath :respgen (stringappend "responses/" (ss-prob-name prob) "_BENIGN1.htm")))))
 
 (defun ss-whitebox-process-server (file)
-  "(SS-WHITEBOX-PROCESS-SERVER FILE) uses the server response stored in file to return two values:
-   whether or not the server hit a success sink and the set of constraints encountered along the way."
-  (read-any-file file))
+  "(SS-WHITEBOX-PROCESS-SERVER FILE) processes the server response contained in FILE to extract the
+   appropriate trace and store it in a new file, whose name is returned."
+  (ss-whitebox-trace-truncate file))
   
 (defun ss-whitebox-redundantp (history q)
   "(SS-WHITEBOX-REDUNDANT HISTORY Q) returns T if Q is logically equivalent to some element in HISTORY."
@@ -167,7 +224,6 @@
 			   p val (hash2bl (ss-prob-types prob))))))
     val))
     
-
 (defun ss-whitebox-init (url)
   (when *ss-debug* (ss-trace (format nil "Running whitebox analysis on ~A" url) 0))
   ; make sure temp directory exists
@@ -190,7 +246,7 @@
   (when *ss-debug* (ss-trace "Computing fclient for each form" 1))
   (ss-extract-ht-constraints (ss-get-html url) url)
   (ss-extract-js-constraints)
-  (mapcar #'(lambda (x) (eval (first (read-file x)))) (ss-combine-constraints)))
+  (mapcar #'(lambda (x) (ss-cleanse (eval (first (read-file x))))) (ss-combine-constraints)))
 
 (defun ss-get-html (url &optional (dest (stringappend *ss-working-prefix* "homepage.htm")))
   (when *ss-debug* (ss-trace (format nil "Downloading ~A" url) 2))

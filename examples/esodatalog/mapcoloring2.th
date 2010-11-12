@@ -1,0 +1,14 @@
+; map coloring: assign each REGION a HUE so that no two ADJacent regions
+;   are colored the same.  ESODB predicate is just COLOR.
+
+; types for COLOR
+(=> (= (color ?x) ?y) (and (region ?x) (hue ?y)))
+
+; if two regions are assigned the same color, they cannot be adjacent
+(=> (= (color ?x) (color ?z)) (not (adj ?x ?z))) 
+
+; every region needs a color
+; (forall ?x (=> (region ?x) (exists ?y (color ?x ?y)))) 
+;(<= (hascolor ?x) (color ?x ?y))
+;(=> (region ?x) (hascolor ?x))
+

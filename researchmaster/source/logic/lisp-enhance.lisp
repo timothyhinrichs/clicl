@@ -21,14 +21,6 @@
 ;;;;;;;;;;;;;; Environment ;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; same code as read-sentences
-(defun read-lines (s)
-  (ignore-errors
-   (with-input-from-string (s s)
-     (do ((sentence (read s nil) (read s nil)) (nl))
-         ((null sentence) (nreverse nl))
-       (setq nl (cons sentence nl))))))
-
 (defun exec-commandline (&rest cmds)
   "(EXEC-COMMANDLINE &rest CMDS) takes an arbitrary number of arguments,
    converts them all to strings, adds a space between each cmd, executes that cmd
@@ -42,23 +34,28 @@
 ;;;;;;;;;;;;;; Symbols ;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun tosymbol (p)
+; These functions seem to be a mess--mutually recursive and repetitive.  
+;   Was there a good reason?  Used everywhere, so need to make sure before changing.
+(defun tosymbol (&rest p)
   "(TOSYMBOL LIST) takes a list and returns a symbol made out of that list.  
    The list elements must be coercable to strings via string."
-  (cond ((stringp p) (tosymbol (read-lines p)))
-	((atom p) (read-user-string (tostring p)))
-        (t (read-user-string (tostring (mapcar #'tosymbol p))))))
+  (cond ((null (cdr p))
+	 (setq p (car p))
+	 (cond ((stringp p) (tosymbol (read-lines p)))
+	       ((atom p) (read-user-string (tostring p)))
+	       (t (read-user-string (tostring (mapcar #'tosymbol p))))))
+	(t (read-user-string (tostring (mapcar #'tosymbol p))))))
 
-(defun tostring (p)
+(defun tostring (&rest p)
   "(TOSTRING LIST) takes an object and returns the string made out of that
    object by coercing via format and concatenating, if necessary."
-  (cond ((stringp p) p)
-        ((atom p) (format nil "~A" p))
-        (t
-         (reduce #'(lambda (x y)
-                     (concatenate 'string x (tostring y)))
-                 p
-                 :initial-value ""))))
+  (cond ((null (cdr p))
+	 (setq p (car p))
+	 (cond ((stringp p) p)
+	       ((atom p) (format nil "~A" p))
+	       (t
+		(apply #'stringappend (mapcar #'tostring p)))))
+	(t (apply #'stringappend (mapcar #'tostring p)))))
 
 (defun tostructuredsymbol (p)
   "(TOSTRUCTUREDSYMBOL P) takes an atom or a list and converts it into a 
@@ -326,14 +323,14 @@
   (let ((h (make-hash-table :test test)))
     (dolist (b bl h) (setf (gethash (first b) h) (cdr b)))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;; Files ;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun hname (x hash) 
+  "(HNAME X HASH) treats HASH as though it is a pretty-namer.
+   Returns HASH(X) if it exists, and X otherwise."
+  (if (hash-table-p hash)
+      (multiple-value-bind (val existsp) (gethash x hash)
+	(if existsp val x))
+      x))
 
-(defun append-file (filename &rest things)
-  (with-open-file (f filename :direction :output :if-does-not-exist :create :if-exists :append)
-    (mapc #'(lambda (x) (print x f)) things)))
-    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;; Arrays ;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -440,11 +437,17 @@ rest of the given `string', if any."
 	   (setq err (format nil "Couldn't find matching start and end for next block: start ~A, end ~A"
 			     startindex endindex))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;; Input/Output ;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; same code as read-sentences
+(defun read-lines (s)
+  (ignore-errors
+   (with-input-from-string (s s)
+     (do ((sentence (read s nil) (read s nil)) (nl))
+         ((null sentence) (nreverse nl))
+       (setq nl (cons sentence nl))))))
 
-;;;;;;;;;;;;;;; Disk ;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;; Files ;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Read a lisp file's contents and return list
 (defun read-file (filename)
@@ -453,13 +456,6 @@ rest of the given `string', if any."
     (do ((result nil (cons next result))
          (next (read ifile nil 'eof)  (read ifile nil 'eof)))
         ((equal next 'eof) (nreverse result)))))
-
-(defun dump-file (string filename)
-  (with-open-file (ifile (string filename)
-			 :direction :output 
-			 :if-does-not-exist :create
-			 :if-exists :supersede)
-    (princ string ifile)))
 
 (defun read-any-file (filename)
   "(READ-ANY-FILE FILENAME) reads the contents of filename
@@ -472,6 +468,22 @@ rest of the given `string', if any."
 	  (do ((next (read-char ifile nil 'eof) (read-char ifile nil 'eof)))
 	      ((eq next 'eof) result)
 	    (format result "~A" next))))))
+
+(defun write-file (filename &rest things)
+  (with-open-file (f (string filename) :direction :output :if-does-not-exist :create :if-exists :supersede)
+    (mapc #'(lambda (x) (print x f)) things)))
+
+(defun write-any-file (filename &rest things)
+  (with-open-file (f (string filename) :direction :output :if-does-not-exist :create :if-exists :supersede)
+    (mapc #'(lambda (x) (princ x f)) things)))
+
+(defun append-file (filename &rest things)
+  (with-open-file (f (string filename) :direction :output :if-does-not-exist :create :if-exists :append)
+    (mapc #'(lambda (x) (print x f)) things)))
+    
+(defun append-any-file (filename &rest things)
+  (with-open-file (f (string filename) :direction :output :if-does-not-exist :create :if-exists :append)
+    (mapc #'(lambda (x) (princ x f)) things)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;; Time ;;;;;;;;;;;;;;;;;

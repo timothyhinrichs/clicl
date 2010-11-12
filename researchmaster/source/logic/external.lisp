@@ -1273,28 +1273,45 @@
    in the IDP format.  CONSTMAP is a hash table that maps relation constants
    to strings to handle the case-sensitivity of IDP; used for both
    relations and object; NIL outputs via format ~A."
-  (let (vocab val)
+  (let (vocab)
+    ; orient all the (= term term) statements so a functional term is on the left
+    (setq th (mapcar #'(lambda (x) 
+			 (if (and (eq (relation x) '=) (not (listp (second x))) (listp (third x))) 
+			     (list '= (third x) (second x)) 
+			     x)) (contents th)))
+    ; group statements by relation
     (setq vocab (preds (maksand (contents th))))
     (setq th (group-by-hash (contents th) #'relation))
     (format stream "Data:~%")
     (dolist (r (sort vocab #'< :key #'parameter-arity))
       (setq r (parameter-symbol r))
-      (setq val (if constmap (gethash r constmap) nil))
-      (format stream "~A = {" (if val val r))
-      (dolist (p (reverse (gethash r th)))
-	(assert (listp p) nil (format nil "IDP requires data to be relational but found atom sentence: ~A" p))
-	(arglist2infix (cdr p) stream constmap)
-	(format stream "; "))   ; IDP tolerates a trailing semicolon
-      (format stream "}~%"))))
-      
-(defun arglist2infix (args stream &optional (constmap nil))
+      (cond ((eq r '=)  ; a stupid special case: do the whole thing again but for functional terms
+	     (dolist (f (group-by (gethash '= th) #'(lambda (x) (relation (second x)))))
+	       (cond ((atom (second (first (cdr f))))
+		      (format stream "~A = ~A~%" 
+			      (hname (car f) constmap) 
+			      (hname (second (first (cdr f))) constmap))) 
+		     (t
+		      (format stream "~A = {" (hname (car f) constmap))
+		      (dolist (p (reverse (cdr f))) ; output each statement
+			(arglist2infix (cdr (second p)) stream constmap)
+			(format stream " -> ~A" (hname (third p) constmap))
+			(format stream "; "))
+		      (format stream "}~%")))))		 	     
+	    (t	     
+	     (format stream "~A = {" (hname r constmap))
+	     (dolist (p (reverse (gethash r th)))
+	       (assert (listp p) nil 
+		       (format nil "IDP requires data to be relational but found atom sentence: ~A" p))
+	       (arglist2infix (cdr p) stream constmap)
+	       (format stream "; "))   ; IDP tolerates a trailing semicolon
+	     (format stream "}~%"))))))
+
+(defun arglist2infix (args stream &optional (argmap nil))
   (cond ((atom args) nil)
-	(t (let (val)
-	     (setq val (if constmap (gethash (car args) constmap) nil))
-	     (format stream "~A" (if val val (car args)))
-	     (dolist (v (cdr args))
-	       (setq val (if constmap (gethash (car args) constmap) nil))
-	       (format stream ", ~A" (if val val v)))))))
+	(t (format stream "~A" (hname (car args) argmap))
+	   (dolist (v (cdr args))
+	     (format stream ", ~A" (hname v argmap))))))
 	  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

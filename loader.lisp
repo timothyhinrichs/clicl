@@ -30,6 +30,7 @@
 (load (loadfn "load" :dir '("dso-lex-0.3.2" "dso-util-0.1.2")))  ; lex
 (load (loadfn "load" :dir "dso-lex-0.3.2"))  ; lex
 (load (loadfn "yacc" :dir "cl-yacc-0.3"))   ; yacc
+(load (loadfn "loader" :dir "sapa-stats"))   ; statistics
 
 ; epilog
 (load (loadfn "loader" :dir "epilog"))

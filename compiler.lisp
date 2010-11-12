@@ -4,6 +4,7 @@
 
 ; to compile, load this file
 
+(load (loadfn "compiler" :dir "sapa-stats"))
 (load (loadfn "compiler" :dir "epilog"))
 (load (loadfn "compiler" :dir "infomaster"))
 (load (loadfn "compiler" :dir "researchmaster"))

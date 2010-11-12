@@ -309,7 +309,7 @@
 
 (defun process-updateauthpolicy (postlines)
   (setq postlines (getf-post "authpolicy" postlines))
-  (dump-file postlines *authfile*)
+  (write-file *authfile* postlines)
   (define-prologtheory *auththeory* "" (mapcar #'morph-tag-queries (read-sentences postlines))))
 
 (defun morph-tag-queries (p)
@@ -362,7 +362,7 @@
 
 (defun process-updatetagtheory (postlines)
   (setq postlines (getf-post "tagrelationships" postlines))
-  (dump-file postlines *tagfile*)
+  (write-file *tagfile* postlines)
   (define-prologtheory *tagtheory* "" (construct-datalog-theory (read-sentences postlines))))
 
 (defun construct-datalog-theory (th)
@@ -599,7 +599,7 @@
   (dolist (p papers)
     (output-paper-html p s)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;; Bibtex ;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;; Bibtex and LaTeX ;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmethod process (s (file (eql 'displayBibtexList)) postlines)
   (let (dum)
@@ -616,6 +616,20 @@
           ((and (setq dum (getf-post-all "tag" postlines)) (setq dum (mapcar #'read-user-string dum)))
            (process-displaybibtex s (remove-duplicates (find-papers-for-tags dum))))
           (t (process-displaybibtex s (instances 'paper *gui*))))))
+
+(defmethod process (s (file (eql 'displayLatex)) postlines)
+  (let (dum)
+    (cond ((and (setq dum (getf-post-all "paper" postlines)) (setq dum (mapcar #'read-user-string dum)))
+           (process-displaylatex s dum))
+          ((and (setq dum (getf-post-all "tag" postlines)) (setq dum (mapcar #'read-user-string dum)))
+           (process-displaylatex s (remove-duplicates (find-papers-for-tags dum))))
+          (t (process-displaylatex s (instances 'paper *gui*))))))
+
+(defmethod process (s (file (eql 'displayAuthorLatex)) postlines)
+  (let (dum)
+    (cond ((and (setq dum (getf-post-all "object" postlines)) (setq dum (mapcar #'read-user-string dum)))
+	   (process-displayauthorlatex s dum))
+          (t (process-displaylatex s (instances 'paper *gui*))))))
 
 (defun find-papers-for-tags (tags)
   (let (q)
@@ -661,6 +675,31 @@
   (finish-body s) (crlf s)
   (finish-html s) (crlf s))
 
+(defun process-displayauthorlatex (s authors)
+  (let (ref unref)
+    (setq ref (remove-duplicates (mapcan #'find-auth-refereed authors)))
+    (setq unref (mapcan #'(lambda (auth) (viewfinds '?x `(paper.author ?x ,auth) *repository*)) authors))
+    (setq unref (remove-duplicates (set-difference unref ref)))
+    (format s "<p><h3>Refereed</h3>~%~%")
+    (process-displaylatex s ref)
+    (format s "<p><h3>Unrefereed</h3>~%~%")
+    (process-displaylatex s unref)))
+
+(defun process-displaylatex (s papers)
+  (format-html s) (crlf s)
+  (format-body s "white") (crlf s)
+  (format s "<pre>~%")
+  (format s "\\begin{enumerate}[itemsep=0pt]~%")
+  (dolist (p (sortem papers (find-sorter 'paper) 'descending))
+    (when (doublep 'paper.instance p *repository*)
+      (format s "\\item ")
+      (output-paper-latex p s)
+      (format s "~%")))
+  (format s "\\end{itemize}~%")
+  (format s "</pre>")
+  (finish-body s) (crlf s)
+  (finish-html s) (crlf s))
+
 (defun translate-database-schema (th transth vocab)
   (let (tmp newth a)
     (setq tmp (make-instance 'theory))
@@ -685,19 +724,23 @@
     (cond ((not (probe-file name)) (http-problem s "No such template"))
 	  (t (princ (cl-emb:execute-emb (pathname name)) s)))))
 
-(defun find-my-refereed ()
-  (sortem (prorequest '(ask-all ?x (and (paper.author ?x timothylhinrichs) (paper.publication ?x ?pub))))
+(defun find-my-refereed () (find-auth-refereed 'timothylhinrichs))
+(defun find-my-unrefereed () (find-auth-unrefereed 'timothylhinrichs))
+
+(defun find-auth-refereed (auth)
+  (sortem (prorequest `(ask-all ?x (and (paper.author ?x ,auth) (paper.publication ?x ?pub))))
 	  (find-sorter 'paper) 'descending))
 
-(defun find-my-unrefereed ()
-  (sortem (set-difference (prorequest '(ask-all ?x (paper.author ?x timothylhinrichs)))
-			  (find-my-refereed))
+(defun find-auth-unrefereed (auth)
+  (sortem (set-difference (prorequest `(ask-all ?x (paper.author ?x ,auth)))
+			  (find-auth-refereed auth))
 	  (find-sorter 'paper) 'descending))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; Papers in HTML ;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun output-paper-html (handle s &key (minimal nil) (imageurl "/docserver/infoserver/examples/researchmaster/") (shortenauthor t) )
+(defun output-paper-html (handle s &key (minimal nil) 
+			  (imageurl "/docserver/infoserver/examples/researchmaster/") (shortenauthor t) )
   "(OUTPUT-PAPER-HTML HANDLE S MINIMAL) prints an HTML depiction of the paper with id HANDLE to stream S.
    If MINIMAL is true, doesn't output additional functionality."
   (let (handles author title year bibtex link description booktitle publisher publication volume number startpage endpage rating related tags (*namer* 'prettyname) award experiments)
@@ -776,13 +819,26 @@
     (format s "    </table></span>~%")))
 
 (defun output-paper-html-author (author s)
+  (output-paper-author author s))
+
+(defun output-paper-author (author s &key (initials nil) (lastfirst nil))
   (let (f m l)
     (setq f (prorequest `(ask-one ?x (person.firstname ,author ?x))))
     (setq m (prorequest `(ask-one ?x (person.middlename ,author ?x))))
     (setq l (prorequest `(ask-one ?x (person.lastname ,author ?x))))
-    (when f (format s "~A " f))
-    (when m (format s "~A. " (subseq m 0 1)))
-    (when l (format s "~A" l))))
+    ; abbreviate
+    (when m (setq m (format nil "~A." (subseq m 0 1))))  ; always shorten middle
+    (when initials 
+      (when f (setq f (format nil "~A." (subseq f 0 1))))) ; abbreviate first name.
+    ; output in proper order
+    (cond (lastfirst
+	   (when l (format s "~A, " l))
+	   (when f (format s "~A" f))
+	   (when m (format s " ~A" m)))
+	  (t
+	   (when f (format s "~A" f))
+	   (when m (format s " ~A" m))
+	   (when l (format s " ~A, " l))))))
 
 (defun output-paper-html-experiments (handle experiments s)
   (declare (ignore handle))
@@ -836,6 +892,64 @@
     (inbook "In ")
     (otherwise "")))
     
+;;;;;;;;;;;;;;;;;;;;;;;;; Papers in HTML ;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(defun output-paper-latex (handle s &key (minimal nil) (shortenauthor t) )
+  "(OUTPUT-PAPER-HTML HANDLE S MINIMAL) prints an HTML depiction of the paper with id HANDLE to stream S.
+   If MINIMAL is true, doesn't output additional functionality."
+  (let (author title year bibtex booktitle publisher publication volume number startpage endpage  (*namer* 'prettyname) award)
+    (setq author (prorequest `(ask-all ?x (paper.author ,handle ?x))))
+    (setq title (prorequest `(ask-one ?x (paper.title ,handle ?x))))
+    (if (stringp title) (setq title (apply #'stringappend (split-string title '(#\{ #\})))) (setq title ""))
+    (setq year (prorequest `(ask-one ?x (paper.year ,handle ?x))))
+    (setq bibtex (prorequest `(ask-one ?x (paper.bibtex ,handle ?x))))
+    (setq booktitle (prorequest `(ask-one ?x (paper.booktitle ,handle ?x))))
+    (setq publisher (prorequest `(ask-one ?x (paper.publisher ,handle ?x))))
+    (setq publication (prorequest `(ask-one ?x (paper.publication ,handle ?x))))
+    (setq volume (prorequest `(ask-one ?x (paper.volume ,handle ?x))))
+    (setq number (prorequest `(ask-all ?x (paper.number ,handle ?x))))
+    (setq startpage (prorequest `(ask-one ?x (paper.startpage ,handle ?x))))
+    (setq endpage (prorequest `(ask-one ?x (paper.endpage ,handle ?x))))
+    (setq award (prorequest `(ask-all ?x (paper.award ,handle ?x))))
+
+    (cond ((and (> (length author) 4) shortenauthor)
+           (output-paper-latex-author (car author) s)
+           (format s ", et al."))
+          ((null (cdr author))
+           (output-paper-latex-author (car author) s))
+          (t
+           (do ((as author (cdr as)))
+               ((null (cdr as)))
+             (output-paper-latex-author (car as) s)
+             (when (cddr as) (format s ", ")))
+           (format s " and ")
+           (output-paper-latex-author (car (last author)) s)))
+    (format s ": {\\em ~A}, " title)
+    (output-paper-latex-source handle bibtex booktitle publication volume number startpage endpage publisher year s)
+    (unless minimal
+      (when award
+	(dolist (a award)
+	  (format s " ~A. " a))))))
+
+(defun output-paper-latex-author (author s)
+  (output-paper-author author s :initials t :lastfirst t))
+
+(defun output-paper-latex-source (handle bibtex booktitle publication volume number startpage endpage publisher year s)
+  (declare (ignore handle))
+  (setq bibtex (compute-pub-prefix bibtex))
+  (cond (booktitle (setq publication (stringappend bibtex booktitle)))
+        (publication (let ((short (prorequest `(ask-one ?x (shortname ,publication ?x)))))
+		       (setq publication (stringappend bibtex (iconify publication)))
+		       (when short (setq publication (stringappend publication " (" short ")"))))))
+  (when publication (format s "~A~A~A" publication (if (or volume number) " " "") (if volume volume "")))
+  (when publication (output-pub-number number s))  
+  (when publication (format s "~A " (if (or startpage endpage publisher year) "," ".")))
+  (when (or startpage endpage) (format s "pp. ~A-~A~A " (if startpage startpage '?) (if endpage endpage '?) (if (or publisher year) "," ".")))
+  (when publisher (format s " ~A~A~%" (iconify publisher) (if year "," ".")))
+  (when year (format s "~A.~%" year)))
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; Paper in Bibtex ;;;;;;;;;;;;;;;;;;;;;;;;;
 
