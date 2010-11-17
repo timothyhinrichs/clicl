@@ -34,6 +34,10 @@
 (defvar *ss-global-unique* nil
   "global storage for the set of all unique vars for an entire server")
 
+(defun whitet ()
+  (dolist (v (white-tests))
+    (ss-whitebox v)))
+
 (defun ss-whitebox (url &key (unique 'unknown) (required 'unknown) (stream t) (outputfun #'ss-output-whitebox))
   "(SS-WHITEBOX URL) is the toplevel function for invoking the whitebox program analysis routine
    using the stringsolver.  It takes a URL as an argument."
@@ -88,7 +92,9 @@
       (setq q (pop queue))
       (setq benign (ss-whitebox-solve (makand p q) prob :required required :unique unique :depth 2))
       (when benign
+	(when *ss-debug* (ss-trace (format nil "Found benign: ~A" benign) 2))
 	(setq tracefile (ss-whitebox-testserver prob benign))
+	(return-from ss-whitebox-find-benignhostilepatch nil)   ; until we get trace in response
 	(setq successp (ss-whitebox-trace-successp tracefile))
 	(setq constraints (ss-whitebox-trace-extract-formulas tracefile))
 	(setq servervars (vars constraints))
@@ -140,7 +146,7 @@
 (defun ss-whitebox-trace-extract-formulas (tracefile)
   (let (constraints)
     (setq constraints (exec-commandline "cd" (ss-abspath :serverformula "formula")
-					"; java ServerFormula " tracefile))
+					"; java ServerFormula " tracefile " -form"))
     (setq constraints (read-lines constraints))
     constraints))
 
@@ -150,17 +156,19 @@
    its result.  Just a wrapper around a shell script."
   (let (newfile)
     ; want to do this through files b/c tracefiles are large
+    ; Michelle's code -- need to figure out what to do about f(break)
     (setq newfile (stringappend tracefile ".short"))
-   ; TODO: call Michelle's trace shortener code here and output to newfile.
-   ;  Her code tells us whether the trace is a success/failure and throws out
-   ;    the trace after the success/failure sink.
+    (exec-commandline "cd" (ss-abspath :serverformula "formula")
+		      "; java ServerFormula " tracefile " -trunk " newfile " \"f(break)\"")
     newfile))
 
 (defun ss-whitebox-trace-successp (tracefile)
   "(SS-WHITEBOX-TRACE-SUCCESSP TRACEFILE) Checks if tracefile resulted in 
    a failure or a success.  Just a wrapper around a shell script."
-   ; TODO: call Michelle's code here.
-  )
+  (if (search "Success"
+	      (exec-commandline "cd" (ss-abspath :serverformula "formula")
+				"; java ServerFormula " tracefile " -check"))
+      t nil))
 
 (defun ss-whitebox-trace-wpk (tracefile p)
   (let (simplep)
@@ -179,18 +187,33 @@
   (let (blfile notamperout)
     (setq blfile (stringappend *ss-working-prefix* "bl.xml"))
     ; write out binding list in XML
-    (setq notamperout (ss-uncleanse (list (list 'good t bl)) prob))
+    (setq notamperout (ss-uncleanse (list (list 'good t (list (mapcar #'(lambda (x) (list (car x) (cdr x))) bl)))) prob))
     (with-open-file (f blfile :direction :output :if-does-not-exist :create :if-exists :supersede)
       (notamper2xml notamperout prob :stream f))
     ; record that we're giving these inputs to the server
     (setq *ss-history-unique* (nconc (remove-if-not #'(lambda (x) (member (car x) *ss-global-unique*)) bl)
 				    *ss-history-unique*))
     ; invoke Nazari's code to send inputs to server
-    (exec-commandline "cd" (ss-abspath :respgen "") 
-		      "; rm -Rf responses results diffsizes.txt; mkdir responses; mkdir results;"
-		      "java -jar HTTPReqGen.jar" blfile (stringappend *ss-working-prefix* "req_gen_out.htm"))
-    ; put trace into its own file
-    (ss-whitebox-process-server (ss-abspath :respgen (stringappend "responses/" (ss-prob-name prob) "_BENIGN1.htm")))))
+
+    (ss-whitebox-process-server (ss-whitebox-get-response blfile))))
+
+(defun ss-get-html (url &optional (dest (stringappend *ss-working-prefix* "homepage.htm")))
+  (let ((xmlfile (stringappend *ss-working-prefix* "get_html.xml")))
+    (when *ss-debug* (ss-trace (format nil "Downloading ~A" url) 2))
+    (with-open-file (f xmlfile :direction :output :if-does-not-exist :create :if-exists :supersede)
+      (notamper2xml (list (list 'good t))
+		    (make-ss-prob  :metafields `((method "get") (url ,url))) 
+		    :stream f))
+    (ss-whitebox-get-response xmlfile dest)))
+
+(defun ss-whitebox-get-response (xmlfile &optional (dest (stringappend *ss-working-prefix* "homepage.htm"))) 
+  "(SS-WHITEBOX-GET-RESPONSE XMLFILE) invokes the response generator on the given XMLFILE 
+   and returns the file storing the result.  Not using wget b/c response generator 
+   handles weird javascript redirects.  Also, response generator allows for cookies."
+  (exec-commandline "cd" (ss-abspath :respgen "") 
+		     ;"; rm -Rf responses results diffsizes.txt; mkdir responses; mkdir results;"
+		    "java -jar HTTPReqGen.jar" xmlfile "-d" dest)
+  dest)
 
 (defun ss-whitebox-process-server (file)
   "(SS-WHITEBOX-PROCESS-SERVER FILE) processes the server response contained in FILE to extract the
@@ -247,11 +270,6 @@
   (ss-extract-ht-constraints (ss-get-html url) url)
   (ss-extract-js-constraints)
   (mapcar #'(lambda (x) (ss-cleanse (eval (first (read-file x))))) (ss-combine-constraints)))
-
-(defun ss-get-html (url &optional (dest (stringappend *ss-working-prefix* "homepage.htm")))
-  (when *ss-debug* (ss-trace (format nil "Downloading ~A" url) 2))
-  (exec-commandline "wget" "-O" dest url)
-  dest)
     
 (defun ss-extract-ht-constraints (htmlfile url)
   (when *ss-debug* (ss-trace "Extracting HTML Constraints" 2))

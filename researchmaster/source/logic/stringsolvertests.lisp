@@ -1,4 +1,7 @@
 
+(defun white-tests ()
+'("http://herge.sisl.rites.uic.edu/notamper/phpnews/index.php?action=settings"))
+
 (defun complexity (p)
   (cond ((atom p) 1)
 	((find (car p) '(and or not <= => <=>)) (1+ (reduce #'+ (mapcar #'complexity (cdr p)))))

@@ -489,17 +489,35 @@ rest of the given `string', if any."
 ;;;;;;;;;;;;;; Time ;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defun cpu-time (f) 
+  "(CPU-TIME F) returns the time to execute F at millisecond-ish granularity
+  and F's result. Probably the right function to use."
+  (let (m result)
+    (multiple-value-setq (m result) (real-internal-time f))
+    (values (* 1.0 (/ m internal-time-units-per-second)) result)))
+
 (defvar *timesofar* 0 
   "global variable for accummulating the time taken so far")
 
 (defmacro add-time (&rest forms)
   "(ADD-TIME FORM) increments *timesofar* by the result of cpu-time 
-   called on FORM."
-  `(setq *timesofar* (+ *timesofar* (internal-time #'(lambda () ,(cons 'progn forms))))))
+   called on FORM.  Useful for timing a bunch of segments of code."
+  `(setq *timesofar* (+ *timesofar* (real-internal-time #'(lambda () ,(cons 'progn forms))))))
+
+(defun real-internal-time (f)
+  "(REAL-INTERNAL-TIME F) runs function F and returns two values: the wall clock time required 
+   for that function in internal-units-per-second and the result of F."
+  (let ((initial-real-time (get-internal-real-time))
+	result)
+    (setq result (multiple-value-list (funcall f)))
+    (when (null (cdr result)) (setq result (first result)))  ; handle single-value returns
+    (values (- (get-internal-real-time) initial-real-time) result)))
 
 (defun internal-time (f)
   "(INTERNAL-TIME F) runs function F and returns two values: the CPU time required 
-   for that function in internal-units-per-second and the result of F."
+   for that function in internal-units-per-second and the result of F.
+   WARNING: does not count time spent in external processes.  Only useful if entire function
+   is defined in Lisp.  Use real-time instead."
   (let* ((initial-real-time (get-internal-real-time))
          (initial-run-time (get-internal-run-time))
          (initial-gc-time (gctime))
@@ -511,13 +529,6 @@ rest of the given `string', if any."
            (elapsed-gc-time (- (gctime) initial-gc-time))
            (elapsed-mf-time (- elapsed-real-time elapsed-run-time)))
       (values (- elapsed-real-time elapsed-mf-time elapsed-gc-time) result))))
-
-(defun cpu-time (f) 
-  "(CPU-TIME F) returns the time to execute F at millisecond-ish granularity
-  and F's result."
-  (let (m result)
-    (multiple-value-setq (m result) (internal-time f))
-    (values (* 1.0 (/ m internal-time-units-per-second)) result)))
 
 
 (defvar *kill* nil "kill the process at hand")

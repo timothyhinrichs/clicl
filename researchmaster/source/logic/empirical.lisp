@@ -8,8 +8,9 @@
    and outputs time/results to RESULTSFILE.  FUNC takes as input a list of S-expressions."
   (if (probe-file resultsfile) (delete-file resultsfile))
   (dolist (f testfiles)
-    (format t "Testing ~A~%" f)
+    (format t "Testing ~A ... " f)
     (run-time timeout func (read-file f))
+    (format t "~A secs~%" *run-time-time*)
     (append-file resultsfile
 		 (list f
 		       (if (eq *run-time-time* 'timeout) timeout *run-time-result*)))))
@@ -90,13 +91,15 @@
    SAMPLESIZE determines the number of instances for each size problem in that space.
    STREAM is a stream to which an index should be output."
   (flet ((builddump (f r d mean stddev sample density)
-	   (let (file)
+	   (let (file th e)
+	     (setq th (gen-random-ganttform f r d mean stddev density))
+	     (setq e (count 'event th :key #'relation))
 	     (setq file (tostring (list storeprefix "gantt" "_f" f "_r" r "_d" d 
 					"_mean" (first event-len-dist) "_stddev" (second event-len-dist)
-					"_den" density "_s" sample ".kif")))
-	     (dump-theory (gen-random-ganttform f r d mean stddev density) file)
-	     (format stream "(gantt :forms ~A :rows ~A :days ~A :mean ~A :stddev ~A :density ~A :sample ~A :file \"~A\")~%"
-		     f r d mean stddev density sample file))))
+					"_den" density "_s" sample "_e" e ".kif")))
+	     (dump-theory th file)
+	     (format stream "(gantt :forms ~A :rows ~A :days ~A :mean ~A :stddev ~A :density ~A :sample ~A :events ~A :file \"~A\")~%"
+		     f r d mean stddev density sample e file))))
     (let (rowrange dayrange formrange)
       (setq rowrange (cdr (find 'row ranges :key #'first)))
       (setq dayrange (cdr (find 'day ranges :key #'first)))
@@ -137,13 +140,13 @@
 	((>= occupied max) events)
       (setq e (tosymbol (list 'event i)))
       (push `(event ,e) events)
-      (setq len (min daycnt (max 1 (ceiling (sample-normal lenmean lenstddev)))))
+      (setq len (min daycnt (max 1 (floor (sample-normal lenmean lenstddev)))))
       (setq startrange (- daycnt len))
       (if (= startrange 0)
 	  (setq start 0)
-	  (setq start (random startrange)))
+	  (setq start (floor (random startrange))))
       (push `(= (event-start ,e) ,(tosymbol 'date start)) events)
-      (push `(= (event-end ,e) ,(tosymbol 'date (+ start len))) events)
+      (push `(= (event-end ,e) ,(tosymbol 'date (1- (+ start len)))) events)  ; start date is date0
       (setq occupied (+ occupied len)))))      
 
 (defun sample-normal (mean stddev)
