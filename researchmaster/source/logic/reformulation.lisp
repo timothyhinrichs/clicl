@@ -719,15 +719,17 @@
                      (t (setq newrule (cons (car ants) newrule)))))))))
                               
 
-(defun subsumption-elimination (th)
+(defun subsumption-elimination (th &optional (test #'similarp))
   (nreverse 
    (subsumption-elimination-forward
     (nreverse 
      (subsumption-elimination-forward 
-      (copy-list (contents th)))))))
+      (copy-list (contents th))
+      test))
+    test)))
 
 ; CAUTION: destructive to TH, which must be a list
-(defun subsumption-elimination-forward (th)
+(defun subsumption-elimination-forward (th test)
   (do ((ps th (cdr ps)))
       ((null ps) th)
     (do ((tosubsumes (cdr ps) (cdr tosubsumes))
@@ -735,7 +737,7 @@
 	((null tosubsumes))
       ; when subsumed, remove from list directly
       ; only increment pointer when not deleting; otherwise, pointer=tosubsumes
-      (cond ((similarp (car tosubsumes) (car ps))
+      (cond ((funcall test (car tosubsumes) (car ps))
 	     (setf (cdr pointer) (cdr tosubsumes)))
 	    (t (setq pointer (cdr pointer)))))))
 

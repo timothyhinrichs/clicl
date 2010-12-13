@@ -1309,10 +1309,36 @@
 
 (defun arglist2infix (args stream &optional (argmap nil))
   (cond ((atom args) nil)
-	(t (format stream "~A" (hname (car args) argmap))
+	(t (format stream "~S" (hname (car args) argmap))
 	   (dolist (v (cdr args))
-	     (format stream ", ~A" (hname v argmap))))))
+	     (format stream ", ~S" (hname v argmap))))))
 	  
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Sheard ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#|
+hue = {"red","blue"}  ; must be strings
+vertex = {1,2,3}  ; must be integers
+edge = {(1,2), (2,3)}
+|#
+
+(defun kifdata2sheard (th stream &optional (constmap nil))
+  (dolist (r (group-by (contents th) #'relation))
+    (format stream "~A = {" (hname (car r) constmap))
+    (do ((d (nreverse (cdr r)) (cdr d)) (last) (args))
+	((null d))
+      (setq last (null (cdr d)))  ; whether at last tuple
+      (setq args (cdr (first d)))  ;args to current tuple
+      (when (cdr args) (format stream "("))
+      (arglist2infix args stream constmap)
+      (when (cdr args) (format stream ")"))
+      (unless last (format stream ", ")))
+    (format stream "}~%")))
+
+    
+    
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Datalog ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

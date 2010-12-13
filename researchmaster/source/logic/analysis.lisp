@@ -140,6 +140,27 @@
           ((eq (car p) '<=>) (1+ (+ (size (second p)) (size (third p)))))
           (t 1)))
 
+(defun instantiated-vars (bl)
+  "(INSTANTIATED-VARS BL) returns the list of variables bound in binding list BL 
+   that are (transitively) bound to a ground term."
+  (mapcarnot #'(lambda (x) (if (and (not (eq (car x) t)) (not (varp (cdr x)))) (car x) nil)) 
+	     (transitively-close-bl bl)))
+
+(defun transitively-close-bl (bl)
+  "(TRANSITIVELY-CLOSE-BL BL) returns a binding list that is the transitive closure of 
+   binding list BL.  Assumes BL is non-recursive, e.g. never includes x/y, y/z, z/x.
+   Always returns a copy of BL, transitively closed."
+  (setq bl (copy-list bl))  ; so we can be destructive
+  (do ((keepgoing t)
+       (newval)) 
+      ((not keepgoing) bl)
+    (setq keepgoing nil)
+    (dolist (b bl)
+      (when (varp (cdr b))
+	(setq newval (plug (cdr b) bl))
+	(when (not (eq newval (cdr b))) (setq keepgoing t))
+	(setf (cdr b) newval)))))
+  
 (defun mgun (list &optional (mgu truth))
   "(MGUN LIST) computes an n-way unifier for LIST or NIL if the list is not unifiable."
   (cond ((null (cdr list)) mgu)
@@ -187,6 +208,17 @@
 	  (push m new)
 	  (setf (gethash (car m) hash) t))))
     new))
+
+(defun sentequal (p q &key (test #'equal))
+  "(SENTEQUAL P Q) Assumes P,Q is a boolean combination of sentences.  
+   Checks whether or not P and Q are equal up to reordering of AND/OR."
+  (cond ((atomicp p) (funcall test p q))
+	((atomicp q) (funcall test p q))
+	((and (eq (car p) 'and) (eq (car q) 'and)) 
+	 (seteq (cdr p) (cdr q) #'(lambda (x y) (sentequal x y :test test))))
+	((and (eq (car p) 'or) (eq (car q) 'or))
+	 (seteq (cdr p) (cdr q) #'(lambda (x y) (sentequal x y :test test))))
+	(t (funcall test p q))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;; Tautology Detection ;;;;;;;;;;;;;;;

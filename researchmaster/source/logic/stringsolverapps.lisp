@@ -33,25 +33,45 @@
   "global storage of all the assignments made for the unique variables")
 (defvar *ss-global-unique* nil
   "global storage for the set of all unique vars for an entire server")
+(defvar *ss-white-downloads* 0)
 
-(defun whitet ()
+(defun whitet (&rest names)
   (dolist (v (white-tests))
-    (ss-whitebox v)))
+    (if names
+	(when (member (first v) names) (ss-whitebox (second v) :unique nil))
+	(ss-whitebox (second v) :unique nil))))
 
 (defun ss-whitebox (url &key (unique 'unknown) (required 'unknown) (stream t) (outputfun #'ss-output-whitebox))
   "(SS-WHITEBOX URL) is the toplevel function for invoking the whitebox program analysis routine
    using the stringsolver.  It takes a URL as an argument."
-  (let (start hostiles *ss-solve-count*)
+  (let (start hostiles *ss-solve-count* (*ss-white-downloads* 0) fclientprobs url2)
     (load *app-init-location*)
     (ss-assert (stringp url) nil (format nil "SS-WHITEBOX expects a string; found ~A" url))
     (ss-whitebox-init url)
-    (dolist (fclient (ss-compute-fclients url))
+    ; compute fclient for each form at URL, removing those forms pointing to different URLs
+    ;   by making sure fclient URL is included in the original URL (since orig may include extra params)
+    (setq fclientprobs nil)
+    (dolist (p (ss-compute-fclients url))
+      (setq url2 (second (assoc 'url (ss-prob-metafields p))))
+      (if (equalp (ss-base-url url2) (ss-base-url url))
+	  (push p fclientprobs)
+	  (when *ss-debug* (ss-trace (format nil "Ignoring form with URL ~A" url2) 1))))
+    ; analyze local fclients
+    (dolist (fclient (nreverse fclientprobs))
       (setq *ss-solve-count* 0)
       (setq start (get-universal-time))
       (setq hostiles (ss-whitebox-process-fclient fclient :unique unique :required required))
       (funcall outputfun hostiles fclient :time (- (get-universal-time) start) :stream stream :count *ss-solve-count*))
     ;(ss-whitebox-cleanup)
     nil))
+
+(defun ss-base-url (url) 
+  (let (s)
+    (setq s (position #\: url))
+    (if (search "///" url :start2 s)
+	(setq s (+ 4 s))
+	(setq s (+ 3 s)))
+    (subseq url 0 (position #\/ url :start s))))
 
 (defun ss-output-whitebox (hostiles prob &key (time 0) (stream t) (count 0))
   "(SS-OUTPUT-WHITEBOX HOSTILES PROB TIME STREAM COUNT) outputs the results to STREAM.
@@ -61,10 +81,12 @@
   (dolist (h hostiles)
     (format stream "~&~A with explanation ~A~%" (car h) (cdr h))))
 
-(defun ss-whitebox-process-fclient (prob &key (unique 'unknown) (required 'unknown))
+(defun ss-whitebox-process-fclient (prob &key (unique 'unknown) (required 'unknown) (depth 0))
   (let (hostiles req uniq (*ss-history-unique* nil) (*ss-global-unique* nil) insts) 
     ; compute union of all individual uniques so we track all the right vars.
     ;  also make list of problem instances to solve.
+    (when *ss-debug*
+      (ss-trace (format nil "Processing form ~A" (ss-prob-name prob)) (1+ depth)))
     (dolist (phi (or2list (ss-prob-phi prob)))
       (multiple-value-setq (req uniq) (ss-get-required-unique phi prob required unique))
       (push (list phi prob req uniq) insts)
@@ -74,53 +96,86 @@
     ; try to find 1 hostile per disjunct in DNF(fclient)
     (dolist (i insts)
       (multiple-value-bind (hostile explanation) 
-	  (ss-whitebox-find-benignhostilepatch (first i) (second i) :required (third i) :unique (fourth i))
+	  (ss-whitebox-find-benignhostilepatch (first i) (second i) :required (third i) :unique (fourth i) :depth (+ depth 2))
 	(when hostile (push (ss-uncleanse (cons hostile explanation) prob) hostiles))))
     hostiles))
 
-(defun ss-whitebox-find-benignhostilepatch (p prob &key (required nil) (unique nil))
+(defun ss-whitebox-find-benignhostilepatch (p prob &key (required nil) (unique nil) (depth 0))
   "(SS-WHITEBOX-FIND-BENIGNHOSTILE P PROB ...) explores application to find a benign input of (a refinement of)
    P and then uses it to find a hostile input.  Returns 3 values: hostile binding list, a patch, and an explanation 
    for how it was generated."
+  (setq p (nnf p))
   (when *ss-debug* 
-    (ss-trace (with-output-to-string (s) 
-		(format s "Searching for benign for ~A using " (ss-prob-name prob)) (pprint p s)) 1))
-  (let (queue q newq history successp constraints benign servervars tracefile patch)
+    (ss-trace (format nil "Searching for benign for ~A" (ss-prob-name prob)) depth) 
+    (unless *quiet* (ss-trace (with-output-to-string (s) (pprint p s)) depth)))
+  (let (queue q history successp constraints benign servervars tracefile patch)
     (setq history nil)   ;  a list of conjunctions of literals.
+    (setq queue nil)
     (push 'true queue)
     (do () ((null queue) nil)
+      ; pop queue and copy to history so we don't repeat in the future
       (setq q (pop queue))
-      (setq benign (ss-whitebox-solve (makand p q) prob :required required :unique unique :depth 2))
+      (push q history)
+      (when *ss-debug*
+	(ss-trace "Popping sentence off queue:" (1+ depth))
+	(ss-trace (with-output-to-string (s) (pprint q s)) (1+ depth)))
+      (setq benign (ss-whitebox-solve (makand p q) prob :required required :unique unique :depth (1+ depth)))
       (when benign
-	(when *ss-debug* (ss-trace (format nil "Found benign: ~A" benign) 2))
-	(setq tracefile (ss-whitebox-testserver prob benign))
-	(return-from ss-whitebox-find-benignhostilepatch nil)   ; until we get trace in response
+	(when *ss-debug* (ss-trace (format nil "Found candidate benign.") (1+ depth)))
+	(when *ss-debug* (unless *quiet* (ss-trace (format nil "~S" benign) (1+ depth))))
+	(setq tracefile (ss-whitebox-testserver prob benign :depth (1+ depth)))
 	(setq successp (ss-whitebox-trace-successp tracefile))
-	(setq constraints (ss-whitebox-trace-extract-formulas tracefile))
+	(when *ss-debug* 
+	  (unless *quiet* (ss-trace (format nil "Trace status: ~A" (if successp "success" "failure")) (1+ depth))))
+	 ; order constraints in terms of importance (and preserve this ordering below)
+	(setq constraints (ss-whitebox-order-constraints (ss-whitebox-trace-extract-formulas tracefile prob)))
+	(when *ss-debug*
+	  (unless *quiet* 
+	    (ss-trace (format nil "Trace formula:" ) (1+ depth))
+	    (ss-trace (with-output-to-string (s) (pprint constraints s)) (1+ depth))))
+	(setq constraints (ss-subsumption-elim constraints))
 	(setq servervars (vars constraints))
-	(setq constraints (ss-simplify-aggressive constraints))
+	;(setq constraints (ss-simplify-aggressive constraints))
+	;(unless *quiet* 
+	;  (ss-trace (format nil "Simplified trace formula:" ) (1+ depth))
+	;  (ss-trace (with-output-to-string (s) (pprint constraints s)) (1+ depth)))
 	(ss-assert (not (eq constraints :unsat)) nil 
 		   (format nil "SS-WHITEBOX-FIND-BENIGNHOSTILE: server constraint set unsatisfiable: ~A" constraints))
 	(cond (successp  ; found benign
 	       (multiple-value-bind (hostile expl) 
-		   (ss-whitebox-construct-hostile p (maksand (cons q constraints)) prob :tamperable servervars)
+		   (ss-whitebox-construct-hostile p (maksand (cons q constraints)) prob :tamperable servervars :depth (1+ depth))
 		 (when hostile 
-		   (setq patch (ss-whitebox-construct-patch tracefile (ss-prob-phi prob) :tamperable servervars))
-		   (return (values hostile patch expl)))))
-	      (t ; need to keep trying benign: depth first
-	       (dolist (s constraints)
-		 (setq newq (makand q (maknot s)))
-		 (unless (ss-whitebox-redundantp history newq)
-		   (push newq queue)
-		   (push newq history)))))))))
+		   (setq patch (ss-whitebox-construct-patch tracefile (ss-prob-phi prob) :tamperable servervars :depth (1+ depth)))		   
+		   (return (values hostile patch expl)))
+		 (when *ss-debug*
+		   (ss-trace "Hostile construction failed.  Searching for new benign." (1+ depth)))))
+	      (t ; need to keep trying benign
+	       ; each constraint can be complex, so convert negation to DNF for each.
+	       (setq constraints (mapcan #'(lambda (x) (or2list (dnf (maknot x)))) constraints))
+	       ;(setq constraints (mapcar #'(lambda (x) (maksand (ss-simplify-aggressive (and2list x)))) constraints))
+	       ; each of the resulting constraints comprise a new point in the search space
+	       (setq constraints (mapcar #'(lambda (x) (makand q x)) constraints))
+	       (setq constraints (delete-if #'(lambda (x) 
+						(or (ss-some-similarp x history)
+						    (ss-some-similarp x queue)
+						    (ss-some-similarp x p))) constraints))
+	       (when *ss-debug* 
+		 (ss-trace "Adding constraints at front of queue." (1+ depth))
+		 (unless *quiet* (ss-trace (with-output-to-string (s) (pprint constraints s)) (1+ depth))))
+	       ; add to queue so that ordering chosen above is preserved but simplify queue as well
+	       (setq queue (append constraints queue))
+	       (when *ss-debug*
+		 (unless *quiet*
+		   (ss-trace "New queue." (1+ depth))
+		   (ss-trace (with-output-to-string (s) (pprint queue s)) (1+ depth))))))))))
 
-(defun ss-whitebox-construct-patch (tracefile fclient &key (tamperable t))
+(defun ss-whitebox-construct-patch (tracefile fclient &key (tamperable t) (depth 0))
   "(SS-WHITEBOX-CONSTRUCT-PATCH ...) takes a trace and fclient and constructs a conditional that when placed at the
    top of the server code that generated the trace ensures fclient(inputs) | fclient(sanitize(inputs)) 
    is satisfied before any of the sinks on the server are executed."
     ; interpolate fclient to just the tamperable variables
   (setq fclient (ss-interpolate fclient tamperable))
-  `(if (and ,(maknot fclient) ,(ss-whitebox-trace-wpk tracefile (maknot fclient))) exit))
+  `(if (and ,(maknot fclient) ,(ss-whitebox-trace-wpk tracefile (maknot fclient) :depth depth)) exit))
 
 (defun ss-interpolate (p vars)
   "(SS-INTERPOLATE P VARS) reduce P so that the only variables that appear are in VARS."
@@ -129,48 +184,81 @@
   (when (eq p 'false) (format t "Could not interpolate the following to vars ~A~%~A~%" vars p))
   p)
 
-(defun ss-whitebox-construct-hostile (fclientdisj constraint prob &key (tamperable t) (required nil) (unique nil))
+(defun ss-subsumption-elim (th) (subsumption-elimination th #'ss-similarp))
+
+(defun ss-some-similarp (p list) (some #'(lambda (x) (ss-similarp p x)) list))
+(defun ss-similarp (p q)
+  "(SS-SIMILARP P Q) returns T if P is subsumed by Q."
+  (when (literalp p) (setq p (list 'and p)))
+  (when (literalp q) (setq q (list 'and q)))
+  (cond ((and (eq (car p) 'and) (eq (car q) 'and))
+	 (subsetp (cdr p) (cdr q) :test #'sentequal))
+	((and (eq (car p) 'or) (eq (car q) 'or)) nil)
+	(t nil)))
+
+(defun ss-whitebox-order-constraints (ps)
+  "(SS-WHITEBOX-ORDER CONSTRAINTS) reorders PS so that the most promising constraints to explore come first.
+   PS are assumed to be given in the order they appear in the trace."
+  (reverse ps))
+
+(defun ss-whitebox-construct-hostile (fclientdisj constraint prob &key (tamperable t) (required nil) (unique nil) (depth 0))
   "(SS-WHITEBOX-CONSTRUCT-HOSTILE FCLIENTDISJ CONSTRAINT PROB) assuming that there is a solution to 
    FCLIENTDISJ ^ CONSTRAINT that hits a success sink at the server, construct a solution to
    ~FCLIENT  ^ CONSTRAINT and test if it too hits a success sink.  TAMPERABLE is a list of variables
    we are allowed to tamper with."
-  (when *ss-debug* (ss-trace "Searching for hostile" 1))
+  (when *ss-debug* (ss-trace "Searching for hostile" depth))
   (let (hostile success)
     ; ask each DNF(~fclient) separately so we know which variables have been tampered with
     (dolist (d (or2list (dnf (ss-prob-phi prob))) nil)
       (when (or (eq tamperable t) (subsetp (vars d) tamperable))
-	(setq hostile (ss-whitebox-solve (makand d constraint) prob :required required :unique unique))
-	(setq success (ss-whitebox-trace-successp (ss-whitebox-testserver prob hostile)))
+	(setq hostile (ss-whitebox-solve (makand d constraint) prob :required required :unique unique :depth (1+ depth)))
+	(setq success (ss-whitebox-trace-successp (ss-whitebox-testserver prob hostile :depth (1+ depth))))
 	(when success (return (values hostile (list fclientdisj (vars d) constraint))))))))
 
-(defun ss-whitebox-trace-extract-formulas (tracefile)
+(defun ss-whitebox-trace-extract-formulas (tracefile prob)
   (let (constraints)
     (setq constraints (exec-commandline "cd" (ss-abspath :serverformula "formula")
 					"; java ServerFormula " tracefile " -form"))
     (setq constraints (read-lines constraints))
+    (write-file (stringappend *ss-working-prefix* "formulaext") constraints)
+    (setq constraints (and2list (ss-cleanse-more (maksand constraints) prob)))
     constraints))
 
 (defun ss-whitebox-trace-truncate (tracefile)
   "(SS-WHITEBOX-TRUNCATE-TRACE TRACE) returns a shortened version of trace where
    the last line is either exit/die or the sink just before the first sink that uses
    its result.  Just a wrapper around a shell script."
-  (let (newfile)
+    tracefile)
+#|  (let (newfile end)
     ; want to do this through files b/c tracefiles are large
     ; Michelle's code -- need to figure out what to do about f(break)
     (setq newfile (stringappend tracefile ".short"))
+    (setq tracefile (read-any-file tracefile))
+    (setq end (search "mysql_query" tracefile))
+    (setq end (position #\Newline tracefile :from-end t :end end))
+    (write-any-file newfile (subseq tracefile 0 end))
+    newfile))
+|#
+#|
     (exec-commandline "cd" (ss-abspath :serverformula "formula")
 		      "; java ServerFormula " tracefile " -trunk " newfile " \"f(break)\"")
     newfile))
+|#
 
 (defun ss-whitebox-trace-successp (tracefile)
   "(SS-WHITEBOX-TRACE-SUCCESSP TRACEFILE) Checks if tracefile resulted in 
    a failure or a success.  Just a wrapper around a shell script."
-  (if (search "Success"
-	      (exec-commandline "cd" (ss-abspath :serverformula "formula")
-				"; java ServerFormula " tracefile " -check"))
-      t nil))
 
-(defun ss-whitebox-trace-wpk (tracefile p)
+  (format t "~&Is the trace contained in the following file a success?")
+  (print tracefile)
+  (if (read) t nil))
+
+;  (if (search "Success"
+;	      (exec-commandline "cd" (ss-abspath :serverformula "formula")
+;				"; java ServerFormula " tracefile " -check"))
+;      t nil))
+
+(defun ss-whitebox-trace-wpk (tracefile p &key (depth 0))
   (let (simplep)
     (setq simplep (cons 'p (vars p)))
     ; TODO: call Michelle's wpk code here.
@@ -181,49 +269,76 @@
     'true))
 
   
-(defun ss-whitebox-testserver (prob bl)
+(defun ss-whitebox-testserver (prob bl &key (depth 0))
   "(SS-WHITEBOX-TESTSERVER PROB BL) throws BL at the server and returns the name of a file containing the
    trace produced by the server."
-  (let (blfile notamperout)
+  (declare (ignore depth))
+  (let (blfile)
     (setq blfile (stringappend *ss-working-prefix* "bl.xml"))
     ; write out binding list in XML
-    (setq notamperout (ss-uncleanse (list (list 'good t (list (mapcar #'(lambda (x) (list (car x) (cdr x))) bl)))) prob))
-    (with-open-file (f blfile :direction :output :if-does-not-exist :create :if-exists :supersede)
-      (notamper2xml notamperout prob :stream f))
+    (with-open-file (f blfile :direction :output :if-does-not-exist :create :if-exists :supersede)      
+      (ss-bl2xml (ss-uncleanse (mapcar #'(lambda (x) (list (car x) (cdr x))) bl) prob) prob :stream f))
     ; record that we're giving these inputs to the server
     (setq *ss-history-unique* (nconc (remove-if-not #'(lambda (x) (member (car x) *ss-global-unique*)) bl)
 				    *ss-history-unique*))
     ; invoke Nazari's code to send inputs to server
-
     (ss-whitebox-process-server (ss-whitebox-get-response blfile))))
 
-(defun ss-get-html (url &optional (dest (stringappend *ss-working-prefix* "homepage.htm")))
+(defun ss-get-html (url &key (dest (stringappend *ss-working-prefix* "homepage.htm")) (depth 0))
   (let ((xmlfile (stringappend *ss-working-prefix* "get_html.xml")))
-    (when *ss-debug* (ss-trace (format nil "Downloading ~A" url) 2))
+    (when *ss-debug* (ss-trace (format nil "Downloading ~A to ~A" url dest) depth))
     (with-open-file (f xmlfile :direction :output :if-does-not-exist :create :if-exists :supersede)
-      (notamper2xml (list (list 'good t))
-		    (make-ss-prob  :metafields `((method "get") (url ,url))) 
-		    :stream f))
-    (ss-whitebox-get-response xmlfile dest)))
+      (ss-bl2xml nil (make-ss-prob :metafields `((url ,url) (method "GET") (enctype "application/x-www-form-urlencoded")))
+		 :stream f))
+;      (format f "<testcases><form name=\"form1\"><attributes>~%")
+;      (format f "<method>GET</method><url>~A</url><enctype>application/x-www-form-urlencoded</enctype></attributes>~%" url)
+;      (format f "<good><case></case></good></form></testcases>~%"))
+    (setq dest (ss-whitebox-get-response xmlfile dest))
+    (ss-assert (probe-file dest) nil (format nil "Downloading ~A failed" url))
+    (setq dest (ss-whitebox-drop-trace dest))
+    (ss-assert (probe-file dest) nil (format nil "Trace deletion ~A failed" url))
+    dest))
+
+(defun ss-whitebox-drop-trace (file)
+  "(SS-WHITEBOX-PROCESS-SERVER FILE) processes the server response contained in FILE to extract the
+   appropriate trace and store it in a new file, whose name is returned."
+  (let (start newfile openstr)
+    (setq openstr "<NOTAMPER_TRACE_START>")
+    (setq newfile (stringappend file ".notrace"))
+    (setq file (read-any-file file))
+    (setq start (search openstr file :test #'equalp))
+    (if (numberp start)
+      (write-any-file newfile (subseq file 0 start))
+      (write-any-file newfile file))
+    newfile))
 
 (defun ss-whitebox-get-response (xmlfile &optional (dest (stringappend *ss-working-prefix* "homepage.htm"))) 
   "(SS-WHITEBOX-GET-RESPONSE XMLFILE) invokes the response generator on the given XMLFILE 
    and returns the file storing the result.  Not using wget b/c response generator 
    handles weird javascript redirects.  Also, response generator allows for cookies."
-  (exec-commandline "cd" (ss-abspath :respgen "") 
+  (setq dest (stringappend dest "." *ss-white-downloads*))
+  (setq *ss-white-downloads* (1+ *ss-white-downloads*))
+  (print (exec-commandline "cd" (ss-abspath :respgen "") 
 		     ;"; rm -Rf responses results diffsizes.txt; mkdir responses; mkdir results;"
-		    "java -jar HTTPReqGen.jar" xmlfile "-d" dest)
+		    "; java -jar HTTPReqGen.jar" xmlfile "-d" dest))
   dest)
 
 (defun ss-whitebox-process-server (file)
   "(SS-WHITEBOX-PROCESS-SERVER FILE) processes the server response contained in FILE to extract the
    appropriate trace and store it in a new file, whose name is returned."
-  (ss-whitebox-trace-truncate file))
+  (let (start end newfile openstr endstr)
+    (setq openstr "<NOTAMPER_TRACE_START>")
+    (setq endstr "<NOTAMPER_TRACE_END>")
+    (setq newfile (stringappend file ".trace"))
+    (setq file (read-any-file file))
+    (setq start (search openstr file :test #'equalp))
+    (ss-assert (numberp start) nil (format nil "Trace not included in server response"))
+    (setq end (search endstr file :start2 start :test #'equalp))
+    (ss-assert (numberp end) nil (format nil "Trace endpoint not included in server response"))
+    (write-any-file newfile (subseq file (+ start (length openstr)) end))
+    (ss-assert (probe-file newfile) nil (format nil "Trace extraction failed"))
+    (ss-whitebox-trace-truncate newfile)))
   
-(defun ss-whitebox-redundantp (history q)
-  "(SS-WHITEBOX-REDUNDANT HISTORY Q) returns T if Q is logically equivalent to some element in HISTORY."
-  (some #'(lambda (x) (seteq x q #'equal)) history))
-
 (defun ss-whitebox-solve (p prob &key (required nil) (unique nil) (depth 0))
   "(SS-WHITEBOX-FIND-HOSTILE-SOLVE P ...) runs stringsolver on P and returns result"
   (let (val u)
@@ -235,16 +350,21 @@
     (setq p (maksand (list* p (ss-prob-space prob) u)))
 
     (when *ss-debug* 
-      (ss-trace (with-output-to-string (s) (format s "String solving:") (pprint p s))
-		depth))
+      (ss-trace (format nil "String solving:") depth)
+      (unless *quiet* (ss-trace (with-output-to-string (s) (pprint p s)) depth)))
+
+    (setq p (ss-drop-syntactic-sugar p))
     (setq val (ss-solve p :required required :types (ss-prob-types prob)))
-    (when val
-      (setq val (hash2bl val))
-      (when *ss-debug* (ss-trace (format nil "Solution: ~S" val) depth))
-      (unless *quiet*
-	(ss-assert (ss-checksat p (ss-prob-types prob) (append val truth)) nil 
-		   (format nil "ss-solve failed on ~%~S~%producing ~%~S~%with types~%~S~%" 
-			   p val (hash2bl (ss-prob-types prob))))))
+    (cond (val
+	   (setq val (hash2bl val))
+	   (when *ss-debug* 
+	     (ss-trace (format nil "Found string solution.") depth)
+	     (unless *quiet* (ss-trace (format nil "~S" val) depth)))
+	   (unless *quiet*
+	     (ss-assert (ss-checksat p (ss-prob-types prob) (append val truth)) nil 
+			(format nil "ss-solve failed on ~%~S~%producing ~%~S~%with types~%~S~%" 
+				p val (hash2bl (ss-prob-types prob))))))
+	  (t (when *ss-debug* (ss-trace "No string solution." depth))))
     val))
     
 (defun ss-whitebox-init (url)
@@ -260,26 +380,27 @@
     (setf (cdr v) (ss-path-endify (string-left-trim '(#\/) (cdr v))))))
 
 (defun ss-whitebox-cleanup ()
-  (exec-commandline "cd" *ss-working-prefix* "; rm -f homepage.htm *.constraints* *.scripts *.log"))
+  (exec-commandline "cd" *ss-working-prefix* "; rm -f F* homepage.htm *.constraints* *.scripts *.log"))
 ; (stringappend *ss-home* "cleanup.sh")))
 
-(defun ss-compute-fclients (url)
+(defun ss-compute-fclients (url &key (depth 0))
   "(SS-COMPUTE-FCLIENTS URL) takes a URL and returns a list of ss-prob structs:
    one for each form at the URL.  Exactly same as blackbox version."
-  (when *ss-debug* (ss-trace "Computing fclient for each form" 1))
-  (ss-extract-ht-constraints (ss-get-html url) url)
-  (ss-extract-js-constraints)
-  (mapcar #'(lambda (x) (ss-cleanse (eval (first (read-file x))))) (ss-combine-constraints)))
+  (exec-commandline "rm" (stringappend *ss-working-prefix* "F*"))
+  (when *ss-debug* (ss-trace "Computing fclient for each form" depth))
+  (ss-extract-ht-constraints (ss-get-html url :depth (1+ depth)) url :depth (1+ depth))
+  (ss-extract-js-constraints :depth (1+ depth))
+  (mapcar #'(lambda (x) (ss-cleanse (eval (first (read-file x))))) (ss-combine-constraints :depth (1+ depth))))
     
-(defun ss-extract-ht-constraints (htmlfile url)
-  (when *ss-debug* (ss-trace "Extracting HTML Constraints" 2))
+(defun ss-extract-ht-constraints (htmlfile url &key (depth 0))
+  (when *ss-debug* (ss-trace "Extracting HTML Constraints" depth))
   (exec-commandline "cd" *ss-working-prefix* ";" "java" "HTMLConstraints" "-offline" htmlfile url))
 
-(defun ss-extract-js-constraints ()
+(defun ss-extract-js-constraints (&key (depth 0))
   "(SS-EXTRACT-JS-CONSTRAINTS) for each XXXX.script file in working directory, 
    run JS extractor to produce XXXX.constraints_JS file in working directory
    that contains the constraints imposed by the JS file."
-  (when *ss-debug* (ss-trace "Extracting JavaScript Constraints" 2))
+  (when *ss-debug* (ss-trace "Extracting JavaScript Constraints" depth))
   (let (scripts logfile jscfile)
     (setq scripts (mapcar #'namestring (directory (stringappend *ss-working-prefix* "*.scripts"))))
     (dolist (s scripts)
@@ -298,10 +419,10 @@
   (princ msg t)
   (format t "~%"))
 
-(defun ss-combine-constraints ()
+(defun ss-combine-constraints (&key (depth 0))
   "(SS-COMBINE-CONSTRAINTS) takes constraints from X.constraints_H X.constraints_H_1 X.constraints_JS and
    combines them into a single X.constraints file, which is in the ss-prob format."
-  (when *ss-debug* (ss-trace "Combining Constraints" 2))
+  (when *ss-debug* (ss-trace "Combining Constraints" depth))
   (let ((hcfiles (directory (stringappend *ss-working-prefix* "*.constraints_H")))
 	(constraints nil) hcfile2 jscfile outfile)
     (setq hcfiles (mapcar #'namestring hcfiles))
@@ -712,6 +833,18 @@
 	((member 'num types) 'num)
 	((member 'bool types) 'bool)
 	((listp types) (first types))))
+
+(defun ss-cleanse-more (thing prob)
+  "(SS-CLEANSE-MORE THING PROB) replaces (var 'varName') in thing with a new variable ?varname
+   and returns a new THING, augmenting (ss-prob-varnames prob)"
+  (let (*ss-varmapping* *ss-vars*)
+    (setq *ss-varmapping* (ss-prob-varnames prob))
+    (setq *ss-vars* (union* (vars (ss-prob-phi prob))
+			    (vars (ss-prob-types prob))
+			    (vars (ss-prob-space prob))))
+    (setq thing (ss-cleanse-varcases-aux thing))
+    (setf (ss-prob-varnames prob) *ss-varmapping*)
+    thing))
     
 (defun ss-cleanse-varcases (prob)
   (let (*ss-varmapping* *ss-vars*)
@@ -838,6 +971,22 @@
       (format stream "</case>~%")))
   (printspaces 2 stream) (format stream "</bad>~%")
   (format stream "</form>~%"))
+
+(defun ss-bl2xml (bl prob &key (stream t))
+  (format stream "<testcases>~%")
+  (format stream "<form name=\"~A\">~%" (ss-prob-name prob))
+  (printspaces 2 stream) (format stream "<attributes>~%")
+  (dolist (m (ss-prob-metafields prob))
+    (printspaces 4 stream)
+    (format stream "<~(~A~)>~A</~(~A~)>~%" (first m) (second m) (first m)))
+  (printspaces 2 stream) (format stream "</attributes>~%")
+  (printspaces 2 stream) (format stream "<good>~%")
+  (printspaces 4 stream) (format stream "<case>~%")
+  (when bl (notamper2xml-varassign nil bl 6 stream))
+  (printspaces 4 stream) (format stream "</case>~%")
+  (printspaces 2 stream) (format stream "</good>~%")
+  (format stream "</form>~%")
+  (format stream "</testcases>"))
 
 (defun ss-vars (p)
   (cond ((varp p) (list p))

@@ -442,12 +442,50 @@
       (when c (return c)))))
 |#
 
+(defparameter *ss-kaluza-vocab* 
+  (list (make-parameter :symbol 'lt :arity 2 :type 'relation)
+	(make-parameter :symbol 'lte :arity 2 :type 'relation)
+	(make-parameter :symbol 'gt :arity 2 :type 'relation)
+	(make-parameter :symbol 'gte :arity 2 :type 'relation)
+	(make-parameter :symbol '= :arity 2 :type 'relation)
+	(make-parameter :symbol '!= :arity 2 :type 'relation)
+	(make-parameter :symbol 'in :arity 2 :type 'relation)
+	(make-parameter :symbol 'notin :arity 2 :type 'relation)
+	(make-parameter :symbol 'nin :arity 2 :type 'relation)
+	(make-parameter :symbol 'len :arity 1 :type 'function)
+	(make-parameter :symbol 'concat :arity 2 :type 'function)
+	(make-parameter :symbol '+ :arity 2 :type 'function)
+	(make-parameter :symbol '* :arity 2 :type 'function)
+	(make-parameter :symbol '/ :arity 2 :type 'function)
+	(make-parameter :symbol '- :arity 2 :type 'function)
+	;(make-parameter :symbol 'contains :arity 2 :type 'relation)
+	;(make-parameter :symbol 'notcontains :arity 2 :type 'relation)
+	(make-parameter :symbol 'type :arity 2 :type 'relation)
+	;(make-parameter :symbol 'true :arity 0 :type 'relation)
+	;(make-parameter :symbol 'false :arity 0 :type 'relation)
+	;(make-parameter :symbol 'require :arity 1 :type 'relation)
+	;(make-parameter :symbol 'forbid :arity 1 :type 'relation)
+))
+
 (defun ss-drop-syntactic-sugar (p) (ss-drop-sugar-sent p))
 (defun ss-drop-sugar-sent (p) (mapopands #'ss-drop-sugar-atom p))
 
+(defun ss-php-false (var)
+  `(or (= ,var false) (= ,var 0) (= ,var "") (= ,var "0") (not ,(ss-drop-sugar-atom `(isset ,var)))))
+
 (defun ss-drop-sugar-atom (p)
-  (cond ((varp p) `(= ,p true))
-	((atom p) p)
+  (mapopands #'(lambda (p)
+		 (cond ((varp p) (maknot (ss-php-false p)))
+		       ((atom p) p)
+		       ((equal p '(true)) 'true)
+		       ((equal p '(false)) 'false)
+		       ((member (car p) '(+ * / - len)) `(!= ,p 0))
+		       ((eq (car p) 'concat) `(and (!= ,p "") (!= ,p "0")))
+		       (t p)))
+	     (ss-drop-sugar-atom-core p)))	     
+
+(defun ss-drop-sugar-atom-core (p)
+  (cond ((atom p) p)
 	(t (multiple-value-bind (args extra) (mapcaraccum #'ss-drop-sugar-term (cdr p))
 	     (setq p (cons (car p) args))
 	     (setq p (ss-drop-sugar p (car p)))
@@ -552,6 +590,14 @@
     (values `(concat ,leftvar (concat ,(third term) ,rightvar))
 	    sents)))
 
+(defmethod ss-drop-sugar (term (type (eql 'preg_match)))
+  ; preg_match($pattern, $subject, $matches, PREG_OFFSET_CAPTURE, 3);
+  `(in ,(third term) ,(second term)))
+
+(defmethod ss-drop-sugar (term (type (eql 'preg_match_all)))
+  ; int preg_match_all(string $pattern,string $subject,array &$matches  [, int $flags [, int $offset = 0  ]] )
+  `(in ,(third term) ,(second term)))
+
 (defmethod ss-drop-sugar (term (type (eql 'empty)))
    ; PHP 5 notion of empty (skipping NULL and objects)
   `(or (= ,(second term) "")
@@ -575,35 +621,6 @@
 	   (values (cons (car term) args) extra)))))
 |#
 
-
-;;;;;;;;;;;; Vocabulary checking ;;;;;;;;;;;;
-;  OUT OF DATE--NOT BEING USED CURRENTLY.
-; only tricky thing.  regexp "L" represented as (reg "L")
-; variables represented as ?x
-(defparameter *ssvocab* (list (make-parameter :symbol 'lt :arity 2 :type 'relation)
-			      (make-parameter :symbol 'lte :arity 2 :type 'relation)
-			      (make-parameter :symbol 'gt :arity 2 :type 'relation)
-			      (make-parameter :symbol 'gte :arity 2 :type 'relation)
-			      (make-parameter :symbol '= :arity 2 :type 'relation)
-			      (make-parameter :symbol '!= :arity 2 :type 'relation)
-			      (make-parameter :symbol 'in :arity 2 :type 'relation)
-			      (make-parameter :symbol 'notin :arity 2 :type 'relation)
-			      (make-parameter :symbol 'nin :arity 2 :type 'relation)
-			      (make-parameter :symbol 'reg :arity 1 :type 'function)
-			      (make-parameter :symbol 'len :arity 1 :type 'function)
-			      (make-parameter :symbol 'concat :arity 2 :type 'function)
-			      (make-parameter :symbol 'contains :arity 2 :type 'relation)
-			      (make-parameter :symbol 'notcontains :arity 2 :type 'relation)))
-
-(defun ss-invalid-inputs (p) 
-  (if (not (quantifier-free-sentencep p)) 
-      'quantifiers
-      (set-difference (remove-if #'isobject (get-vocabulary p))
-		      *ssvocab*
-		      :test #'equalp)))
-
-
-
 ;;;;;;;;;;;; Conjunctive Constraint solving ;;;;;;;;;;;;
 ; actual solving.
 
@@ -621,7 +638,7 @@
        op    :=  numop | eqop | regop
        term  :=  var | str | num | bool | (len term) | (concat term term)
        atom  :=  (op term term)"
-  (let (bl bl2 blvars psvars solvervars h vs r f)
+  (let (bl blvars psvars solvervars boundvars h vs r f)  ; bl2
     ; rip out require/forbid atoms and add to required/forbidden lists
     (multiple-value-setq (r ps) (split #'(lambda (x) (member (reln x) '(require forbid))) ps))
     (multiple-value-setq (r f) (split #'(lambda (x) (eq (reln x) 'require)) r))
@@ -638,13 +655,18 @@
     ; remove equality for (= var ground); leave (= var unground) since we need flat terms for Kaluza.
     (multiple-value-setq (ps bl) (delete-simple= ps :test #'equal))
     (when (eq ps :unsat) (return-from ss-solve-atoms nil))
-    ; remove != for boolean variables with ground arg
-    (multiple-value-setq (ps bl2) (delete!=bool ps :test #'equal))
-    (when (eq ps :unsat) (return-from ss-solve-atoms nil))
+    ; remove != for boolean variables with ground arg    REMOVED FOR SPECIFIC CASE WHERE TYPE OF VAR IS UNKNOWN
+    ;(multiple-value-setq (ps bl2) (delete!=bool ps :test #'equal))
+    ;(when (eq ps :unsat) (return-from ss-solve-atoms nil))
+    ; remove != constraints that are of the wrong type, since they are satisfied anyway.
+    ;   but ensure any var included in such a constraint is added to required var list.
+    (multiple-value-bind (newps newreq) (ss-whitebox-remove-ne ps types)
+      (setq ps newps)
+      (setq required (union required newreq)))
     ; remove duplicates
     (setq ps (remove-duplicates ps :test #'equal))
     ; combine variable bindings
-    (setq bl (compose-mgus (list bl bl2)))
+    ;(setq bl (compose-mgus (list bl bl2)))
 
     ; simplify again
     (setq ps (ss-solve-atoms-simplify ps))
@@ -659,8 +681,9 @@
     ;  solvervars: (psvs + required) - blvs (the set of variables we need to solve for)
     ;  Note: we need to solve for all of SOLVERVARS to ensure the entire set of formulas is satisfiable.
     (setq blvars (delete t (mapcar #'first bl)))
+    (setq boundvars (instantiated-vars bl))
     (setq solvervars (set-difference (union* psvars required) blvars))
-
+    ;(format t "psvars: ~A, required: ~A, solvervars: ~A~%" psvars required solvervars)
     ; add user-specified typing constraints for solver variables.
     (when types
       (dolist (v solvervars)
@@ -685,7 +708,41 @@
     (setq h (ss-invoke-kaluza solvervars ps))
     (if (eq h :unsat)
 	nil
-	(ss-augment-result3 (bl2hash h) bl required))))
+	(ss-augment-result3 (bl2hash h) bl (union required boundvars)))))
+
+(defun ss-whitebox-remove-ne (ps types)
+  (let (var term newps y req)
+    (setq newps nil)
+    (setq req nil)
+    (dolist (p ps (values (nreverse newps) (uniquify req)))
+      (cond ((and (listp p) (eq (car p) '!=))
+	     (cond ((and (varp (second p)) (atom (third p)) (not (varp (third p))))
+		    (setq var (second p))
+		    (setq term (third p)))
+		   ((and (varp (third p)) (atom (second p)) (not (varp (second p))))
+		    (setq var (third p))
+		    (setq term (second p)))
+		   (t (setq var nil)))
+	     (cond (var
+		    (setq y (gethash var types))
+		    (cond ((not y) (push p newps))
+			  ((stringp (third y)) 
+			   (if (stringp term) 
+			       (push p newps) 
+			       (push var req)))
+			  ((and (eq (car y) 'typedecl) (eq (third y) 'bool))
+			   (if (or (eq term 'true) (eq term 'false))
+			       (push p newps)
+			       (push var req)))
+			  ((and (eq (car y) 'typedecl) (eq (third y) 'num))
+			   (if (numberp term)
+			       (push p newps)
+			       (push var req)))
+			  (t (push p newps))))
+		   (t (push p newps))))
+	    (t (push p newps))))))
+
+
 
 #|
 (defun ss-solve-atoms-hampi (ps types required)
@@ -1789,6 +1846,7 @@
       <eqop> ::= !=, =
       <conop> ::= contains, notcontains
       <op> ::= <numop> | <regop> | <eqop> | <conop>"
+  (ss-validate-syntax-kaluza constraints)
   (let (var)
     (dolist (c constraints)
       (when (negative-literalp c) (format s "!") (setq c (second c)))  ; shouldn't need this, but just in case
@@ -1798,6 +1856,12 @@
 	     (ss-invoke-kaluza-writefile-constraint `(assert ,var) s))
 	    (t (ss-invoke-kaluza-writefile-constraint c s))))))
 
+(defun ss-validate-syntax-kaluza (ps)
+  (let (errs)
+    (ss-assert (every #'atomicp ps) nil (format nil "Kaluza only accepts a list of atomic constraints; found ~A" ps))
+    (setq errs (set-difference (remove-if #'isobject (get-vocabulary (maksand ps))) *ss-kaluza-vocab* :test #'equalp))
+    (assert (null errs) nil (format nil "Found unknown function/relation(s): ~A" errs))))
+      
 (defun ss-invoke-kaluza-writefile-constraint (p s)
   (ss-invoke-kaluza-writefile-atom p s)
   (format s ";~%"))

@@ -700,7 +700,7 @@
     (format s "<p><h3>Refereed</h3>~%~%")
     (process-displaylatex s ref maxauthlength)
     (format s "<p><h3>Unrefereed</h3>~%~%")
-    (process-displaylatex s unref)))
+    (process-displaylatex s unref maxauthlength)))
 
 (defun process-displaylatex (s papers &optional (maxauthlength 4))
   (format-html s) (crlf s)
@@ -855,7 +855,7 @@
 	  (t
 	   (when f (format s "~A" f))
 	   (when m (format s " ~A" m))
-	   (when l (format s " ~A, " l))))))
+	   (when l (format s " ~A" l))))))
 
 (defun output-paper-html-experiments (handle experiments s)
   (declare (ignore handle))

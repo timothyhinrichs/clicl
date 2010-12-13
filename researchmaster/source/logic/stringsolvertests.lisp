@@ -1,6 +1,9 @@
 
 (defun white-tests ()
-'("http://herge.sisl.rites.uic.edu/notamper/phpnews/index.php?action=settings"))
+'(
+  (mybloggie "http://herge.sisl.rites.uic.edu/notamper/instrumented/mybloggie/admin.php?mode=add")
+  (phpnews "http://herge.sisl.rites.uic.edu/notamper/instrumented/phpnews/index.php?action=post")
+  ))
 
 (defun complexity (p)
   (cond ((atom p) 1)
