@@ -1,9 +1,5 @@
 ; all regexps are pcre (perl compatible regular expressions)
 ; requires Kaluza as a helper, which only runs on Linux
-(defun r () 
-  (load "/homes/thinrich/tool/solver/ss/stringsolver.lisp")
-  (load "/homes/thinrich/tool/solver/ss/stringsolverapps.lisp")
-  (load "/homes/thinrich/tool/solver/ss/stringsolvertests.lisp"))
 
 (defvar *ss-max-length* 300 
   "maximum length of a string")
@@ -22,6 +18,8 @@
   "whether or not to ensure that our dynamically created regexps can be translated")
 (defvar *command-line* nil
   "whether being executed from the command line.  If NIL, errors result in CCL breaks; otherwise, errors quit.")
+(defparameter *ss-ignore-variable-source* nil
+  "whether or not to treat the same variable name from get/post/cookie as the same variable")
 
 ; external helper routines
 (defparameter *hampi-regtest-tmp* "/tmp/hampiregtest.txt"
@@ -64,8 +62,13 @@
 
 
 ; internal globals
+(defparameter *ss-canonical* "Used to store canonical representations of sentences.")
 (defparameter *reg-special-chars* (list #\\ #\^ #\$ #\( #\) #\[ #\] #\{ #\} #\. #\* #\? #\| #\+ #\-))
-(define-condition ss-type-error (error) ((comment :initarg :comment)))
+(defparameter *ss-cast-types* (make-hash-table))  ; to avoid passing types everywhere
+(define-condition ss-type-error (error) ((text :initarg :text :reader text)))
+(define-condition ss-symbol-error (error) ((text :initarg :text :reader text)))
+(define-condition ss-boolean-error (error) ((text :initarg :text :reader text)))
+(define-condition ss-syntax-error (error) ((text :initarg :text :reader text)))
 
 (defun ss-regesc (s &optional (charlist *reg-special-chars*))
   "(SS-REGESC S) translates s so that all special characters are escaped for regular expressions."
@@ -276,81 +279,714 @@
       (when (varp (car b))
 	(setq y (gethash (car b) types))
 	(when y
-	  (cond ((eq (car y) 'typedecl)
-		 (cond ((eq (third y) 'bool) 
-			(unless (member (cdr b) '(true false))
-			  (when *ss-debug* (format t "~&Checksat type failure: ~A should be bool" (cdr b)))
-			  (return nil)))
-		       ((eq (third y) 'num)
-			(unless (numberp (cdr b))
-			  (when *ss-debug* (format t "~&Checksat type failure: ~A should be num" (cdr b)))
-			  (return nil)))
-		       ((eq (third y) 'str)
-			(unless (stringp (cdr b))
-			  (when *ss-debug* (format t "~&Checksat type failure: ~A should be str" (cdr b)))
-			  (return nil)))
-		       (t 
-			(when *ss-debug* (format t "~&Checksat type failure: unknown typedecl ~A" (third y)))
-			(return nil))))			
+	  (cond ((eq (third y) 'bool) 
+		 (unless (member (cdr b) '(true false))
+		   (when *ss-debug* (format t "~&Checksat type failure: ~A should be bool" (cdr b)))
+		   (return nil)))
+		((eq (third y) 'num)
+		 (unless (numberp (cdr b))
+		   (when *ss-debug* (format t "~&Checksat type failure: ~A should be num" (cdr b)))
+		   (return nil)))
+		((eq (third y) 'str)
+		 (unless (stringp (cdr b))
+		   (when *ss-debug* (format t "~&Checksat type failure: ~A should be str" (cdr b)))
+		   (return nil)))
 		(t
 		 (unless (ss-checkreg (ss-cast-tostring (cdr b)) (ss-makreg (third y)))
 		   (when *ss-debug* (format t "~&Checksat type failure: ~A~%" b))
 		   (return nil)))))))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Input Cleansing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 #|
-; not sure why I thought this was useful.  Now we just simplify.
-(defun ss-checksat-aux (p)
-  (3val-true (3val-rewrite p)))
+(defun ss-canon (p)
+  "(SS-CANON P) takes a sentence in the external format and transforms it into a canonical form."
+  (setq p (ss-fix-php-ops p))
+  (setq p (ss-fix-boolean-funcs p))
+  (setq p (mapbool #'(lambda (x) (flatten-operator (delete-duplicates x :test #'sentequal))) p))
+  (setq p (mapbool #'ss-eliminate-idempotent p))
+  p)
 
-(defun 3val-unknown (x) (eq x 'unknown))
-(defun 3val-true (x) (and x (not (3val-unknown x))))
-(defun 3val2num (v) 
-  (cond ((3val-true v) 3)
-	((3val-unknown v) 2)
-	(t 1)))
-(defun num23val (num) (case num (1 nil) (2 'unknown) (3 t)))
-(defun 3val-not (val) (if (3val-unknown val) 'unknown (not val)))
-(defun 3val-rewrite (p)
-  (cond ((atom p) p)
-	((eq (car p) 'and) (num23val (apply #'min (mapcar #'3val2num (mapcar #'3val-rewrite (cdr p))))))
-	((eq (car p) 'or) (num23val (apply #'max (mapcar #'3val2num (mapcar #'3val-rewrite (cdr p))))))
-	((eq (car p) 'not) (3val-not (3val-rewrite (second p))))
-	((not (groundp p)) 'unknown)
-	(t (ss-simplify p))))
+(defun ss-eliminate-idempotent (p)
+  (cond ((member (car p) '(tobool bool boolean)) 
+	 (if (member (relation (second p)) '(and not = != tobool bool boolean < > lt gt lte gte >=
+|#
 
-(defun ss-checksat-aux-simplify (p)
-  "(SS-CHECKSAT-AUX-SIMPLIFY P) returns T/NIL for sentences or a value
-   for a term, assuming P is ground."
+(defun ss-cleanse (prob)
+  "(SS-CLEANSE PROBLEM) takes input languages and reduces to internal, simplified
+   language.  Most other routines assume cleansing has already occurred. Destructively modifies PROB."
+  ; ordering of cleansing operations below is important
+
+  ; drop initial operator from list of type specs
+  (setf (ss-prob-types prob) (drop-op (ss-prob-types prob)))
+
+  ; substitute PHP operators for internal operators
+  (setf (ss-prob-phi prob) (ss-fix-php-ops (ss-prob-phi prob)))
+  (setf (ss-prob-space prob) (ss-fix-php-ops (ss-prob-space prob)))
+
+  ; handle boolean operators being used as functions
+  (setf (ss-prob-phi prob) (ss-fix-boolean-funcs (ss-prob-phi prob)))
+  (setf (ss-prob-space prob) (ss-fix-boolean-funcs (ss-prob-space prob)))
+
+  ; reduce boolean operators to KIF operators
+  (setf (ss-prob-phi prob) (boolops2kif (ss-prob-phi prob)))
+  (setf (ss-prob-space prob) (boolops2kif (ss-prob-space prob)))
+
+  ; eliminate duplicates inside boolean ops
+  (setf (ss-prob-phi prob) (mapbool #'(lambda (x) (delete-duplicates x :test #'sentequal)) (ss-prob-phi prob)))
+  (setf (ss-prob-space prob) (mapbool #'(lambda (x) (delete-duplicates x :test #'sentequal)) (ss-prob-space prob)))
+
+  ; remove (var "myCaseSensitiveVar") and augment ss-prob-varnames as appropriate
+  (setq *ss-varmapping* nil)
+  (ss-cleanse-varcases prob)
+  
+  ; tweak regular expressions
+  (setf (ss-prob-phi prob) (ss-fix-innotin (ss-prob-phi prob)))
+  (setf (ss-prob-space prob) (ss-fix-innotin (ss-prob-space prob)))
+  (setf (ss-prob-types prob) (mapcar #'ss-in2type (ss-prob-types prob)))
+
+  ; remove syntactic sugar
+  (setf (ss-prob-phi prob) (ss-drop-syntactic-sugar (ss-prob-phi prob)))
+  (setf (ss-prob-space prob) (ss-drop-syntactic-sugar (ss-prob-space prob)))
+  (setf (ss-prob-types prob) (mapcar #'ss-drop-syntactic-sugar (ss-prob-types prob)))
+
+  ; miscellaneous hacks
+  (setf (ss-prob-phi prob) (ss-fix-misc (ss-prob-phi prob)))
+  (setf (ss-prob-space prob) (ss-fix-misc (ss-prob-space prob)))
+  (setf (ss-prob-types prob) (mapcar #'ss-fix-misc (ss-prob-types prob)))
+
+  ; do type inference and cast objs in constraints to satisfy types.
+  (ss-cleanse-typeinference prob)
+
+  ; simplify where possible
+  (setf (ss-prob-phi prob) (ss-simplify (ss-prob-phi prob)))
+  (setf (ss-prob-space prob) (ss-simplify (ss-prob-space prob)))
+  (setf (ss-prob-types prob) (mapcar #'ss-simplify (ss-prob-types prob)))
+
+  (setf (ss-prob-varnames prob)
+;	(mapcar #'(lambda (x) (cons (car x) (cdr x)))
+		(butlast (compose-mgus (list (append (ss-prob-varnames prob) truth)
+					     (append *ss-varmapping* truth)))))
+
+  ; turn types into a hash table
+  (let ((e (make-hash-table)))
+    (mapc #'(lambda (x) (setf (gethash (second x) e) x)) (ss-prob-types prob))
+    (setf (ss-prob-types prob) e))
+
+  prob)
+
+(defun ss-cleanse-more* (thing prob &optional (justvars nil))
+  (let (*ss-varmapping* *ss-vars*)
+    (unless justvars
+      (setq thing (ss-fix-php-ops thing))
+      (setq thing (ss-fix-boolean-funcs thing))
+      (setq thing (boolops2kif thing))
+
+      (setq thing (mapbool #'(lambda (x) (delete-duplicates x :test #'sentequal)) thing)))
+    (setq *ss-varmapping* (ss-prob-varnames prob))
+    (setq *ss-vars* (union* (vars (ss-prob-phi prob))
+			    (vars (ss-prob-types prob))
+			    (vars (ss-prob-space prob))))
+    (setq thing (ss-cleanse-varcases-aux thing))
+    (setf (ss-prob-varnames prob) *ss-varmapping*)
+    (unless justvars
+      (setq thing (ss-fix-innotin thing))
+      (setq thing (ss-drop-syntactic-sugar* thing))
+      (setq thing (ss-fix-misc thing)))
+    thing))
+
+(defun ss-cleanse-more (thing prob)
+  "(SS-CLEANSE-MORE THING PROB) applies the full ss-cleanse to a new sentence THING
+   in the context of PROB. "
+  ; do lightweight cleansing
+  (setq thing (ss-cleanse-more* thing prob))
+  ; remove syntactic sugar completely
+  (setq thing (ss-drop-syntactic-sugar thing)) 
+  ; do type inference and cast objs in constraints to satisfy types.
+  (setq thing (ss-cleanse-typeinference-more thing prob))
+  ; simplify where possible
+  (setq thing (ss-simplify thing))
+  thing)
+
+(defun ss-uncleanse (thing prob)
+  "(SS-UNCLEANSE THING PROB) undoes the externally important changes made by ss-cleanse.
+   Destructive."
+  (let (alist)
+    (setq alist (mapcar #'(lambda (x) (cons (first x) (list (third x) (second x)))) (ss-prob-varnames prob)))
+    (cond ((atom thing) (nsublis alist thing))  
+	  ((listp thing) (nsublis alist thing))
+	  ((ss-prob-p thing)
+	   (setf (ss-prob-phi thing) (nsublis alist (ss-prob-phi thing)))
+	   (setf (ss-prob-space thing) (nsublis alist (ss-prob-space thing)))
+	   (setf (ss-prob-types thing) (nsublis alist (ss-prob-types thing)))
+	   thing)
+	  (t thing))))
+
+(defun ss-fix-php-ops (p)
+  (setq p (sublis '((&& . and)
+		    (! . not))
+		  p)))
+
+(defun ss-fix-boolean-funcs (p)
+  "(SS-FIX-BOOLEAN-FUNCS P) tries to simplify P so that all the boolean ops AND/OR/NOT appear
+   at the top-level of the sentences, as prescribed in FOL.  When this cannot be accomplished,
+   throws ss-boolean-error.  Note that throwing the error is necessary whenever 
+   the usual conversion to DNF is inadequate, i.e. even if we flatten, we couldn't convert to
+   DNF and give the underlying string solver a conjunction to solve." 
   (cond ((atom p) p)
-	((eq (car p) 'len) (length (second p)))
-	((eq (car p) 'concat)
-	((find (car p) '(contains notcontains))
-	 (setq p (ss-cast p))
-	 (let (v)
-	   (setq v (search (third p) (second p)))
-	   (if (eq (car p) 'contains) v (not v))))
-	((find (car p) '(in notin nin)) 
-	 (setq p (ss-cast p))
-	 (let (v)
-	   (setf v (ss-checkreg (second p) (second (third p))))
-	   (if (eq (car p) 'in) v (not v))))
-	(t
-	 (setq p (ss-cast (cons (car p) (mapcar #'ss-checksat-aux-simplify (cdr p)))))
-	 (when (eq p 'error) (return-from ss-checksat-aux-simplify nil))
-	 (case (car p)
-	   (= (equal (second p) (third p)))
-	   (!= (not (equal (second p) (third p))))
-	   (lt (< (second p) (third p)))
-	   (gt (> (second p) (third p)))
-	   (lte (<= (second p) (third p)))
-	   (gte (>= (second p) (third p)))
-	   (otherwise nil)))))
+	((member (car p) '(and or not => <= <=>)) (cons (car p) (mapcar #'ss-fix-boolean-funcs (cdr p))))
+	((member (car p) '(forall exists)) (list (first p) (second p) (ss-fix-boolean-funcs (third p))))
+	((member (car p) '(tobool bool boolean)) (ss-fix-boolean-funcs (second p)))
+	(t (if (intersectionp (get-vocabulary p)
+			      (list (make-parameter :symbol 'not)
+				    (make-parameter :symbol 'and)
+				    (make-parameter :symbol 'or))
+			      :key #'parameter-symbol)
+	       (error 'ss-boolean-error)
+	       p))))
+
+; basically hack central
+; Here we handle a bunch of special cases we've run into that we can't really implement.
+(defun ss-istrue (x)
+  (setq x (ss-orient x))
+  (cond ((atom x) nil)
+	((eq (car x) '=) (sentequal (second x) (third x)))
+	((eq (car x) '!=)
+	 (cond ((atom (third x)) nil)
+	       ((atom (second x))
+		(and (eq (relation (third x)) 'concat) (stringp (second x)) (= (length (second x)) 0)))
+	       (t nil)))
+	((member (car x) '(gt gte lt lte))
+	 (handler-case (eq 'true (ss-simplify x))
+	   (condition () nil)))
+	((eq (car x) 'require) (not (varp (second x))))
+	(t nil)))
+
+; bunch of hacks to handle language elements we can't handle in general
+(defun ss-fix-misc (x)
+  (setq x (ss-orient x))
+  (cond ((atom x) x)
+	((and (eq (second x) 'false) (eq (car x) '=))
+	 (if (eq (signifier (third x)) 'strpos)
+	     (cons 'notstrpos (cdr (third x)))
+	     x))
+	((equal (second x) "")
+	 (cond ((eq (car x) 'lt) `(!= "" ,(third x)))
+	       ((eq (car x) 'gt) 'false)
+	       ((eq (car x) 'lte) 'true)
+	       ((eq (car x) 'gte) `(= "" ,(third x)))
+	       (t x)))
+	(t x)))
+
+(defun ss-cleanse-typeinference (prob)
+  (let (types p)
+    (setq p (list* (ss-prob-phi prob) 
+		   (ss-prob-space prob) 
+		   (ss-prob-types prob)))
+    ; need to extract all of p's atoms and then flatten them.
+    (setq p (find-atoms (maksand p)))
+    (setq p (flatten-operator (maksand (mapcar #'flatten-functions p))))
+    ; grab types
+    (setq types (ss-type-inference (and2list p)))  ; list of (var . <list of types>)
+    ; if ambiguity, don't include type in *ss-cast-types*
+    (setq types (remove-if #'third types))  
+    (setq types (mapcar #'(lambda (x) (cons (first x) (second x))) types))
+    ; resolve conflicts
+    ;(setq types (mapcar #'(lambda (x) (cons (car x) (ss-resolve-types (cdr x)))) types))
+    (setq *ss-cast-types* (bl2hash types))
+    ; fix constraints
+    (setf (ss-prob-phi prob) (ss-cast (ss-prob-phi prob) types))
+    ; add non-string types to prob-types
+    (dolist (y types)
+      (when (member (cdr y) '(num bool)) 
+	(push (list 'type (car y) (cdr y)) (ss-prob-types prob))))
+    ; return result
+    prob))
+
+(defun ss-cleanse-typeinference-more (thing prob)
+  (let (types p)
+    (setq p (list* thing
+		   (ss-prob-phi prob) 
+		   (ss-prob-space prob)
+		   (if (hash-table-p (ss-prob-types prob)) 
+		       (mapcar #'cdr (hash2bl (ss-prob-types prob)))
+		       (ss-prob-types prob))))
+    ; need to extract all of p's atoms and then flatten them.
+    (setq p (find-atoms (maksand p)))
+    (setq p (flatten-operator (maksand (mapcar #'flatten-functions p))))
+    ; grab types
+    (setq types (ss-type-inference (and2list p)))
+    ; if ambiguity, don't include type in *ss-cast-types*
+    (setq types (remove-if #'third types))  
+    (setq types (mapcar #'(lambda (x) (cons (first x) (second x))) types))
+    ; resolve conflicts
+    ;(setq types (mapcar #'(lambda (x) (cons (car x) (ss-resolve-types (cdr x)))) types))
+    (setq *ss-cast-types* (bl2hash types))
+    ; fix constraints
+    (setq thing (ss-cast thing types))
+    ; skip adding non-string types to prob-types (since may not have sufficient info??)
+    ;(dolist (y types)
+    ;  (when (member (cdr y) '(num bool)) 
+    ;	(push (list 'typedecl (car y) (cdr y)) (ss-prob-types prob))))
+    ; return result
+    thing))
+
+(defun ss-cleanse-varcases (prob)
+  (let (*ss-varmapping* *ss-vars*)
+    (setq *ss-varmapping* nil)
+    (setq *ss-vars* (union* (vars (ss-prob-phi prob))
+			    (vars (ss-prob-types prob))
+			    (vars (ss-prob-space prob))))
+    (setf (ss-prob-phi prob) (ss-cleanse-varcases-aux (ss-prob-phi prob)))
+    (setf (ss-prob-space prob) (ss-cleanse-varcases-aux (ss-prob-space prob)))
+    (setf (ss-prob-types prob) (mapcar #'ss-cleanse-varcases-aux (ss-prob-types prob)))
+    (setf (ss-prob-varnames prob) *ss-varmapping*)))
+
+(defun ss-cleanse-varcases-aux (p)
+  "(SS-CLEANSE-VARCASES-AUX P VARS) replaces all (var 'varName') in P with a new variable name ?v
+  and returns a new P, modifying *ss-varmapping* and *ss-vars*. *"
+  ; *ss-varmapping* is a list of (kifvar stringspelling [get/post/cookie/var])
+  (flet ((uniquevar (strvar class)
+	   (let (p v)
+	     (setq p (tostring (list "?" strvar)))
+	     (setq v (read-from-string p))
+	     (do () ((not (member v *ss-vars*))) 
+	       (setq v (read-from-string (tostring (gentemp p)))))
+	     (push (list v strvar class) *ss-varmapping*)
+	     (push v *ss-vars*)
+	     v))
+	 (varspelling (strvar)
+	   (dotimes (i (length strvar))
+	     (dolist (s '((#\[ . #\_) (#\] . #\_) (#\- . #\_)))
+	       (if (char= (aref strvar i) (car s))
+		   (setf (aref strvar i) (cdr s)))))
+	   strvar))
+    (cond ((varp p)   
+	   (cond ((find p *ss-varmapping* :key #'first) p)
+		 (t
+		  (let (newp)
+		    (setq newp (tosymbol (varspelling (subseq (tostring p) 1))))
+		    (setq p (tosymbol (list "?" newp)))	   
+		    (push (list p newp 'var) *ss-varmapping*)
+		    (setq *ss-vars* (adjoin p *ss-vars*))
+		    p))))	      
+	  ((atom p) p)   
+	  ((and (listp p) (listp (first p))) (ss-cleanse-varcases-aux (first p))) ; allows ((var ?x)) in place of (var ?x)
+	  ((member (first p) '(var get post cookie request))
+	   (cond ((null (cdr p)) (case (first p)
+				   (get '$GET_ARRAY)
+				   (post '$POST_ARRAY)
+				   (cookie '$COOKIE_ARRAY)
+				   (request '$REQUEST_ARRAY)
+				   (otherwise 'UNKNOWN_VAR)))
+		 (*ss-ignore-variable-source*
+		  (let (varentry)
+		    (setq varentry (find (second p) *ss-varmapping* :test #'equal :key #'second))
+		    (if varentry (first varentry) (uniquevar (varspelling (tostring (second p))) 'var))))
+		 (t
+		  (let (src strvar varentry)
+		    (setq src (first p))
+		    (when (eq src 'request) (setq src 'var))   ; use VAR if src is unknown
+		    (setq strvar (tostring (second p)))
+		    (if (eq src 'var)
+			(setq varentry (find strvar *ss-varmapping* :key #'second :test #'equal))
+			(setq varentry (find-if #'(lambda (x) (and (or (eq (third x) 'var) (eq (third x) src)) (equal (second x) strvar))) 
+						*ss-varmapping*)))
+		    (cond (varentry 
+			   (cond ((eq src (third varentry))
+				  (first varentry))
+				 ((eq src 'var)
+				  (first varentry))
+				 (t ; found entry with unknown src that is now known; changing to get/post/cookie
+				  (setf (third varentry) src)
+				  (first varentry))))
+			  (t
+			   (uniquevar (varspelling strvar) src)))))))
+	(t (cons (car p) (mapcar #'ss-cleanse-varcases-aux (cdr p)))))))
+
+(defun ss-in2type (p)
+  (cond ((atom p) p)
+	((find (car p) '(and or not <= => <=> forall exists))
+	 (cons (car p) (mapcar #'ss-in2type (cdr p))))
+	((member (car p) '(in typedecl)) (list 'type (second p) (ss-makreg (third p))))
+	(t p)))
+
+(defun ss-fix-innotin (p)
+  (cond ((atom p) p)
+	((find (car p) '(and or not <= => <=> forall exists))
+	 (cons (car p) (mapcar #'ss-fix-innotin (cdr p))))
+	((member (car p) '(in notin nin))
+	 (list (car p) (second p) (ss-makreg (third p))))
+	(t p)))
+
+(defun ss-makreg (thing)
+  "(MAKREG THING) attempts to coerce thing to a regular expression string."
+  (cond ((stringp thing)
+	 (setq thing (ss-fix-reg thing)))
+#|
+	 (when *check-dynamic-regexp*
+	   (assert (ss-test-all-regexps `(in ?x ,thing)) nil 
+		   (format nil "ss-makreg constructed untranslatable regexp: ~S~%run ~A on ~A~%" 
+			   thing *hampi-regtest* *hampi-regtest-tmp*)))
+|#
+	((atom thing) (ss-break (format nil "Couldn't make ~S into a regexp" thing)))
+	((eq (car thing) 'reg) (ss-makreg (second thing)))
+	(t (setq thing (ss-simplify thing))
+	   (if (stringp thing) (ss-makreg thing) (ss-break (format nil "Couldn't make ~S into a regexp" thing))))))
+  
+(defun ss-fix-reg (str)
+  "(SS-FIX-REG STR) drops surrounding / and / off of string."
+  (setq str (string-trim '(#\Space #\Return #\Linefeed) str))
+  (let ((l (length str)))
+    (cond ((= l 0) str)
+	  ((= l 1) str)
+	  (t
+	   (if (and (char= (aref str 0) #\/) (char= (aref str (1- l)) #\/))
+	       (subseq str 1 (1- l))
+	       str)))))
+#|  Adding / / around reg
+	   (setq pre (if (char= (aref str 0) #\/) "" "/"))
+	   (setq post (if (char= (aref str (1- l)) #\/) "" "/"))
+	   (stringappend pre str post)))))
 |#
 
 
+;;;;;;;;;;;;;;;;;; PHP syntactic sugar ;;;;;;;;;;;;;;;;;;
+
+(defun ss-drop-syntactic-sugar (p) (ss-drop-sugar-sent p))
+(defun ss-drop-syntactic-sugar* (p)
+  "(SS-DROP-SYNTACTIC-SUGAR* P) is a lightweight version of ss-drop-syntactic-sugar*.
+   It does translations that don't change the structure of the sentence."
+  (mapopands #'ss-drop-sugar-toplevel (mapatomterm #'(lambda (x) (ss-drop-sugar1 x (signifier x))) p)))
+
+(defun ss-drop-sugar-sent (p) (mapopands #'ss-drop-sugar-atom p))
+(defun ss-drop-sugar-atom (p)  
+  (mapopands #'ss-drop-sugar-toplevel (ss-drop-sugar-atom-core p)))
+
+
+(defun ss-drop-sugar-toplevel (p)
+  (let (rettype)
+    (cond ((varp p) `(istrue ,p))
+	  ((atom p) p)
+	  ((equal p '(true)) 'true)
+	  ((equal p '(false)) 'false)
+	  (t
+	   (setq rettype (viewfindx '?x `(returntype ,(car p) ?x) 'sstypes))
+	   (case rettype
+	     (num `(!= ,p 0))
+	     (bool `(= ,p true))
+	     (str `(and (!= ,p "") (!= ,p "0")))
+	     (otherwise p))))))
+
+(defun ss-drop-sugar-atom-core (p)
+  (cond ((atom p) p)
+	(t (multiple-value-bind (args extra) (mapcaraccum #'ss-drop-sugar-term (cdr p))
+	     (setq p (cons (car p) args))
+	     ; ideally, P would be a legitimate atom, but might be a term
+	     (multiple-value-bind (newp newextra) (ss-drop-sugar p (car p))
+	       (setq extra (mapcar #'ss-drop-sugar-sent (append newextra extra)))
+	       (maksand (cons newp extra)))))))
+
+(defun ss-drop-sugar-term (term)
+  (cond ((atom term) (ss-drop-sugar term term))
+	(t (multiple-value-bind (args extra) (mapcaraccum #'ss-drop-sugar-term (cdr term))
+	     (setq term (cons (car term) args))
+	     (multiple-value-bind (newterm extra2) (ss-drop-sugar term (signifier term))
+	       (values newterm (nconc extra extra2)))))))
+
+(defun ss-drop-sugar (term type)
+  (setq term (ss-drop-sugar1 term type))
+  (ss-drop-sugar2 term (signifier term)))
+
+(defgeneric ss-drop-sugar1 (term type))
+;  (SS-DROP-SUGAR1 TERM TYPE) handles the lightweight transformations of ss-drop-sugar.
+;  In particular, doesn't change structure of formulas--no new vars, no new boolean ops.
+;  Useful to split the two apart so that we can translate most of external language into
+;  language that we can manipulate to some extent.
+
+(defmethod ss-drop-sugar1 (term (type (eql 'strlen))) (list 'len (second term)))
+(defmethod ss-drop-sugar1 (term (type (eql 'isset))) `(require ,(second term)))
+(defmethod ss-drop-sugar1 (term (type (eql '==))) (cons '= (cdr term)))
+(defmethod ss-drop-sugar1 (term (type (eql '===))) (cons '= (cdr term)))
+(defmethod ss-drop-sugar1 (term (type (eql '<>))) (cons '!= (cdr term)))
+(defmethod ss-drop-sugar1 (term (type (eql '>))) (cons 'gt (cdr term)))
+(defmethod ss-drop-sugar1 (term (type (eql '<))) (cons 'lt (cdr term)))
+(defmethod ss-drop-sugar1 (term (type (eql '>=))) (cons 'gte (cdr term)))
+; can't translate <= as lte since <= is obviously implication
+(defmethod ss-drop-sugar1 (term (type (eql '++))) `(+ ,(second term) 1))
+(defmethod ss-drop-sugar1 (term (type (eql '--))) `(- ,(second term) 1))
+; can't handle b/c of side effects: += -= *= /= %= .=  
+(defmethod ss-drop-sugar1 (term (type (eql 'int))) `(tonum ,(second term)))
+(defmethod ss-drop-sugar1 (term (type (eql 'integer))) `(tonum ,(second term)))
+(defmethod ss-drop-sugar1 (term (type (eql 'intval))) `(tonum ,(second term)))
+(defmethod ss-drop-sugar1 (term (type (eql 'bool))) `(tobool ,(second term)))
+(defmethod ss-drop-sugar1 (term (type (eql 'boolean))) `(tobool ,(second term)))
+(defmethod ss-drop-sugar1 (term (type (eql 'float))) `(tonum ,(second term)))
+(defmethod ss-drop-sugar1 (term (type (eql 'double))) `(tonum ,(second term)))
+(defmethod ss-drop-sugar1 (term (type (eql 'real))) `(tonum ,(second term)))
+(defmethod ss-drop-sugar1 (term (type (eql 'string))) `(tostring ,(second term)))
+(defmethod ss-drop-sugar1 (term (type (eql 'strval))) `(tostring ,(second term)))
+(defmethod ss-drop-sugar1 (term (type (eql 'eregi))) `(in ,(third term) ,(second term)))
+(defmethod ss-drop-sugar1 (term (type (eql 'ereg))) `(in ,(third term) ,(second term)))
+(defmethod ss-drop-sugar1 (term (type (eql 'stripos))) (cons 'strpos (cdr term)))
+; ignoring some functions
+(defmethod ss-drop-sugar1 (term (type (eql 'htmlspecialchars))) (second term))
+(defmethod ss-drop-sugar1 (term (type (eql 'stripslashes))) (second term))
+(defmethod ss-drop-sugar1 (term (type (eql 'base64_decode))) (second term))
+(defmethod ss-drop-sugar1 (term (type (eql 'addslashes))) (second term))
+; default to no rewrite
+(defmethod ss-drop-sugar1 (term type) (declare (ignore type)) term)
+
+(defgeneric ss-drop-sugar2 (term type))
+;  (SS-DROP-SUGAR2 TERM TYPE) removes the sugar from TERM, which is either
+;   an atom or a functional term whose arguments have already been desugared.
+;   Returns 2 values: the new term and a list of supporting statements.
+;   If can't handle translation, returns (list* 'untyped term) so that 
+;   type checker doesn't barf.  This ensures that a large constraint is
+;   not deemed unsat just because we can't address some small portion of it.
+;   Kaluza will return unsat if a given conjunction of atoms contains
+;   an unknown symbol.
+
+(defun ss-php-true (thing)
+  (let (type)
+    ; grab the type of thing
+    (cond ((varp thing)
+	   (cond ((hash-table-p *ss-cast-types*) (setq type (gethash thing *ss-cast-types*)))
+		 ((listp *ss-cast-types*) (setq type (cdr (assoc thing *ss-cast-types*))))
+		 (t (setq type nil))))
+	  ((atom thing) 
+	   (if (and (not (= thing 0)) (not (= thing "")) (not (= thing "0")) (not (= thing 'false)))
+	       (setq type 'true) (setq type 'false)))
+	  (t (setq type (viewfindx '?x `(returntype ,(car thing) ?x) 'sstypes))))
+
+    ; construct expression
+    (cond ((boolp type) type)
+	  (t
+	   (let (issetvar)
+	     (setq issetvar (if (varp thing) (ss-drop-sugar-atom `(isset ,thing)) 'true))
+	     (case type
+	       (str (makand `(and (not (= ,thing "")) (not (= ,thing "0"))) issetvar))
+	       (num (makand `(not (= ,thing 0)) issetvar))
+	       (bool (makand `(not (= ,thing false)) issetvar))
+	       (otherwise (makand `(and (not (= ,thing false)) (not (= ,thing 0)) (not (= ,thing "")) (not (= ,thing "0")))
+				  issetvar))))))))
+
+
+
+(defmethod ss-drop-sugar2 (term (type (eql 'istrue)))
+  (ss-php-true (second term)))
+
+(defmethod ss-drop-sugar2 (term (type (eql 'ltrim)))
+  (let ((thing (second term))
+	(chars (if (cddr term) (third term) '("\\t" "\\n" "\\r" " "))))
+    (let ((y (newindvar)) 
+	  (z (newindvar)) 
+	  (white (stringappend "[" (apply #'stringappend chars) "]"))) 
+      (values y `((= ,thing (concat ,z ,y))
+		  (in ,z ,(stringappend white "*"))
+		  (nin ,y ,(stringappend "^" white "+")))))))
+
+(defmethod ss-drop-sugar2 (term (type (eql 'rtrim)))
+  (let ((thing (second term))
+	(chars (if (cddr term) (third term) '("\\t" "\\n" "\\r" " "))))
+    (let ((y (newindvar)) 
+	  (z (newindvar)) 
+	  (white (stringappend "[" (apply #'stringappend chars) "]"))) 
+      (values y `((= ,thing (concat ,y ,z))
+		  (in ,z ,(stringappend white "*"))
+		  (nin ,y ,(stringappend white "+$")))))))
+
+(defmethod ss-drop-sugar2 (term (type (eql 'trim)))
+  (if (cddr term)
+      (ss-drop-sugar-term (list 'ltrim (cons 'rtrim (third term)) (third term)))
+      (ss-drop-sugar-term `(ltrim (rtrim ,(second term))))))
+
+(defmethod ss-drop-sugar2 (term (type (eql 'chop)))
+  (ss-drop-sugar2 term 'rtrim))
+
+(defmethod ss-drop-sugar2 (term (type (eql 'notstrpos)))
+  ; bool notstrpos ( string $haystack , mixed $needle [, int $offset = 0 ] )
+  (let* ((leftvar (newindvar))
+	 (remainvar (newindvar)))
+    (cond ((fourth term)
+	   (values `(not (in ,remainvar ,(third term)))
+		   `((= ,(second term) (concat ,leftvar ,remainvar))
+		     (= (len ,leftvar) ,(fourth term)))))
+	  (t
+	   `(not (in ,(second term) ,(third term)))))))
+
+(defmethod ss-drop-sugar2 (term (type (eql 'strpos)))
+  ; int strpos ( string $haystack , mixed $needle [, int $offset = 0 ] )
+  ; NOT CORRECTLY HANDLING WITH WHEN NEEDLE DOESN'T EXIST B/C STRPOS RETURNS FALSE, which is of the wrong type.
+  ;  Instead, use NOTSTRPOS.
+  (let* ((leftvar (newindvar))
+	 (remainvar (newindvar))
+	 (sents))
+    (setq sents
+	  `((= ,(second term) (concat (concat ,leftvar ,(third term)) ,remainvar))))
+    (when (cdddr term)
+      (push `(gte (len ,leftvar) ,(fourth term)) sents))
+    (values `(len ,leftvar) sents)))
+
+(defmethod ss-drop-sugar2 (term (type (eql 'strstr)))
+  ; string strstr ( string haystack , string needle [, bool before_needle = false ] )
+  ;  HANDLING WHEN NEEDLE CAN'T BE FOUND WEIRDLY.  RETURNING "" INSTEAD OF FALS.
+  ;     NECESSARY SINCE FALSE IS OF THE WRONG TYPE.
+  (let* ((leftvar (newindvar)) (rightvar (newindvar)) (outvar (newindvar))
+	 (haystack (second term)) (needle (third term)) (beforeneedle (fourth term))
+	 sents reg)
+    (cond ((not (stringp needle)) term)  ; can't seem to do translation with variable for needle
+	  (t
+	   (setq reg (stringappend ".*" (ss-regesc needle) ".*"))
+	   ; case when needle doesn't appear
+	   (setq sents `((=> (not (in ,haystack ,reg))
+			 (= ,outvar ""))))
+	   ; case when needle does appear -- either return stuff after needle or before needle
+	   (if (or (not beforeneedle) (eq beforeneedle 'false))
+	       (push `(=> (in ,haystack ,reg)
+			  (and (= ,haystack (concat ,leftvar (concat ,needle ,rightvar)))
+			       (= ,outvar (concat ,needle ,rightvar))))
+		     sents)
+	       (push `(=> (in ,haystack ,reg)
+			  (= ,haystack (concat ,outvar (concat ,needle ,rightvar))))
+		     sents))
+	   (values outvar sents)))))
+
+(defmethod ss-drop-sugar2 (term (type (eql 'substr)))
+  ; (substr string start <length>)
+  (let* ((leftvar (newindvar))
+	 (returnvar (newindvar))
+	 (rightvar (newindvar))
+	 sents)
+    (if (fourth term)
+	(setq sents `((= ,(second term) (concat ,leftvar (concat ,returnvar ,rightvar)))
+		      (= (len ,leftvar) ,(third term))
+		      (= (len ,returnvar) ,(fourth term))))
+	(setq sents `((= ,(second term) (concat ,leftvar ,returnvar))
+		      (= (len ,leftvar) ,(third term)))))
+    (values returnvar sents)))
+
+(defmethod ss-drop-sugar2 (term (type (eql 'substr_replace)))
+  ; substr_replace(string,replacement,start,<length>)
+  ;  assume start>=0 and length>=0 since underlying solver has only positive numbers.
+  (let* ((leftvar (newindvar))
+	 (centervar (newindvar))
+	 (rightvar (newindvar))
+	 sents)
+    (setq sents `((= ,(second term) (concat ,leftvar (concat ,centervar ,rightvar)))
+		  (= (len ,leftvar) ,(fourth term))
+		  ,(if (fifth term)
+		       `(= (len ,centervar) ,(fifth term))
+		       `(= (len ,centervar) (len ,(third term))))))
+    (values `(concat ,leftvar (concat ,(third term) ,rightvar))
+	    sents)))
+
+(defmethod ss-drop-sugar2 (term (type (eql 'preg_match)))
+  ; preg_match($pattern, $subject, [$matches [, $flags [, $offset]]]);
+  ; ignoring extra arguments
+  (if (fourth term)
+      (list* 'untyped term)
+      `(in ,(third term) ,(second term))))
+
+(defmethod ss-drop-sugar2 (term (type (eql 'preg_match_all)))
+  ; int preg_match_all(string $pattern,string $subject,array &$matches  [, int $flags [, int $offset = 0  ]] )
+  ; the purpose of this is to return the array of matches, and we can't do that.
+  (list* 'untyped term))
+
+(defmethod ss-drop-sugar2 (term (type (eql 'preg_replace)))
+  ; preg_replace ($pattern , $replacement , $subject [, int $limit = -1 [, int &$count ]] )
+  ; $pattern/$replacement can either be strings or arrays.
+  ; implement an approximation: replace only one instance
+  (cond ((fifth term) (list* 'untyped term))
+	(t (ss-drop-sugar2-array-replace term 'preg_replace1))))
+
+(defmethod ss-drop-sugar2 (term (type (eql 'str_replace)))
+  ; str_replace ( mixed $search , mixed $replace , mixed $subject [, int &$count ] )
+  ; replace only 1 instance
+  (cond ((fifth term) term)
+	(t (ss-drop-sugar2-array-replace term 'str_replace1))))
+
+(defun ss-drop-sugar2-array-replace (term subreplace)
+  (labels ((build (pattrepl subject)
+	     (cond ((null pattrepl) subject)
+		   (t `(,subreplace ,(car (first pattrepl))
+				    ,(cdr (first pattrepl))
+				    ,(build (cdr pattrepl) subject))))))
+    (let (patterns replacements zip new)
+      (setq patterns (if (arrp (second term)) (cdr (second term)) (list (second term))))
+      (setq replacements (if (arrp (third term)) (cdr (third term)) (list (third term))))
+      (do ((ps patterns (cdr ps))
+	   (rs replacements (cdr rs)))
+	  ((null ps) zip)
+	(push (cons (car ps) (if (car rs) (car rs) "")) zip))
+      (setq new (build zip (fourth term)))
+      (ss-drop-sugar-term new))))
+
+(defmethod ss-drop-sugar2 (term (type (eql 'str_replace1)))
+  ; str_replace ($search , $replacement , $subject [, $limit [, $count]])
+  ; CAUTION: only performs 1 replacement; ignores $limit and $count
+  (cond ((stringp (second term))
+	 (let* ((leftvar (newindvar))
+		(rightvar (newindvar))
+		(result (newindvar)))
+	   (values result
+		   `((=> (in ,(fourth term) ,(second term))
+			 (and (= ,(fourth term) (concat ,leftvar (concat ,(second term) ,rightvar)))
+			      (= ,result (concat ,leftvar (concat ,(third term) ,rightvar)))))
+		     (=> (not (in ,(fourth term) ,(second term)))
+			 (= ,result ,(fourth term)))))))
+	  (t term)))
+
+; Below is broken b/c there may not be a match to replace, and we're not handling that case.
+; Problem may be pervasive throughout the above.
+;    ?x
+;    (substr ?y subject)
+;    (in ?y pattern)
+;    (=> (in ?y pattern)(= ?x (substr_replace ...)))
+;    (=> (notin pattern subject) (= ?x subject))
+(defmethod ss-drop-sugar2 (term (type (eql 'preg_replace1)))
+  ; preg_replace ($pattern , $replacement , $subject [, $limit [, $count]])
+  ; CAUTION: only performs 1 replacement; ignores $limit and $count
+  (let* ((leftvar (newindvar)) (rightvar (newindvar)) (outvar (newindvar)) (matchvar (newindvar))
+	 (haystack (fourth term)) (needle (second term)) (repl (third term)))
+    (cond ((not (stringp needle)) term)  ; can't seem to do translation with variable for needle
+	  (t
+	   ;(setq reg (stringappend ".*" needle ".*"))
+	   ; case when needle doesn't appear
+	   (values outvar `((=> (not (in ,haystack ,needle))
+				(= ,outvar ,haystack))
+			    (=> (in ,haystack ,needle)
+				(and (in ,matchvar ,needle)
+				     (= ,haystack (concat ,leftvar (concat ,matchvar ,rightvar)))
+				     (= ,outvar (concat ,leftvar (concat ,repl ,rightvar)))))))))))
+
+(defmethod ss-drop-sugar2 (term (type (eql 'empty)))
+   ; PHP 5 notion of empty (skipping NULL and objects)
+  `(or (= ,(second term) "")
+       (= ,(second term) 0)
+       (= ,(second term) "0")
+       (= ,(second term) false)
+       (forbid ,(second term))))
+
+(defmethod ss-drop-sugar2 (term type)
+  (declare (ignore type))
+  term)
+
+#|
+  (cond ((atom term) term)
+	(t
+	 (multiple-value-bind (args extra) 
+	     (mapcaraccum #'(lambda (x) (ss-drop-sugar x (signifier x))) (cdr term))
+	   (values (cons (car term) args) extra)))))
+|#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; String Solving ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; assumes inputs have already been cleansed via ss-cleanse
 
 (defun stringfindx (thing p th)
   (let (h)
@@ -366,7 +1002,7 @@
    be assigned values.  Return is a hash table of mappings from variables to values
    for all variables either occurring in P or belonging to REQUIRED.  "
   (setq *ss-solve-count* (1+ *ss-solve-count*))
-  (let (e (*ss-max-length* *ss-max-length*))
+  (let (e q (*ss-max-length* *ss-max-length*))
     (when (eq required 't) (setq required (vars p)))
     (when (and types (not (hash-table-p types)))  ; when types is a list
       (setq e (make-hash-table))
@@ -385,11 +1021,10 @@
     ;     Instead of adding a numeric variable decl, we add var < 0 | var >= 0.
     (dolist (y (hash2bl types))
       (setq y (cdr y))
-      (when (eq (car y) 'typedecl)
-	(cond ((eq (third y) 'num)
-	       (setq p (makand `(or (gte ,(second y) 0) (lt ,(second y) 0)) p)))
-	      ((eq (third y) 'bool)
-	       (setq p (makand `(or (= ,(second y) true) (= ,(second y) false)) p))))))
+      (cond ((eq (third y) 'num)
+	     (setq p (makand `(or (gte ,(second y) 0) (lt ,(second y) 0)) p)))
+	    ((eq (third y) 'bool)
+	     (setq p (makand `(or (= ,(second y) true) (= ,(second y) false)) p)))))
 
     (unless *store-external-solver-files* (setq *counter* 1))
 
@@ -403,8 +1038,14 @@
     (dolist (origconj (or2list (dnf p)) nil)
       (dolist (c (or2list (dnf (ss-drop-syntactic-sugar origconj))))
 	(setq c (copy-tree c))   ; so that we can use destructive ops below
-	(handler-case (setq c (ss-solve-atoms (mapcar #'ss-simplify-not (and2list c)) types required forbidden))
-	  (ss-type-error () (setq c nil)))
+	(setq q (mapcar #'ss-simplify-not (and2list c)))
+	(handler-case (setq c (ss-solve-atoms q types required forbidden))
+	  (ss-type-error ()       
+	    (when *ss-debug* 
+	      (format t "String solver returning UNSAT: type error:")
+	      (pprint q)) 
+	    (setq c nil))
+	  (ss-symbol-error () (setq c nil)))
 	(when c (return-from ss-solve c))))))
 
 #| Version with Hampi   
@@ -442,188 +1083,10 @@
       (when c (return c)))))
 |#
 
-(defparameter *ss-kaluza-vocab* 
-  (list (make-parameter :symbol 'lt :arity 2 :type 'relation)
-	(make-parameter :symbol 'lte :arity 2 :type 'relation)
-	(make-parameter :symbol 'gt :arity 2 :type 'relation)
-	(make-parameter :symbol 'gte :arity 2 :type 'relation)
-	(make-parameter :symbol '= :arity 2 :type 'relation)
-	(make-parameter :symbol '!= :arity 2 :type 'relation)
-	(make-parameter :symbol 'in :arity 2 :type 'relation)
-	(make-parameter :symbol 'notin :arity 2 :type 'relation)
-	(make-parameter :symbol 'nin :arity 2 :type 'relation)
-	(make-parameter :symbol 'len :arity 1 :type 'function)
-	(make-parameter :symbol 'concat :arity 2 :type 'function)
-	(make-parameter :symbol '+ :arity 2 :type 'function)
-	(make-parameter :symbol '* :arity 2 :type 'function)
-	(make-parameter :symbol '/ :arity 2 :type 'function)
-	(make-parameter :symbol '- :arity 2 :type 'function)
-	;(make-parameter :symbol 'contains :arity 2 :type 'relation)
-	;(make-parameter :symbol 'notcontains :arity 2 :type 'relation)
-	(make-parameter :symbol 'type :arity 2 :type 'relation)
-	;(make-parameter :symbol 'true :arity 0 :type 'relation)
-	;(make-parameter :symbol 'false :arity 0 :type 'relation)
-	;(make-parameter :symbol 'require :arity 1 :type 'relation)
-	;(make-parameter :symbol 'forbid :arity 1 :type 'relation)
-))
-
-(defun ss-drop-syntactic-sugar (p) (ss-drop-sugar-sent p))
-(defun ss-drop-sugar-sent (p) (mapopands #'ss-drop-sugar-atom p))
-
-(defun ss-php-false (var)
-  `(or (= ,var false) (= ,var 0) (= ,var "") (= ,var "0") (not ,(ss-drop-sugar-atom `(isset ,var)))))
-
-(defun ss-drop-sugar-atom (p)
-  (mapopands #'(lambda (p)
-		 (cond ((varp p) (maknot (ss-php-false p)))
-		       ((atom p) p)
-		       ((equal p '(true)) 'true)
-		       ((equal p '(false)) 'false)
-		       ((member (car p) '(+ * / - len)) `(!= ,p 0))
-		       ((eq (car p) 'concat) `(and (!= ,p "") (!= ,p "0")))
-		       (t p)))
-	     (ss-drop-sugar-atom-core p)))	     
-
-(defun ss-drop-sugar-atom-core (p)
-  (cond ((atom p) p)
-	(t (multiple-value-bind (args extra) (mapcaraccum #'ss-drop-sugar-term (cdr p))
-	     (setq p (cons (car p) args))
-	     (setq p (ss-drop-sugar p (car p)))
-	     (setq extra (mapcar #'ss-drop-sugar-sent extra))
-	     (maksand (cons p extra))))))
-
-(defun ss-drop-sugar-term (term)
-  (cond ((atom term) (ss-drop-sugar term term))
-	(t (multiple-value-bind (args extra) (mapcaraccum #'ss-drop-sugar-term (cdr term))
-	     (setq term (cons (car term) args))
-	     (multiple-value-bind (newterm extra2) (ss-drop-sugar term (signifier term))
-	       (values newterm (nconc extra extra2)))))))
-#|
-(defmethod ss-drop-sugar (term (type (eql 'unflatterm)))
-  (multiple-value-bind (newterm extra) (flatten-term term)
-    (when extra
-      (multiple-value-bind (sentnew sentextra) (ss-drop-sugar (maksand extra) 'sentence)
-	(setq extra (cons sentnew sentextra))))
-    (values newterm extra)))
-|#
-
-(defgeneric ss-drop-sugar (term type))
-;  "(SS-DROP-SUGAR TERM TYPE) removes the sugar from TERM, which is either
-;   an atom or a functional term whose arguments have already been desugared.
-;   Returns 2 values: the new term and a list of supporting statements.")
-
-(defmethod ss-drop-sugar (term (type (eql 'ltrim)))
-  (let ((thing (second term))
-	(chars (if (cddr term) (third term) '("\\t" "\\n" "\\r" " "))))
-    (let ((y (newindvar)) 
-	  (z (newindvar)) 
-	  (white (stringappend "[" (apply #'stringappend chars) "]"))) 
-      (values y `((= ,thing (concat ,z ,y))
-		  (in ,z (reg ,(stringappend white "*")))
-		  (nin ,y (reg ,(stringappend "^" white "+"))))))))
-
-(defmethod ss-drop-sugar (term (type (eql 'rtrim)))
-  (let ((thing (second term))
-	(chars (if (cddr term) (third term) '("\\t" "\\n" "\\r" " "))))
-    (let ((y (newindvar)) 
-	  (z (newindvar)) 
-	  (white (stringappend "[" (apply #'stringappend chars) "]"))) 
-      (values y `((= ,thing (concat ,y ,z))
-		  (in ,z (reg ,(stringappend white "*")))
-		  (nin ,y (reg ,(stringappend white "+$"))))))))
-
-(defmethod ss-drop-sugar (term (type (eql 'trim)))
-  (if (cddr term)
-      (ss-drop-sugar-term (list 'ltrim (cons 'rtrim (third term)) (third term)))
-      (ss-drop-sugar-term `(ltrim (rtrim ,(second term))))))
-
-(defmethod ss-drop-sugar (term (type (eql 'chop)))
-  (ss-drop-sugar term 'rtrim))
-
-(defmethod ss-drop-sugar (term (type (eql 'strlen)))
-  (list 'len (second term)))
-
-(defmethod ss-drop-sugar (term (type (eql 'strpos)))
-  (let* ((leftvar (newindvar))
-	 (remainvar (newindvar))
-	 (sents))
-    (setq sents
-	  `((= ,(second term) (concat (concat ,leftvar ,(third term)) ,remainvar))))
-    (when (cdddr term)
-      (push `(gte (len ,leftvar) ,(fourth term)) sents))
-    (values `(len ,leftvar) sents)))
-
-(defmethod ss-drop-sugar (term (type (eql 'strstr)))
-  (let* ((leftvar (newindvar))
-	 (remainvar (newindvar))
-	 (sents))
-    (setq sents
-	  `((= ,(second term) (concat (concat ,leftvar ,(third term)) ,remainvar))))
-    (values `(concat ,(third term) ,remainvar) sents)))
-
-(defmethod ss-drop-sugar (term (type (eql 'substr)))
-  ; (substr string start <length>)
-  (let* ((leftvar (newindvar))
-	 (returnvar (newindvar))
-	 (rightvar (newindvar))
-	 sents)
-    (if (fourth term)
-	(setq sents `((= ,(second term) (concat ,leftvar (concat ,returnvar ,rightvar)))
-		      (= (len ,leftvar) ,(third term))
-		      (= (len ,returnvar) ,(fourth term))))
-	(setq sents `((= ,(second term) (concat ,leftvar ,returnvar))
-		      (= (len ,leftvar) ,(third term)))))
-    (values returnvar sents)))
-
-(defmethod ss-drop-sugar (term (type (eql 'substr_replace)))
-  ; substr_replace(string,replacement,start,<length>)
-  ;  assume start>=0 and length>=0 since underlying solver has only positive numbers.
-  (let* ((leftvar (newindvar))
-	 (centervar (newindvar))
-	 (rightvar (newindvar))
-	 sents)
-    (setq sents `((= ,(second term) (concat ,leftvar (concat ,centervar ,rightvar)))
-		  (= (len ,leftvar) ,(fourth term))
-		  ,(if (fifth term)
-		       `(= (len ,centervar) ,(fifth term))
-		       `(= (len ,centervar) (len ,(third term))))))
-    (values `(concat ,leftvar (concat ,(third term) ,rightvar))
-	    sents)))
-
-(defmethod ss-drop-sugar (term (type (eql 'preg_match)))
-  ; preg_match($pattern, $subject, $matches, PREG_OFFSET_CAPTURE, 3);
-  `(in ,(third term) ,(second term)))
-
-(defmethod ss-drop-sugar (term (type (eql 'preg_match_all)))
-  ; int preg_match_all(string $pattern,string $subject,array &$matches  [, int $flags [, int $offset = 0  ]] )
-  `(in ,(third term) ,(second term)))
-
-(defmethod ss-drop-sugar (term (type (eql 'empty)))
-   ; PHP 5 notion of empty (skipping NULL and objects)
-  `(or (= ,(second term) "")
-       (= ,(second term) 0)
-       (= ,(second term) "0")
-       (= ,(second term) false)
-       (forbid ,(second term))))
-
-(defmethod ss-drop-sugar (term (type (eql 'isset)))
-  ; PHP 5 notion of isset
-  `(require ,(second term)))
-
-(defmethod ss-drop-sugar (term type)
-  (declare (ignore type))
-  term)
-#|
-  (cond ((atom term) term)
-	(t
-	 (multiple-value-bind (args extra) 
-	     (mapcaraccum #'(lambda (x) (ss-drop-sugar x (signifier x))) (cdr term))
-	   (values (cons (car term) args) extra)))))
-|#
 
 ;;;;;;;;;;;; Conjunctive Constraint solving ;;;;;;;;;;;;
 ; actual solving.
-
+(defvar *ss-tmp*)
 (defun ss-solve-atoms (ps types &optional required forbidden)
   "(SS-SOLVE-ATOMS PS TYPES REQUIRED) uses External Solver to find a solution to the atoms given as input.
    Each atom takes the following form or one of the symmetric instances of the below.
@@ -638,12 +1101,33 @@
        op    :=  numop | eqop | regop
        term  :=  var | str | num | bool | (len term) | (concat term term)
        atom  :=  (op term term)"
-  (let (bl blvars psvars solvervars boundvars h vs r f)  ; bl2
+  ;(setq *ss-tmp* types)
+  (let (bl blvars psvars solvervars boundvars h vs r f basictypes *ss-cast-types*)  ; bl2
+
     ; rip out require/forbid atoms and add to required/forbidden lists
     (multiple-value-setq (r ps) (split #'(lambda (x) (member (reln x) '(require forbid))) ps))
     (multiple-value-setq (r f) (split #'(lambda (x) (eq (reln x) 'require)) r))
     (setq required (union (mapcarnot #'(lambda (x) (if (varp (second x)) (second x) nil)) r) required))
     (setq forbidden (union (mapcarnot #'(lambda (x) (if (varp (second x)) (second x) nil)) f) forbidden))
+    (when (intersectionp required forbidden) (return-from ss-solve-atoms nil))
+    
+    ; check for degenerate true/false cases
+    (setq ps (remove-truth1 (maksand ps)))
+    (when (eq ps 'false) (return-from ss-solve-atoms nil))  
+    (when (eq ps 'true) (return-from ss-solve-atoms (ss-augment-result3 (make-hash-table) nil required)))
+    (when (tautp ps *ss-internal-complements*) (return-from ss-solve-atoms nil))
+    (setq ps (and2list ps))
+
+    ; infer types, resolve ambiguities, store so simplifier can operate
+    (setq basictypes (ss-type-inference (append ps (mapcar #'cdr (hash2bl ps)))))
+    (setq basictypes (mapcar #'(lambda (x) (cons (car x) (ss-resolve-types (cdr x)))) basictypes))
+    (setq *ss-cast-types* (bl2hash basictypes))
+
+    ; remove != constraints that are of the wrong type, since they are satisfied anyway.  (Kaluza gives type error.)
+    ;   but ensure any var included in such a constraint is added to required var list.
+    (multiple-value-bind (newps newreq) (ss-whitebox-remove-ne ps types)
+      (setq ps newps)
+      (setq required (union required newreq)))
 
     ; simplify constraints, evaluating what we can
     (setq ps (ss-solve-atoms-simplify ps))
@@ -653,16 +1137,12 @@
     (setq ps (and2list (flatten-operator (flatten-functions (maksand ps) t))))
 
     ; remove equality for (= var ground); leave (= var unground) since we need flat terms for Kaluza.
-    (multiple-value-setq (ps bl) (delete-simple= ps :test #'equal))
-    (when (eq ps :unsat) (return-from ss-solve-atoms nil))
+    ;   REMOVED BECAUSE WE'RE MISSING UNSAT CASES
+    ;(multiple-value-setq (ps bl) (delete-simple= ps :test #'equal))
+    ;(when (eq ps :unsat) (return-from ss-solve-atoms nil))
     ; remove != for boolean variables with ground arg    REMOVED FOR SPECIFIC CASE WHERE TYPE OF VAR IS UNKNOWN
     ;(multiple-value-setq (ps bl2) (delete!=bool ps :test #'equal))
     ;(when (eq ps :unsat) (return-from ss-solve-atoms nil))
-    ; remove != constraints that are of the wrong type, since they are satisfied anyway.
-    ;   but ensure any var included in such a constraint is added to required var list.
-    (multiple-value-bind (newps newreq) (ss-whitebox-remove-ne ps types)
-      (setq ps newps)
-      (setq required (union required newreq)))
     ; remove duplicates
     (setq ps (remove-duplicates ps :test #'equal))
     ; combine variable bindings
@@ -683,12 +1163,14 @@
     (setq blvars (delete t (mapcar #'first bl)))
     (setq boundvars (instantiated-vars bl))
     (setq solvervars (set-difference (union* psvars required) blvars))
+    (when (or (intersectionp forbidden blvars) (intersectionp forbidden psvars)) (return-from ss-solve-atoms nil))
+    ;(format t "required: ~A, forbidden: ~A, blvars: ~A, psvars: ~A~%" required forbidden blvars psvars)
     ;(format t "psvars: ~A, required: ~A, solvervars: ~A~%" psvars required solvervars)
     ; add user-specified typing constraints for solver variables.
     (when types
       (dolist (v solvervars)
 	(when (setq v (gethash v types))
-	  (unless (eq (car v) 'typedecl)   ; already taken care of by ss-solve
+	  (unless (ss-typep (third v))   ; already taken care of by ss-solve
 	    (push v ps)))))
 
     ; add types for vars without types; otherwise Kaluza chokes
@@ -1013,8 +1495,8 @@
   (cond ((atom p) p)
 	((find (car p) '(<= => or and not <=> forall exists))
 	 (cons (car p) (mapcar #'ss-orient (cdr p))))
+	((not (ss-symmetric (car p))) p)
 	; (op non-atom atom)
-	((find (car p) '(in notin nin contains notcontains require forbid)) p)
 	((and (not (atom (second p))) (atom (third p)))
 	     (list (ss-symmetric (car p)) (third p) (second p)))
 	; (op non-atom-non-var var)
@@ -1031,12 +1513,15 @@
     (lte 'gte)
     (= '=)
     (!= '!=)
-    (otherwise 'noop)))
+    (otherwise nil)))
 
 (defun boolp (x) (member x '(true false)))
 (defun lenp (x) (and (listp x) (eq (first x) 'len)))
 (defun regp (x) (stringp x))  ;(and (listp x) (eq (first x) 'reg)))
 (defun concatp (x) (and (listp x) (eq (first x) 'concat)))
+(defun typecastp (x) (and (listp x) (member (first x) '(tostr tobool tonum))))
+(defun arrp (x) (and (listp x) (eq (first x) 'array)))
+(defun ss-typep (x) (member x '(num str bool)))
 
 (deftheory ss-grammer ""
   (str "abc")
@@ -1068,63 +1553,193 @@
 		   (t p))))
     (e (ss-simplify p))))
 
-
-(defun ss-simplify (p)
+(defun ss-simplify (p &optional (types *ss-cast-types*))
   "(SS-SIMPLIFY P) Evaluates p if it is a ground atom to either true or false.
    Returns new p or throws an ss-type-error.  Also casts where necessary."
   ;(declare (notinline ss-simplify))
-  (cond ((atom p) p)
-	((find (car p) '(or and not))
-	 (remove-truth1 (cons (car p) (mapcar #'ss-simplify (cdr p)))))
-
+  (let ((rec #'(lambda (x) (ss-simplify x types))))
+    (cond ((atom p) p)
+	  ((find (car p) '(or and not))
+	   (remove-truth1 (cons (car p) (mapcar rec (cdr p)))))
+	  
 	; concat
-	((concatp p)
-	 (setq p (cons (car p) (mapcar #'(lambda (x) (ss-cast-tostring (ss-simplify x))) (cdr p))))
-	 (if (every #'stringp (cdr p))
-	     (apply #'stringappend (cdr p)) 
-	     p))
+	  ((concatp p)
+	   (setq p (cons (car p) (mapcar #'(lambda (x) (ss-cast-tostring (funcall rec x))) (cdr p))))
+	   (if (every #'stringp (cdr p))
+	       (apply #'stringappend (cdr p)) 
+	       p))
 
 	; len
-	((lenp p)
-	 (setq p (ss-cast-tostring (ss-simplify (second p))))
-	 (cond ((stringp p) (length p))
-	       ((varp p) `(len ,p))
-	       (t (error 'ss-type-error)))) 
+	  ((lenp p)
+	   (setq p (ss-cast-tostring (funcall rec (second p))))
+	   (cond ((stringp p) (length p))
+		 ((varp p) `(len ,p))
+		 (t (error 'ss-type-error :text (format nil "invalid len atom: ~A" p))))) 
 
+	; explicit type casting
+	  ((typecastp p)
+	   (let (inner)
+	     (handler-case (progn
+			     (setq inner (funcall rec (second p)))
+			     (cond ((eq (car p) 'tostr) 
+				    (setq inner (ss-cast-tostring inner))
+				    (if (stringp inner) inner `(tostr ,inner)))
+				   ((eq (car p) 'tonum) 
+				    (setq inner (ss-cast-tonum inner))
+				    (if (numberp inner) inner `(tonum ,inner)))
+				   ((eq (car p) 'tobool) 
+				    (setq inner (ss-cast-tobool inner))
+				    (if (boolp inner) inner `(tobool ,inner)))))
+	       (ss-type-error () p))))
+	  
 	; modals
-	((eq (car p) 'require) (if (varp (second p)) p 'true))
-	((eq (car p) 'forbid) (if (varp (second p)) p 'false))
+	  ((eq (car p) 'require) (if (varp (second p)) p 'true))
+	  ((eq (car p) 'forbid) (if (varp (second p)) p 'false))
+	  
+					; relational operators
+	  ((member (car p) '(= != lt lte gt gte in notin nin contains notcontains))
+	   (setq p (cons (car p) (mapcar rec (cdr p))))
+	   (setq p (ss-cast p types))  ; get types right to the extent that we can
+	   (cond ((and (not (varp (second p))) (not (varp (third p))))
+		  (cond ((and (atom (second p)) (atom (third p))) ; ground objs
+			 (cond ((eq (car p) '=) (if (equal (second p) (third p)) 'true 'false))
+			       ((eq (car p) '!=) (if (equal (second p) (third p)) 'false 'true))
+			       ((eq (car p) 'lt) (if (< (second p) (third p)) 'true 'false))
+			       ((eq (car p) 'lte) (if (<= (second p) (third p)) 'true 'false))
+			       ((eq (car p) 'gt) (if (> (second p) (third p)) 'true 'false)) 
+			       ((eq (car p) 'gte) (if (>= (second p) (third p)) 'true 'false))
+			       ((eq (car p) 'contains) (if (search (third p) (second p)) 'true 'false))
+			       ((eq (car p) 'notcontains) (if (not (search (third p) (second p))) 'true 'false))
+			       ((eq (car p) 'in) (if (ss-checkreg (second p) (third p)) 'true 'false))
+			       ((eq (car p) 'notin) (if (ss-checkreg (second p) (third p)) 'false 'true))
+			       ((eq (car p) 'nin) (if (ss-checkreg (second p) (third p)) 'false 'true))
+			       (t p)))
+			(t p)))
+		 (t p)))
+	  (t (ss-cast p types)))))
+  
+(defun ss-cast (p &optional (types *ss-cast-types*))
+  "(SS-CAST P TYPES) takes an arbitrary sentence p and for each atom 
+   casts all args as required by types contained in ss-types theory.
+   Throws ss-symbol-error and ss-type-error when ss-types has not enough info
+   and when casting cannot be accomplished, respectively.
+   Never adds explicit type casting function calls.  Tries
+   to reduce explicit typecasts."
+  (flet ((add-indices (list) 
+	   (do ((l list (cdr l))
+		(i 0 (1+ i)))
+	       ((null l) list)
+	     (setf (car l) (cons i (car l))))))
+    (cond ((atom p) p)
+	  ((eq (car p) 'untyped) p)
+	  ((member (car p) '(and or not => <= <=>)) 
+	   (cons (car p) (mapcar #'(lambda (x) (ss-cast x types)) (cdr p))))
+	  ((member (car p) '(forall exists))
+	   (list (first p) (second p) (ss-cast (third p) types)))
+	  (t (let (args current legal newp type)
+	       ; cast functional terms
+	       (setq args (mapcar #'(lambda (x) (ss-cast x types)) (cdr p)))
+	       ; grab types of all args
+	       ;  current is indexed by argument position (starting at 0)
+	       ;  the value for each arg is (arg . casteabletypes)
+	       (setq current (make-hash-table))
+	       (do ((i 0 (1+ i))
+		    (as args (cdr as)))
+		   ((null as))
+		 (setf (gethash i current) (cons (car as) (ss-cast-argtype (car as) types))))
+	       ; find legal types for args, add indices, and group by arg sets that must be the same.
+	       (setq legal (viewfindx '?x `(reltype ,(car p) ?x) 'sstypes))
+	       (unless legal (error 'ss-symbol-error :text (format nil "Type undefined for ~A" (car p))))
+	       ; walk over all the types, and for those that are numbers, resolve current types
+	       (dolist (l (group-by (add-indices (copy-list (cdr legal))) #'cdr))
+		 (setq type (car l))
+		 (when (numberp type)
+		   (setq type (ss-resolve-arg-types (mapcar #'(lambda (x) (cdr (gethash (first x) current)))
+							    (cdr l)))))
+		   ; set the types for all args to the resolved type
+		 (dolist (j (cdr l))
+		   (setf (cdr (gethash (car j) current)) type)))
+		     
+	       ; now cast 
+	       (dotimes (i (length args))
+		 (let ((argtype (gethash i current)))  ; (arg . type)
+		   (push (ss-cast-to (car argtype) (cdr argtype)) newp)))
+	       (cons (car p) (nreverse newp)))))))
 
-	; relational operators
-	((member (car p) '(= != lt lte gt gte in notin nin contains notcontains))
-	 (setq p (cons (car p) (mapcar #'ss-simplify (cdr p))))
-	 (setq p (ss-cast p))  ; get types right to the extent that we can
-	 (cond ((and (not (varp (second p))) (not (varp (third p))))
-		(cond ((and (atom (second p)) (atom (third p))) ; ground objs
-		       (cond ((eq (car p) '=) (if (equal (second p) (third p)) 'true 'false))
-			     ((eq (car p) '!=) (if (equal (second p) (third p)) 'false 'true))
-			     ((eq (car p) 'lt) (if (< (second p) (third p)) 'true 'false))
-			     ((eq (car p) 'lte) (if (<= (second p) (third p)) 'true 'false))
-			     ((eq (car p) 'gt) (if (> (second p) (third p)) 'true 'false)) 
-			     ((eq (car p) 'gte) (if (>= (second p) (third p)) 'true 'false))
-			     ((eq (car p) 'contains) (if (search (third p) (second p)) 'true 'false))
-			     ((eq (car p) 'notcontains) (if (not (search (third p) (second p))) 'true 'false))
-			     ((eq (car p) 'in) (if (ss-checkreg (second p) (third p)) 'true 'false))
-			     ((eq (car p) 'notin) (if (ss-checkreg (second p) (third p)) 'false 'true))
-			     ((eq (car p) 'nin) (if (ss-checkreg (second p) (third p)) 'false 'true))
-			     (t p)))
-		      (t p)))
-	       (t p)))
-	(t (ss-cast p))))
+(defun ss-cast-to (thing type)
+  (case type
+    (str (ss-cast-tostring thing))
+    (num (ss-cast-tonum thing))
+    (bool (ss-cast-tobool thing))
+    (otherwise thing)))
 
+(defun ss-cast-argtype (a types) 
+  (cond ((varp a) (if (hash-table-p types) (list (gethash a types)) (list (cdr (assoc a types)))))
+	((stringp a) (let (v)
+		       (setq v (handler-case (progn (ss-cast-tonum a) '(str num bool)) 
+				 (ss-type-error () '(str bool))))
+		       v))
+	((boolp a) '(bool num str))
+	((numberp a) '(num bool str))
+	((member a '(num bool str)) (list a))
+	((typecastp a) (let ((v (ss-cast-argtype (second a) types)))
+			 (cons (case (car a) 
+				 (tonum '(num . tonum))
+				 (tostr '(str . tostr))
+				 (tobool '(bool . tobool)))
+			       v)))
+;			 (if (member 'num v) v (append v (list 'num)))))
+#|
+	 (let (n s b)
+	   (setq n (handler-case (ss-cast-tonum (second a)) (ss-type-error () nil)))
+	   (setq s (handler-case (ss-cast-tostring (second a)) (ss-type-error () nil)))
+	   (setq b (handler-case (ss-cast-tobool (second a)) (ss-type-error () nil)))
+	   (delete-if #'not (list n s b))))
+|#
+	((listp a) (list (viewfindx '?x `(argtype ,a ?x) 'sstypes)))
+	(t (error 'ss-symbol-error :text (format nil "Cannot compute argtype for ~A" a)))))
+
+(defun ss-resolve-arg-types (types)
+  "(SS-RESOLVE-ARG-TYPES TYPES) takes a list of lists of typename (str, num, bool) where the
+   first element of each typename list is the current type of an argument to a relation.
+   Remaining elements of each typename list are the other types the arg can be cast to.
+   Chooses the type to cast all args to (since all our relations take the same typed args).
+   Addresses as much implicit type casting as possible."
+  (let (v)
+    (setq v (car types))
+    (dolist (y (cdr types))
+      ; update original type counts
+      ;(setq m (assoc (car y) origcnt))
+      ;(if m (setf (cdr m) (1+ (cdr m))) (setq origcnt (acons (car y) 1 origcnt)))
+      ; keep track of intersection of types
+      (setq v (intersection v y :key #'(lambda (x) (if (consp x) (car x) x)))))
+    (ss-resolve-types v)))
+
+(defun ss-resolve-types (types)
+  "(SS-RESOLVE-TYPES TYPES) takes a list of types and chooses a reasonable one."
+      ; find string with maximal 
+  (flet ((resolve (list)
+	   (cond ((atom list) list)
+		 ((member 'num list) 'num)
+		 ((member 'str list) 'str)
+		 ((member 'bool list) 'bool)
+		 (t (first list)))))  ; handles case where all types are unknown
+    (cond ((atom types) types)
+	  (t 
+	   (multiple-value-bind (typecasts raw) (split #'consp types)
+	     (setq raw (set-difference raw typecasts :key #'(lambda (x) (if (consp x) (car x) x))))
+	     (cond (raw (resolve raw))
+		   (t (resolve (mapcar #'(lambda (x) (if (consp x) (first x) x)) types)))))))))
+
+#|
 (defun ss-cast (p)
   "(SS-CAST P) takes an atom and casts its arguments to the correct type
    and returns the result or ERROR.  Assumes P has already been simplified via ss-simplify."
   (cond ((find (car p) '(lt lte gt gte))
 	 (list (car p) (ss-cast-tonum (second p)) (ss-cast-tonum (third p))))
 	((find (car p) '(= !=))
-	 (cond ((and (listp (second p)) (eq (car (second p)) 'reg)) (error 'ss-type-error))
-	       ((and (listp (third p)) (eq (car (third p)) 'reg)) (error 'ss-type-error))
+	 (cond ((and (listp (second p)) (eq (car (second p)) 'reg)) (error 'ss-type-error :text (format nil "Casting problem: ~A" p)))
+	       ((and (listp (third p)) (eq (car (third p)) 'reg)) (error 'ss-type-error :text (format nil "Casting problem: ~A" p)))
 	       ((stringp (second p)) (list (car p) (second p) (ss-cast-tostring (third p))))
 	       ((stringp (third p))  (list (car p) (ss-cast-tostring (second p)) (third p)))
 	       ((numberp (second p)) (list (car p) (second p) (ss-cast-tonum (third p))))
@@ -1139,6 +1754,7 @@
 	((find (car p) '(contains notcontains))
 	 (list (car p) (ss-cast-tostring (second p)) (ss-cast-tostring (third p))))
 	(t p)))
+|#
 #|
 (defun ss-toerr (x) 
   (cond ((atom x) (if (eq x 'error) 'error x))
@@ -1146,39 +1762,60 @@
 	(t x)))
 |#
 
+(defun php-false (x) (or (eq x 'false) (eq x 0) (equal x "") (equal x "0")))
+(defparameter *ss-false-values* #'php-false)
+
+; assumes all types for variables are known
 (defun ss-cast-tonum (x) 
-  (cond ((boolp x) (if (eq x 'true) 1 0))
+  (cond ((boolp x) (if (funcall *ss-false-values* x) 0 1))
 	((numberp x) x)
+	((eq x 'num) x)
 	((stringp x) 
-	 (cond ((equal x "") (error 'ss-type-error)) 
+	 (cond ((equal x "") (error 'ss-type-error :text (format nil "Cannot convert string to type NUM: ~A" x))) 
 	       (t (setq x (ignore-errors (read-from-string x nil nil))) 
-		  (if (numberp x) x (error 'ss-type-error)))))
-	((varp x) x)
+		  (if (numberp x) x (error 'ss-type-error :text (format nil "Cannot convert string to type NUM: ~A" x))))))
+	((varp x) (let ((type (gethash x *ss-cast-types*)))
+		    (cond ((not type) x)
+			  ((eq type 'num) x)
+			  (t (error 'ss-type-error :text (format nil "Cannot convert var to type NUM: ~A" x))))))
 	((lenp x) x)
-	(t (error 'ss-type-error))))
+	((and (listp x) (eq (car x) 'tonum)) 
+	 (handler-case (ss-cast-tonum (second x))
+	   (ss-type-error () x)))
+	((typecastp x) (ss-cast-tonum (second x)))
+	(t (error 'ss-type-error :text (format nil "Cannot convert to type NUM: ~A" x)))))
 
 (defun ss-cast-tostring (x)
   (cond ((boolp x) (tostring x))
 	((numberp x) (tostring x))
 	((stringp x) x)
-	((varp x) x)
-	((lenp x) x)
-	(t (error 'ss-type-error))))
+	((eq x 'str) x)
+	((varp x) (let ((type (gethash x *ss-cast-types*)))
+		    (cond ((not type) x)
+			  ((eq type 'str) x)
+			  (t (error 'ss-type-error :text (format nil "Cannot convert var to type STR: ~A" x))))))
+	((concatp x) x)
+	((and (listp x) (eq (car x) 'tostr)) 
+	 (handler-case (ss-cast-tostring (second x))
+	   (ss-type-error () x)))
+	((typecastp x) (ss-cast-tostring (second x)))
+	(t (error 'ss-type-error :text (format nil "Cannot convert to type STR: ~A" x)))))
 
 (defun ss-cast-tobool (x)
-  (cond ((boolp x) x)
-	((numberp x) (if (= x 0) 'false 'true))
-	((stringp x) (cond ((or (equal x "1") (equal x "true")) 'true)
-			   ((or (equal x "0") (equal x "false")) 'false)
-			   (t (error 'ss-type-error))))
-	((varp x) x)
-	((lenp x) x)
-	(t (error 'ss-type-error))))
+  (cond ((or (boolp x) (numberp x) (stringp x)) (if (funcall *ss-false-values* x) 'false 'true))
+	((eq x 'bool) x)
+	((varp x) (let ((type (gethash x *ss-cast-types*)))
+		    (cond ((not type) x)
+			  ((eq type 'bool) x)
+			  (t (error 'ss-type-error :text (format nil "Cannot convert var to type BOOL: ~A" x))))))
+	((and (listp x) (eq (car x) 'tobool)) x)
+	((typecastp x) (ss-cast-tobool (second x)))
+	(t (error 'ss-type-error :text (format nil "Cannot convert to type BOOL: ~A" x)))))
 
 (defun ss-cast-toreg (x)
   (if (or (stringp x) (numberp x) (boolp x))
       (tostring x)
-      (error 'ss-type-error)))
+      (error 'ss-type-error :text (format nil "Cannot convert to REG: ~A" x))))
     
 (defun ss-simplify-not (p)
   "(SS-SIMPLIFY-NOT P) Given a literal p, translates to equivalent literal
@@ -1361,6 +1998,37 @@
 (defun valreg (x)
   (cond ((atom x) nil)
 	((eq (car x) 'reg) (stringp (second x)))))
+
+(defparameter *ss-internal-complements*
+  '((= . !=) (lt . gte) (gt . lte) (lt . gt) (in . notin) (in . nin) (require . forbid))
+)
+(defparameter *ss-internal-vocab* 
+  (list (make-parameter :symbol 'lt :arity 2 :type 'relation)
+	(make-parameter :symbol 'lte :arity 2 :type 'relation)
+	(make-parameter :symbol 'gt :arity 2 :type 'relation)
+	(make-parameter :symbol 'gte :arity 2 :type 'relation)
+	(make-parameter :symbol '= :arity 2 :type 'relation)
+	(make-parameter :symbol '!= :arity 2 :type 'relation)
+	(make-parameter :symbol 'in :arity 2 :type 'relation)
+	(make-parameter :symbol 'notin :arity 2 :type 'relation)
+	(make-parameter :symbol 'nin :arity 2 :type 'relation)
+	(make-parameter :symbol 'len :arity 1 :type 'function)
+	(make-parameter :symbol 'concat :arity 2 :type 'function)
+	(make-parameter :symbol '+ :arity 2 :type 'function)
+	(make-parameter :symbol '* :arity 2 :type 'function)
+	(make-parameter :symbol '/ :arity 2 :type 'function)
+	(make-parameter :symbol '- :arity 2 :type 'function)
+	;(make-parameter :symbol 'contains :arity 2 :type 'relation)
+	;(make-parameter :symbol 'notcontains :arity 2 :type 'relation)
+	(make-parameter :symbol 'type :arity 2 :type 'relation)
+	(make-parameter :symbol 'true :arity 0 :type 'relation)
+	(make-parameter :symbol 'false :arity 0 :type 'relation)
+	(make-parameter :symbol 'require :arity 1 :type 'relation)
+	(make-parameter :symbol 'forbid :arity 1 :type 'relation)
+	(make-parameter :symbol 'tobool :arity 1 :type 'relation)
+	(make-parameter :symbol 'tostr :arity 1 :type 'relation)
+	(make-parameter :symbol 'tonum :arity 1 :type 'relation)
+))
 			       
 (deftheory sstypes ""
   (atype str)
@@ -1371,6 +2039,10 @@
   (numericop lte)
   (numericop gt)
   (numericop gte)
+  (math *)
+  (math +)
+  (math -)
+  (math /)
   (equality =)
   (equality !=)
   (regexp in)
@@ -1378,10 +2050,33 @@
   (regexp nin)
   (contop contains)
   (contop notcontains)
+  (modal require)
+  (modal forbid)
   (bool true)
   (bool false)
 
+  ; Implicit casting
+  (<= (reltype ?x (listof 1 1)) (equality ?x))
+  (<= (reltype ?x (listof num num)) (numericop ?x))
+  (<= (reltype ?x (listof str str)) (regexp ?x))
+  (<= (reltype ?x (listof str str)) (contop ?x))
+  (<= (reltype type (listof 1 2)))
+  (<= (reltype tostr (listof 1)))
+  (<= (reltype tonum (listof 1)))
+  (<= (reltype tobool (listof 1)))
+  (<= (reltype len (listof str)))
+  (<= (reltype concat (listof str str)))
+  (<= (reltype ?x (listof 1)) (modal ?x))
+  (<= (reltype ?x (listof num num)) (math ?x))
 
+  (<= (returntype ?x num) (math ?x))
+  (<= (returntype len num))
+  (<= (returntype concat str))
+  (<= (returntype tostr str))
+  (<= (returntype tonum num))
+  (<= (returntype tobool bool))
+
+  ;  Inferring the types of variables  (probably have redundant info, but seems to work for now)
   ;;;; basic types
   (<= (argtype num num))
   (<= (argtype bool bool))
@@ -1391,8 +2086,11 @@
   (<= (argtype ?x num) (evaluate (numberp ?x) t))
   (<= (argtype ?x str) (evaluate (stringp ?x) t))
 
-
   ;;;;; functional term types
+  ; type casting
+  (<= (argtype (tostr ?x) str))
+  (<= (argtype (tonum ?x) num))
+  (<= (argtype (tobool ?x) bool))
   ; len
   (<= (argtype (len ?x) num))
   (<= (argtype ?x str) (term (len ?x)))
@@ -1400,6 +2098,9 @@
   (<= (argtype (concat ?x ?y) str))
   (<= (argtype ?x str) (term (concat ?x ?y)))
   (<= (argtype ?x str) (term (concat ?y ?x)))
+
+#|
+  ; shouldn't need many of the below since we're now dealing with types after dropping syntactic sugar
   ; ltrim
   (<= (argtype (ltrim ?x) str))
   (<= (argtype ?x str) (term (ltrim ?x)))
@@ -1441,9 +2142,13 @@
   (<= (argtype ?y str) (term (substr_replace ?x ?y ?z ?w)))
   (<= (argtype ?z num) (term (substr_replace ?x ?y ?z ?w)))
   (<= (argtype ?w num) (term (substr_replace ?x ?y ?z ?w)))
-  
+|#  
   ; basic operations
-  (<= (argtype ?x str) (atom (type ?x ?y)))
+  (<= (argtype ?x str) (atom (type ?x str)))
+  (<= (argtype ?x num) (atom (type ?x num)))
+  (<= (argtype ?x bool) (atom (type ?x bool)))
+  (<= (argtype ?x str) (atom (type ?x ?y)) (evaluate (stringp ?y) t))
+
   (<= (argtype ?x str) (atom (?p ?x ?y)) (regexp ?p))
   (<= (argtype ?y str) (atom (?p ?x ?y)) (regexp ?p))
   (<= (argtype ?x str) (atom (?p ?x ?y)) (contop ?p))
@@ -1796,6 +2501,31 @@
 
 ;;;;;;;;;;;; Kaluza interface ;;;;;;;;;;;;
 
+(defparameter *ss-kaluza-vocab* 
+  (list (make-parameter :symbol 'lt :arity 2 :type 'relation)
+	(make-parameter :symbol 'lte :arity 2 :type 'relation)
+	(make-parameter :symbol 'gt :arity 2 :type 'relation)
+	(make-parameter :symbol 'gte :arity 2 :type 'relation)
+	(make-parameter :symbol '= :arity 2 :type 'relation)
+	(make-parameter :symbol '!= :arity 2 :type 'relation)
+	(make-parameter :symbol 'in :arity 2 :type 'relation)
+	(make-parameter :symbol 'notin :arity 2 :type 'relation)
+	(make-parameter :symbol 'nin :arity 2 :type 'relation)
+	(make-parameter :symbol 'len :arity 1 :type 'function)
+	(make-parameter :symbol 'concat :arity 2 :type 'function)
+	(make-parameter :symbol '+ :arity 2 :type 'function)
+	(make-parameter :symbol '* :arity 2 :type 'function)
+	(make-parameter :symbol '/ :arity 2 :type 'function)
+	(make-parameter :symbol '- :arity 2 :type 'function)
+	;(make-parameter :symbol 'contains :arity 2 :type 'relation)
+	;(make-parameter :symbol 'notcontains :arity 2 :type 'relation)
+	(make-parameter :symbol 'type :arity 2 :type 'relation)
+	;(make-parameter :symbol 'true :arity 0 :type 'relation)
+	;(make-parameter :symbol 'false :arity 0 :type 'relation)
+	;(make-parameter :symbol 'require :arity 1 :type 'relation)
+	;(make-parameter :symbol 'forbid :arity 1 :type 'relation)
+))
+
 (defun ss-invoke-kaluza (vars constraints) 
   "(SS-INVOKE-KALUZA CONSTRAINTS) runs Kaluza to find a binding list of variables VARS
    that satisfy CONSTRAINTS, which is a list of literals treated as a conjunction."
@@ -1819,12 +2549,12 @@
 	   (when (listp out)
 	     (dolist (v newvars)
 	       (unless (assoc v out) (push (cons v "") out))))
-	   (format t "~&Kaluza required ~A seconds~%" (- (get-universal-time) starttime))
+	   (when *ss-debug* (format t "~&Kaluza ran in ~A seconds on ~A~%" (- (get-universal-time) starttime) f))
 	   (cond ((eq out :error)
 		  (setq *external-solver-errored* t)
 		  (if *break-on-external-solver-error*
 		      (ss-break (format nil "Kaluza errored in file ~A~%" f))
-		      nil))
+		      :unsat))   ; errors usually appear b/c of type conflicts, which are unsat
 		 ((eq out :unsat) :unsat)
 		 (t (delete-if-not #'(lambda (x) (member (car x) vars))
 				   (nsublis (mapcar #'cons newvars allvars) out))))))))
@@ -1854,25 +2584,55 @@
 	     (setq var (read-from-string (tostring (gentemp "temp"))))
 	     (ss-invoke-kaluza-writefile-constraint `(assign ,var ,c) s)
 	     (ss-invoke-kaluza-writefile-constraint `(assert ,var) s))
+	    ((eq (car c) 'lt) ; patch for Kaluza parsing bug
+	     (ss-invoke-kaluza-writefile-constraint (list 'gt (third c) (second c)) s))
 	    (t (ss-invoke-kaluza-writefile-constraint c s))))))
 
 (defun ss-validate-syntax-kaluza (ps)
+  (unless (every #'atomicp ps)
+    (error 'ss-syntax-error :text (format nil "Non-atomic sentence passed to Kaluza: ~A" ps)))
+  (ss-validate-vocab-kaluza ps))
+
+(defun ss-validate-vocab-kaluza (ps)
+  (ss-validate-vocab ps *ss-kaluza-vocab*))
+
+(defun ss-validate-vocab-internal (ps)
+  (ss-validate-vocab ps *ss-internal-vocab*))
+
+(defun ss-validate-vocab (ps vocab)
   (let (errs)
-    (ss-assert (every #'atomicp ps) nil (format nil "Kaluza only accepts a list of atomic constraints; found ~A" ps))
-    (setq errs (set-difference (remove-if #'isobject (get-vocabulary (maksand ps))) *ss-kaluza-vocab* :test #'equalp))
-    (assert (null errs) nil (format nil "Found unknown function/relation(s): ~A" errs))))
+    (setq errs (set-difference (remove-if #'isobject (get-vocabulary (maksand ps))) vocab :test #'equalp))
+    (when errs
+      (error 'ss-symbol-error :text (format nil "Unknown vocabulary: ~A" errs)))
+    ps))
       
 (defun ss-invoke-kaluza-writefile-constraint (p s)
   (ss-invoke-kaluza-writefile-atom p s)
   (format s ";~%"))
 
+(defun ss-invoke-kaluza-writefile-p2i (c s)
+  (ss-invoke-kaluza-writefile-term (second c) s)
+  (format s " ")
+  (ss-invoke-kaluza-writefile-op (first c) s)
+  (format s " ")
+  (ss-invoke-kaluza-writefile-term (third c) s))
+
+(defun ss-invoke-kaluza-capeq (term)
+  ; given a term, expand as appropriate
+  ; numeric and concat terms must be assigned via := before they are compared
+  ;   and len terms must be assigned via == before compared.
+  (let (new)
+    (cond ((atom term) term)
+	  ((member (car term) '(concat * / + -))
+	   (setq new (gentemp "?TMP"))
+	   (values new (list 'assign new term)))
+	  (t (setq new (gentemp "?TMP"))
+	     (values new (list '= new term))))))
+
 (defun ss-invoke-kaluza-writefile-atom (p s)
-  (flet ((p2i (c)
-	   (ss-invoke-kaluza-writefile-term (second c) s)
-	   (format s " ")
-	   (ss-invoke-kaluza-writefile-op (first c) s)
-	   (format s " ")
-	   (ss-invoke-kaluza-writefile-term (third c) s)))
+  (flet ((p2i (c) (ss-invoke-kaluza-writefile-p2i c s))
+	 (capeq (term) (ss-invoke-kaluza-capeq term)))
+    
     (cond ((atom p) (ss-invoke-kaluza-writefile-term p s))
 	  ((eq (car p) 'assign)
 	   (p2i (list (first p) (second p) (list 'meta (third p)))))
@@ -1880,6 +2640,13 @@
 	   (format s "ASSERT(")
 	   (ss-invoke-kaluza-writefile-term (second p) s)
 	   (format s ")"))
+	  ((member (car p) '(= != lt gt lte gte))
+	   (let (new1 new2 extra1 extra2)
+	     (multiple-value-setq (new1 extra1) (capeq (second p)))
+	     (multiple-value-setq (new2 extra2) (capeq (third p)))
+	     (when extra1 (p2i extra1) (format s ";~%"))
+	     (when extra2 (p2i extra2) (format s ";~%"))
+	     (p2i (list (car p) new1 new2))))
 	  ((eq (car p) 'type)
 	   (p2i (list 'in (second p) (list 'reg (stringappend "^(" (third p) ")$")))))
 	  ((member (car p) '(in notin nin))
@@ -1897,7 +2664,7 @@
 	((eq (car term) 'meta) (ss-invoke-kaluza-writefile-atom (second term) s))
 	((eq (car term) 'reg)
 	 (ss-assert (stringp (second term)) nil (format nil "Reg terms must be (reg <string>); found ~A" term))
-	 (format s "CapturedBrack(/~A/,0)" (ss-regesc (second term) '(#\/))))		 
+	 (format s "CapturedBrack(/~A/,0)" (second term))) ;(ss-regesc (second term) '(#\/))))		 
 	((eq (car term) 'reglit)
 	 (ss-assert (stringp (second term)) nil (format nil "Reglit terms must be (reglit <string>); found ~A" term))
 	 (format s "CapturedBrack(~S,0)" (second term)))		 
@@ -1907,10 +2674,11 @@
 	 (ss-invoke-kaluza-writefile-term (second term) s)
 	 (format s ")"))
 	((eq (car term) 'concat) 
-	 (ss-assert (and (atom (second term)) (third term)) nil (format nil "Concat terms must be (concat <atom> <atom>); found ~A" term))
+	 (ss-assert (and (atom (second term)) (third term)) nil 
+		    (format nil "Concat terms must be (concat <atom> <atom>); found ~A" term))
 	 (ss-invoke-kaluza-writefile-term (second term) s)
 	 (format s " . ")
-	 (ss-invoke-kaluza-writefile-term (second term) s))
+	 (ss-invoke-kaluza-writefile-term (third term) s))
 	((member (car term) '(* / + -))
 	 (ss-assert (and (or (varp (second term)) (numberp (second term)))
 		      (or (varp (third term)) (numberp (third term)))) 

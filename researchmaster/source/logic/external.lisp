@@ -1337,8 +1337,57 @@ edge = {(1,2), (2,3)}
       (unless last (format stream ", ")))
     (format stream "}~%")))
 
-    
-    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LogicBlox ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#|
++region(x), +region:name[x]="a".
++region(x), +region:name[x]="b".
++region(x), +region:name[x]="c".
+
++adj(x,y) <- region:name[x]="a", region:name[y]="b".
++adj(x,y) <- region:name[x]="b", region:name[y]="c".
+
++hue(x), +hue:name[x]="red".
++hue(x), +hue:name[x]="blue".
+|#
+
+;  CAUTION: For now only works on map coloring
+; can't quite do this w/o addiitonal type info
+(defun kifdata2lb (th stream &optional (constmap nil))
+  (dolist (p (contents th))
+    (cond ((atom p) (format stream "~(~A~)~%" p))
+	  ((null (cdr p)) 
+	   (format stream "+~A.~%" (car p)))
+	  ((null (cddr p))   ; special case where we intoduce refmode
+	   (let ((v "X"))
+	     (format stream "+~A(~A), +~A:name[~A]=\"~A\".~%" 
+		     (hname (car p) constmap) v (hname (car p) constmap) v (hname (second p) constmap))))
+	  (t
+	   (let ((vars (nunique (length (cdr p)) "X")))
+	     (format stream "+~A(" (hname (car p) constmap))
+	     (arglist2infix vars stream constmap)
+	     (format stream ") <- ")
+	     (do ((as (cdr p) (cdr as))
+		  (vs vars (cdr vs)))
+		 ((null as))
+	       (format stream "region:name[~A]=\"~A\"" (car vs) (hname (car as) constmap))
+	       (if (cdr as) (format stream ", ") (format stream ".~%"))))))))  
+
+; Note, unlike other data converters, second 2 args help construct file names for output.
+;   Also note that this ignores propositions and 0-ary relations.
+(defun kifdata2csv (th prefix postfix &optional (constmap nil))
+  (dolist (r (group-by (contents th) #'relation))
+    (with-open-file (stream (stringappend prefix (car r) postfix) 
+			    :direction :output :if-does-not-exist :create :if-exists :supersede)
+      (dolist (p (reverse (cdr r)))  ; walk over grouped sentences
+	(cond ((atom p) nil)  ; drop propositions
+	      ((null (cdr p)) nil)  ; drop 0-ary relations
+	      (t
+	       (format stream "~A" (hname (second p) constmap))
+	       (dolist (a (cddr p))
+		 (format stream ",~A" (hname a constmap)))
+	       (format stream "~%")))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Datalog ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

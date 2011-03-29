@@ -134,8 +134,8 @@
       (multiple-value-setq (val l) (slice-n (random (- n i)) l))
       (push val newl))))
 
-(defun intersectionp (list1 list2 &key (test #'eq))
-  (some #'(lambda (x) (if (member x list2 :test test) t)) list1))
+(defun intersectionp (list1 list2 &key (test #'eq) (key #'identity))
+  (some #'(lambda (x) (if (member x list2 :test test :key key) t)) list1))
 
 (defun slice-n (index list)
   "(SLICE-N INDEX LIST) returns the INDEXth value in list LIST and removes that value from LIST destructively."
@@ -200,7 +200,6 @@
       (setq v (funcall func l))
       (setf (gethash v h) (cons l (gethash v h))))
     h))
-
 
 (defun filter (test list)
   (mapcan #'(lambda (x) (if (funcall test x) (list x) nil)) list))
@@ -288,6 +287,16 @@
       (cond ((funcall test l override) (return override))
 	    ((funcall test l item))
 	    (t (push l newl))))))
+
+(defun all-pairs (l)
+  "(ALL-PAIRS L) returns a list of all (a b) where a and b are elements
+   in L such that a comes before b."
+  (do ((ls l (cdr ls))
+       (ps nil))
+      ((null ls) (nreverse ps))
+    (do ((ms (cdr ls) (cdr ms)))
+	((null ms))
+      (push (list (car ls) (car ms)) ps))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;; Hashtable ;;;;;;;;;;;;;;;;;;
@@ -693,8 +702,6 @@ rest of the given `string', if any."
       (setf (gethash val h) (cons d (gethash val h))))
     (dolist (v vals res)
      (push (cons v (gethash v h)) res))))
-
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;; Graph ;;;;;;;;;;;;;;;;;;;;;

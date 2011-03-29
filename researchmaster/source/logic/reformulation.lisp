@@ -142,6 +142,27 @@
 	((eq (car p) 'exists) (third p))
 	(t p)))
 
+(defun boolops2kif (p)
+  "(BOOLOPS2KIF P) translate non-kif boolean operators to KIF operators."
+  (labels ((rec (p)
+	     (mapopands #'(lambda (x)
+			    (cond ((atom x) x)
+				  ((eq (car x) 'xor) (rec (xor2kif x)))
+				  ((eq (car x) 'ifelse) (rec (ifelse2kif x)))
+				  (t x)))
+			p)))
+    (rec p)))
+
+(defun xor2kif (p)
+  (let (res)
+    (setq p (cdr p))
+    (dolist (thing p (maksor (nreverse res)))
+      (push (maksand (cons thing (mapcar #'maknot (remove thing p)))) res))))
+      
+(defun ifelse2kif (p)
+  `(and (=> ,(second p) ,(third p))
+	(=> ,(maknot (second p)) ,(fourth p))))
+
 (defun to-orless-list (p) (if (and (listp p) (eq (car p) 'or)) (cdr p) (list p)))
 (defun or2list (p) (to-orless-list p))
 (defun and2list (p) (if (and (listp p) (eq (car p) 'and)) (cdr p) (list p)))
@@ -223,14 +244,37 @@
 			    (signed-relation x)
 			    (mapcar #'signed-relation x))) (clauses p)))
 
+(defun mapbool (func p)
+  "(MAPBOOL FUNC P) applies function FUNC to all subformulas of P 
+   (children first then formula) and returns result."
+  (cond ((atom p) p)
+	((member (car p) '(or not and => <= <=>))
+	 (funcall func (cons (car p) (mapcar #'(lambda (x) (mapbool func x)) (cdr p)))))
+	((member (car p) '(forall exists))
+	 (funcall func (list (first p) (second p) (mapbool func (third p)))))
+	(t p)))
+
+(defun mapatomterm (func p)
+  "(MAPOPANDS FUNC P) applies function FUNC to all of the atoms and terms occurring in P 
+   (children before parent) and returns the result."
+  (cond ((atom p) (funcall func p))
+	((member (car p) '(or not and => <= <=>)) 
+	 (cons (car p) (mapcar #'(lambda (x) (mapatomterm func x)) (cdr p))))
+	((member (car p) '(forall exists)) (list (first p) (second p) (mapatomterm func (third p))))
+	(t 
+	 (let (args)
+	   (setq args (mapcar #'(lambda (x) (mapatomterm func x)) (cdr p)))
+	   (funcall func (cons (car p) args))))))
+
 (defun mapopands (func p)
   "(MAPOPANDS FUNC P) applies function FUNC to all of the operands of the sentence P and
    returns the result."
   (cond ((atom p) (funcall func p))
 	((member (car p) '(or not and => <= <=>)) 
 	 (cons (car p) (mapcar #'(lambda (x) (mapopands func x)) (cdr p))))
-	((member (car p) '(forall exists)) (list (first p) (second p) (funcall func (third p))))
+	((member (car p) '(forall exists)) (list (first p) (second p) (mapopands func (third p))))
 	(t (funcall func p))))
+
 
 (defun transform-theory (f th &optional (saver #'save))
   "(TRANSFORM-THEORY F TH) applies F to all the sentences in TH, putting the
@@ -719,17 +763,17 @@
                      (t (setq newrule (cons (car ants) newrule)))))))))
                               
 
-(defun subsumption-elimination (th &optional (test #'similarp))
+(defun subsumption-elimination (th &key (test #'similarp) (key #'identity))
   (nreverse 
    (subsumption-elimination-forward
     (nreverse 
      (subsumption-elimination-forward 
       (copy-list (contents th))
-      test))
-    test)))
+      test key))
+    test key)))
 
 ; CAUTION: destructive to TH, which must be a list
-(defun subsumption-elimination-forward (th test)
+(defun subsumption-elimination-forward (th test key)
   (do ((ps th (cdr ps)))
       ((null ps) th)
     (do ((tosubsumes (cdr ps) (cdr tosubsumes))
@@ -737,7 +781,7 @@
 	((null tosubsumes))
       ; when subsumed, remove from list directly
       ; only increment pointer when not deleting; otherwise, pointer=tosubsumes
-      (cond ((funcall test (car tosubsumes) (car ps))
+      (cond ((funcall test (funcall key (car tosubsumes)) (funcall key (car ps)))
 	     (setf (cdr pointer) (cdr tosubsumes)))
 	    (t (setq pointer (cdr pointer)))))))
 

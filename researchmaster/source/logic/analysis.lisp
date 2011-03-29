@@ -227,16 +227,18 @@
 (defun tautp (list &optional (contrapreds))
   "(TAUTP LIST returns T iff the LIST of literals contains complementary literals.
    CONTRAPREDS is an alist of atoms to be treated as contradictory."
-  (some #'(lambda (lit1) 
-	    (some #'(lambda (lit2) 
-		      (cond ((or (and (positive-literalp lit1) (positive-literalp lit2))
-				 (and (negative-literalp lit1) (negative-literalp lit2)))
-			     (and (equal (args lit1) (args lit2))
-				  (or (find (cons (reln lit1) (reln lit2)) contrapreds :test #'equal)
-				      (find (cons (reln lit2) (reln lit1)) contrapreds :test #'equal))))
-			    (t (and (eq (reln lit1) (reln lit2))
-				    (equal (args lit1) (args lit2))))))
-		  list)) list))
+  (cond ((atom list) (eq list 'true))
+	(t
+	 (some #'(lambda (lit1) 
+		   (some #'(lambda (lit2) 
+			     (cond ((or (and (positive-literalp lit1) (positive-literalp lit2))
+					(and (negative-literalp lit1) (negative-literalp lit2)))
+				    (and (equal (args lit1) (args lit2))
+					 (or (find (cons (reln lit1) (reln lit2)) contrapreds :test #'equal)
+					     (find (cons (reln lit2) (reln lit1)) contrapreds :test #'equal))))
+				   (t (and (eq (reln lit1) (reln lit2))
+					   (equal (args lit1) (args lit2))))))
+			 list)) list))))
 
 (defun tautologyp (rule)
   "(TAUTOLOGYP RULE) returns T iff rule is a tautology, i.e. if within the body 
