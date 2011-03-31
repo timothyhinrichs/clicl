@@ -14,30 +14,30 @@ var component_color = new set("color", "vehicle");
 
 var prettynames = new Object();
 prettynames[undefined] = '';
-prettynames[0] = 1;
-prettynames[1] = '';
-prettynames[2] = 'true';
-prettynames[3] = 'false';
-prettynames[4] = 'Nautical Blue Metallic';
-prettynames[5] = 'Black';
-prettynames[6] = 'Magnetic Gray Metallic';
+prettynames[0] = '';
+prettynames[1] = '1';
+prettynames[2] = 'false';
+prettynames[3] = 'true';
+prettynames[4] = 'Camry';
+prettynames[5] = 'Corolla';
+prettynames[6] = 'Tundra';
 prettynames[7] = 'Super White';
-prettynames[8] = 'Tundra';
-prettynames[9] = 'Corolla';
-prettynames[10] = 'Camry';
+prettynames[8] = 'Magnetic Gray Metallic';
+prettynames[9] = 'Black';
+prettynames[10] = 'Nautical Blue Metallic';
 
 var uglynames = new Object();
-uglynames[1] = 0;
-uglynames[''] = 1;
-uglynames['true'] = 2;
-uglynames['false'] = 3;
-uglynames['Nautical Blue Metallic'] = 4;
-uglynames['Black'] = 5;
-uglynames['Magnetic Gray Metallic'] = 6;
+uglynames[''] = 0;
+uglynames['1'] = 1;
+uglynames['false'] = 2;
+uglynames['true'] = 3;
+uglynames['Camry'] = 4;
+uglynames['Corolla'] = 5;
+uglynames['Tundra'] = 6;
 uglynames['Super White'] = 7;
-uglynames['Tundra'] = 8;
-uglynames['Corolla'] = 9;
-uglynames['Camry'] = 10;
+uglynames['Magnetic Gray Metallic'] = 8;
+uglynames['Black'] = 9;
+uglynames['Nautical Blue Metallic'] = 10;
 
 function init () { 
    casesensitive = true;
@@ -50,14 +50,28 @@ function init () {
    mycellarray[1] = new cell('color', ds.get(datastore, "color_type"), "selector", negs_color, poss_color, negsupps_color, possupps_color, negsuppx_color, possuppx_color, component_color, true, undefined, true);
    initspread(mycellarray); }
 
+function external_init () {  }
+
+function submitprep () { 
+   var s = new set();
+   if (!(findcell("vehicle").conflictset.empty())) {
+      s.adjoin("vehicle");}
+   if (!(findcell("color").conflictset.empty())) {
+      s.adjoin("color");}
+   if (!(s.empty())) {
+      alert('Errors remain.  You must fix them before submitting.');
+      return false;}
+   clear_forced_gui();
+   return true; }
+
 var datastore;
 
 function init_index () { 
-   datastore = new dict();
+   datastore = new dictionary();
    ds.set(datastore, "univ", new hashbag(new expr(0), new expr(1), new expr(2), new expr(3), new expr(4), new expr(5), new expr(6), new expr(7), new expr(8), new expr(9), new expr(10)));
-   ds.set(datastore, "color_type", new set(new expr(7), new expr(6), new expr(5), new expr(4)));
-   ds.set(datastore, "vehicle_type", new set(new expr(10), new expr(9), new expr(8)));
-   ds.set(datastore, "boolean", new set(new expr(3), new expr(2))); }
+   ds.set(datastore, "color_type", new set(new expr(7), new expr(8), new expr(9), new expr(10)));
+   ds.set(datastore, "vehicle_type", new set(new expr(4), new expr(5), new expr(6)));
+   ds.set(datastore, "boolean", new set(new expr(2), new expr(3))); }
 
 function check_univ (x0) { return ds.member(ds.get(datastore, "univ"), new expr(x0), equalp); }
 
@@ -67,21 +81,37 @@ function check_vehicle_type (x0) { return ds.member(ds.get(datastore, "vehicle_t
 
 function check_color_type (x0) { return ds.member(ds.get(datastore, "color_type"), new expr(x0), equalp); }
 
-function enum_univ (x0) { return ds.get(datastore, "univ"); }
+function enum_univ (x0) { 
+   
+   return ds.get(datastore, "univ"); }
 
-function enum_boolean (x0) { return ds.get(datastore, "boolean"); }
+function enum_boolean (x0) { 
+   
+   return ds.get(datastore, "boolean"); }
 
-function enum_vehicle_type (x0) { return ds.get(datastore, "vehicle_type"); }
+function enum_vehicle_type (x0) { 
+   
+   return ds.get(datastore, "vehicle_type"); }
 
-function enum_color_type (x0) { return ds.get(datastore, "color_type"); }
+function enum_color_type (x0) { 
+   
+   return ds.get(datastore, "color_type"); }
 
-function negx_color (x0) { return neg_color(function (newval, support, sofar) { return new pair(true, newval); }, x0); }
+function negx_color (x0) { return neg_color(function (newval, support, sofar) { 
 
-function negs_color (x0) { return neg_color(function (newval, support, sofar) { return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+return new pair(true, newval); }, x0); }
 
-function negsuppx_color (x0) { return neg_color(function (newval, support, sofar) { return new pair(true, new pair(newval, support)); }, x0); }
+function negs_color (x0) { return neg_color(function (newval, support, sofar) { 
 
-function negsupps_color (x0) { return neg_color(function (newval, support, sofar) { return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
+return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+
+function negsuppx_color (x0) { return neg_color(function (newval, support, sofar) { 
+
+return new pair(true, new pair(newval, support)); }, x0); }
+
+function negsupps_color (x0) { return neg_color(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
 
 function neg_color (onsuccess, x0) { 
    if (varp(x0)) {
@@ -91,290 +121,298 @@ function neg_color (onsuccess, x0) {
       if (!(neg_color_b === undefined)) return neg_color_b(onsuccess, x0);
       else return undefined;} }
 
-function neg_color_b (onsuccess, nsh2431) { 
+function neg_color_b (onsuccess, nsh1553) { 
    var sofar = new set();
    var tmp;
-   var x0 = nsh2431;
+   var x0 = nsh1553;
    if (hascellvalue("vehicle")) {
       if (!(7 === x0)) {
-         if (!(5 === x0)) {
-            if (!(4 === x0)) {
-               if (cellvalue("vehicle") === 8) {
+         if (!(9 === x0)) {
+            if (!(10 === x0)) {
+               if (cellvalue("vehicle") === 6) {
                   tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2431;}
+         x0 = nsh1553;}
       if (!(7 === x0)) {
-         if (!(5 === x0)) {
-            if (!(x0 === 4)) {
-               if (cellvalue("vehicle") === 8) {
+         if (!(9 === x0)) {
+            if (!(x0 === 10)) {
+               if (cellvalue("vehicle") === 6) {
                   tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2431;}
+         x0 = nsh1553;}
       if (!(7 === x0)) {
-         if (!(x0 === 5)) {
-            if (!(4 === x0)) {
-               if (cellvalue("vehicle") === 8) {
+         if (!(x0 === 9)) {
+            if (!(10 === x0)) {
+               if (cellvalue("vehicle") === 6) {
                   tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2431;}
+         x0 = nsh1553;}
       if (!(7 === x0)) {
-         if (!(x0 === 5)) {
-            if (!(x0 === 4)) {
-               if (cellvalue("vehicle") === 8) {
+         if (!(x0 === 9)) {
+            if (!(x0 === 10)) {
+               if (cellvalue("vehicle") === 6) {
                   tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2431;}
+         x0 = nsh1553;}
       if (!(x0 === 7)) {
-         if (!(5 === x0)) {
-            if (!(4 === x0)) {
-               if (cellvalue("vehicle") === 8) {
+         if (!(9 === x0)) {
+            if (!(10 === x0)) {
+               if (cellvalue("vehicle") === 6) {
                   tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2431;}
+         x0 = nsh1553;}
       if (!(x0 === 7)) {
-         if (!(5 === x0)) {
-            if (!(x0 === 4)) {
-               if (cellvalue("vehicle") === 8) {
+         if (!(9 === x0)) {
+            if (!(x0 === 10)) {
+               if (cellvalue("vehicle") === 6) {
                   tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2431;}
+         x0 = nsh1553;}
       if (!(x0 === 7)) {
-         if (!(x0 === 5)) {
-            if (!(4 === x0)) {
-               if (cellvalue("vehicle") === 8) {
+         if (!(x0 === 9)) {
+            if (!(10 === x0)) {
+               if (cellvalue("vehicle") === 6) {
                   tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2431;}
+         x0 = nsh1553;}
       if (!(x0 === 7)) {
-         if (!(x0 === 5)) {
-            if (!(x0 === 4)) {
-               if (cellvalue("vehicle") === 8) {
+         if (!(x0 === 9)) {
+            if (!(x0 === 10)) {
+               if (cellvalue("vehicle") === 6) {
                   tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2431;}
-      if (!(6 === x0)) {
+         x0 = nsh1553;}
+      if (!(8 === x0)) {
          if (!(7 === x0)) {
-            if (cellvalue("vehicle") === 9) {
+            if (cellvalue("vehicle") === 5) {
                tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-               if (ds.first(tmp)) return ds.second(tmp);
+               if (ds.first(tmp) === true) return ds.second(tmp);
                else sofar = ds.second(tmp);}}
-         x0 = nsh2431;}
+         x0 = nsh1553;}
       if (!(x0 === 7)) {
-         if (!(6 === x0)) {
-            if (cellvalue("vehicle") === 9) {
+         if (!(8 === x0)) {
+            if (cellvalue("vehicle") === 5) {
                tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-               if (ds.first(tmp)) return ds.second(tmp);
+               if (ds.first(tmp) === true) return ds.second(tmp);
                else sofar = ds.second(tmp);}}
-         x0 = nsh2431;}
-      if (!(x0 === 6)) {
+         x0 = nsh1553;}
+      if (!(x0 === 8)) {
          if (!(7 === x0)) {
-            if (cellvalue("vehicle") === 9) {
+            if (cellvalue("vehicle") === 5) {
                tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-               if (ds.first(tmp)) return ds.second(tmp);
+               if (ds.first(tmp) === true) return ds.second(tmp);
                else sofar = ds.second(tmp);}}
-         x0 = nsh2431;}
-      if (!(x0 === 6)) {
+         x0 = nsh1553;}
+      if (!(x0 === 8)) {
          if (!(x0 === 7)) {
-            if (cellvalue("vehicle") === 9) {
+            if (cellvalue("vehicle") === 5) {
                tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-               if (ds.first(tmp)) return ds.second(tmp);
+               if (ds.first(tmp) === true) return ds.second(tmp);
                else sofar = ds.second(tmp);}}
-         x0 = nsh2431;}
+         x0 = nsh1553;}
       if (!(7 === x0)) {
-         if (cellvalue("vehicle") === 10) {
+         if (cellvalue("vehicle") === 4) {
             tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-            if (ds.first(tmp)) return ds.second(tmp);
+            if (ds.first(tmp) === true) return ds.second(tmp);
             else sofar = ds.second(tmp);}
-         x0 = nsh2431;}
+         x0 = nsh1553;}
       if (!(x0 === 7)) {
-         if (cellvalue("vehicle") === 10) {
+         if (cellvalue("vehicle") === 4) {
             tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-            if (ds.first(tmp)) return ds.second(tmp);
+            if (ds.first(tmp) === true) return ds.second(tmp);
             else sofar = ds.second(tmp);}
-         x0 = nsh2431;}}
+         x0 = nsh1553;}}
    if (!(x0 === x0)) {
       tmp = onsuccess(new expr(x0), new set(), sofar);
-      if (ds.first(tmp)) return ds.second(tmp);
+      if (ds.first(tmp) === true) return ds.second(tmp);
       else sofar = ds.second(tmp);
-      x0 = nsh2431;}
+      x0 = nsh1553;}
    return sofar; }
 
-function neg_color_f (onsuccess, nsh2432) { 
+function neg_color_f (onsuccess, nsh1554) { 
    var sofar = new set();
    var tmp;
-   var x0 = nsh2432;
+   var x0 = nsh1554;
    if (hascellvalue("vehicle")) {
-      if (cellvalue("vehicle") === 8) {
-         var arh2446 = enum_color_type(x0);
-         for (var key in ds.data(arh2446)) {
-            x0 = ds.element(ds.element(arh2446, key), 0);
-            if (!(4 === x0)) {
-               if (!(5 === x0)) {
+      if (cellvalue("vehicle") === 6) {
+         var arh1568 = enum_color_type(x0);
+         for (var key in ds.data(arh1568)) {
+            x0 = ds.element(ds.element(arh1568, key), 0);
+            if (!(10 === x0)) {
+               if (!(9 === x0)) {
                   if (!(7 === x0)) {
                      tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                     if (ds.first(tmp)) return ds.second(tmp);
+                     if (ds.first(tmp) === true) return ds.second(tmp);
                      else sofar = ds.second(tmp);}}}}
-         x0 = nsh2432;}
-      if (cellvalue("vehicle") === 8) {
-         var arh2447 = enum_color_type(x0);
-         for (var key in ds.data(arh2447)) {
-            x0 = ds.element(ds.element(arh2447, key), 0);
-            if (!(x0 === 4)) {
-               if (!(5 === x0)) {
+         x0 = nsh1554;}
+      if (cellvalue("vehicle") === 6) {
+         var arh1569 = enum_color_type(x0);
+         for (var key in ds.data(arh1569)) {
+            x0 = ds.element(ds.element(arh1569, key), 0);
+            if (!(x0 === 10)) {
+               if (!(9 === x0)) {
                   if (!(7 === x0)) {
                      tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                     if (ds.first(tmp)) return ds.second(tmp);
+                     if (ds.first(tmp) === true) return ds.second(tmp);
                      else sofar = ds.second(tmp);}}}}
-         x0 = nsh2432;}
-      if (cellvalue("vehicle") === 8) {
-         var arh2448 = enum_color_type(x0);
-         for (var key in ds.data(arh2448)) {
-            x0 = ds.element(ds.element(arh2448, key), 0);
-            if (!(4 === x0)) {
-               if (!(x0 === 5)) {
+         x0 = nsh1554;}
+      if (cellvalue("vehicle") === 6) {
+         var arh1570 = enum_color_type(x0);
+         for (var key in ds.data(arh1570)) {
+            x0 = ds.element(ds.element(arh1570, key), 0);
+            if (!(10 === x0)) {
+               if (!(x0 === 9)) {
                   if (!(7 === x0)) {
                      tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                     if (ds.first(tmp)) return ds.second(tmp);
+                     if (ds.first(tmp) === true) return ds.second(tmp);
                      else sofar = ds.second(tmp);}}}}
-         x0 = nsh2432;}
-      if (cellvalue("vehicle") === 8) {
-         var arh2449 = enum_color_type(x0);
-         for (var key in ds.data(arh2449)) {
-            x0 = ds.element(ds.element(arh2449, key), 0);
-            if (!(x0 === 4)) {
-               if (!(x0 === 5)) {
+         x0 = nsh1554;}
+      if (cellvalue("vehicle") === 6) {
+         var arh1571 = enum_color_type(x0);
+         for (var key in ds.data(arh1571)) {
+            x0 = ds.element(ds.element(arh1571, key), 0);
+            if (!(x0 === 10)) {
+               if (!(x0 === 9)) {
                   if (!(7 === x0)) {
                      tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                     if (ds.first(tmp)) return ds.second(tmp);
+                     if (ds.first(tmp) === true) return ds.second(tmp);
                      else sofar = ds.second(tmp);}}}}
-         x0 = nsh2432;}
-      if (cellvalue("vehicle") === 8) {
-         var arh2450 = enum_color_type(x0);
-         for (var key in ds.data(arh2450)) {
-            x0 = ds.element(ds.element(arh2450, key), 0);
-            if (!(4 === x0)) {
-               if (!(5 === x0)) {
+         x0 = nsh1554;}
+      if (cellvalue("vehicle") === 6) {
+         var arh1572 = enum_color_type(x0);
+         for (var key in ds.data(arh1572)) {
+            x0 = ds.element(ds.element(arh1572, key), 0);
+            if (!(10 === x0)) {
+               if (!(9 === x0)) {
                   if (!(x0 === 7)) {
                      tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                     if (ds.first(tmp)) return ds.second(tmp);
+                     if (ds.first(tmp) === true) return ds.second(tmp);
                      else sofar = ds.second(tmp);}}}}
-         x0 = nsh2432;}
-      if (cellvalue("vehicle") === 8) {
-         var arh2451 = enum_color_type(x0);
-         for (var key in ds.data(arh2451)) {
-            x0 = ds.element(ds.element(arh2451, key), 0);
-            if (!(x0 === 4)) {
-               if (!(5 === x0)) {
+         x0 = nsh1554;}
+      if (cellvalue("vehicle") === 6) {
+         var arh1573 = enum_color_type(x0);
+         for (var key in ds.data(arh1573)) {
+            x0 = ds.element(ds.element(arh1573, key), 0);
+            if (!(x0 === 10)) {
+               if (!(9 === x0)) {
                   if (!(x0 === 7)) {
                      tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                     if (ds.first(tmp)) return ds.second(tmp);
+                     if (ds.first(tmp) === true) return ds.second(tmp);
                      else sofar = ds.second(tmp);}}}}
-         x0 = nsh2432;}
-      if (cellvalue("vehicle") === 8) {
-         var arh2452 = enum_color_type(x0);
-         for (var key in ds.data(arh2452)) {
-            x0 = ds.element(ds.element(arh2452, key), 0);
-            if (!(4 === x0)) {
-               if (!(x0 === 5)) {
+         x0 = nsh1554;}
+      if (cellvalue("vehicle") === 6) {
+         var arh1574 = enum_color_type(x0);
+         for (var key in ds.data(arh1574)) {
+            x0 = ds.element(ds.element(arh1574, key), 0);
+            if (!(10 === x0)) {
+               if (!(x0 === 9)) {
                   if (!(x0 === 7)) {
                      tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                     if (ds.first(tmp)) return ds.second(tmp);
+                     if (ds.first(tmp) === true) return ds.second(tmp);
                      else sofar = ds.second(tmp);}}}}
-         x0 = nsh2432;}
-      if (cellvalue("vehicle") === 8) {
-         var arh2453 = enum_color_type(x0);
-         for (var key in ds.data(arh2453)) {
-            x0 = ds.element(ds.element(arh2453, key), 0);
-            if (!(x0 === 4)) {
-               if (!(x0 === 5)) {
+         x0 = nsh1554;}
+      if (cellvalue("vehicle") === 6) {
+         var arh1575 = enum_color_type(x0);
+         for (var key in ds.data(arh1575)) {
+            x0 = ds.element(ds.element(arh1575, key), 0);
+            if (!(x0 === 10)) {
+               if (!(x0 === 9)) {
                   if (!(x0 === 7)) {
                      tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                     if (ds.first(tmp)) return ds.second(tmp);
+                     if (ds.first(tmp) === true) return ds.second(tmp);
                      else sofar = ds.second(tmp);}}}}
-         x0 = nsh2432;}
-      if (cellvalue("vehicle") === 9) {
-         var arh2454 = enum_color_type(x0);
-         for (var key in ds.data(arh2454)) {
-            x0 = ds.element(ds.element(arh2454, key), 0);
+         x0 = nsh1554;}
+      if (cellvalue("vehicle") === 5) {
+         var arh1576 = enum_color_type(x0);
+         for (var key in ds.data(arh1576)) {
+            x0 = ds.element(ds.element(arh1576, key), 0);
             if (!(7 === x0)) {
-               if (!(6 === x0)) {
+               if (!(8 === x0)) {
                   tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2432;}
-      if (cellvalue("vehicle") === 9) {
-         var arh2455 = enum_color_type(x0);
-         for (var key in ds.data(arh2455)) {
-            x0 = ds.element(ds.element(arh2455, key), 0);
-            if (!(6 === x0)) {
+         x0 = nsh1554;}
+      if (cellvalue("vehicle") === 5) {
+         var arh1577 = enum_color_type(x0);
+         for (var key in ds.data(arh1577)) {
+            x0 = ds.element(ds.element(arh1577, key), 0);
+            if (!(8 === x0)) {
                if (!(x0 === 7)) {
                   tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2432;}
-      if (cellvalue("vehicle") === 9) {
-         var arh2456 = enum_color_type(x0);
-         for (var key in ds.data(arh2456)) {
-            x0 = ds.element(ds.element(arh2456, key), 0);
+         x0 = nsh1554;}
+      if (cellvalue("vehicle") === 5) {
+         var arh1578 = enum_color_type(x0);
+         for (var key in ds.data(arh1578)) {
+            x0 = ds.element(ds.element(arh1578, key), 0);
             if (!(7 === x0)) {
-               if (!(x0 === 6)) {
+               if (!(x0 === 8)) {
                   tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2432;}
-      if (cellvalue("vehicle") === 9) {
-         var arh2457 = enum_color_type(x0);
-         for (var key in ds.data(arh2457)) {
-            x0 = ds.element(ds.element(arh2457, key), 0);
+         x0 = nsh1554;}
+      if (cellvalue("vehicle") === 5) {
+         var arh1579 = enum_color_type(x0);
+         for (var key in ds.data(arh1579)) {
+            x0 = ds.element(ds.element(arh1579, key), 0);
             if (!(x0 === 7)) {
-               if (!(x0 === 6)) {
+               if (!(x0 === 8)) {
                   tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2432;}
-      if (cellvalue("vehicle") === 10) {
-         var arh2458 = enum_color_type(x0);
-         for (var key in ds.data(arh2458)) {
-            x0 = ds.element(ds.element(arh2458, key), 0);
+         x0 = nsh1554;}
+      if (cellvalue("vehicle") === 4) {
+         var arh1580 = enum_color_type(x0);
+         for (var key in ds.data(arh1580)) {
+            x0 = ds.element(ds.element(arh1580, key), 0);
             if (!(7 === x0)) {
                tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-               if (ds.first(tmp)) return ds.second(tmp);
+               if (ds.first(tmp) === true) return ds.second(tmp);
                else sofar = ds.second(tmp);}}
-         x0 = nsh2432;}
-      if (cellvalue("vehicle") === 10) {
-         var arh2459 = enum_color_type(x0);
-         for (var key in ds.data(arh2459)) {
-            x0 = ds.element(ds.element(arh2459, key), 0);
+         x0 = nsh1554;}
+      if (cellvalue("vehicle") === 4) {
+         var arh1581 = enum_color_type(x0);
+         for (var key in ds.data(arh1581)) {
+            x0 = ds.element(ds.element(arh1581, key), 0);
             if (!(x0 === 7)) {
                tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-               if (ds.first(tmp)) return ds.second(tmp);
+               if (ds.first(tmp) === true) return ds.second(tmp);
                else sofar = ds.second(tmp);}}
-         x0 = nsh2432;}}
-   var arh2460 = enum_color_type(x0);
-   for (var key in ds.data(arh2460)) {
-      x0 = ds.element(ds.element(arh2460, key), 0);
+         x0 = nsh1554;}}
+   var arh1582 = enum_color_type(x0);
+   for (var key in ds.data(arh1582)) {
+      x0 = ds.element(ds.element(arh1582, key), 0);
       if (!(x0 === x0)) {
          tmp = onsuccess(new expr(x0), new set(), sofar);
-         if (ds.first(tmp)) return ds.second(tmp);
+         if (ds.first(tmp) === true) return ds.second(tmp);
          else sofar = ds.second(tmp);}}
-   x0 = nsh2432;
+   x0 = nsh1554;
    return sofar; }
 
-function negx_vehicle (x0) { return neg_vehicle(function (newval, support, sofar) { return new pair(true, newval); }, x0); }
+function negx_vehicle (x0) { return neg_vehicle(function (newval, support, sofar) { 
 
-function negs_vehicle (x0) { return neg_vehicle(function (newval, support, sofar) { return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+return new pair(true, newval); }, x0); }
 
-function negsuppx_vehicle (x0) { return neg_vehicle(function (newval, support, sofar) { return new pair(true, new pair(newval, support)); }, x0); }
+function negs_vehicle (x0) { return neg_vehicle(function (newval, support, sofar) { 
 
-function negsupps_vehicle (x0) { return neg_vehicle(function (newval, support, sofar) { return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
+return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+
+function negsuppx_vehicle (x0) { return neg_vehicle(function (newval, support, sofar) { 
+
+return new pair(true, new pair(newval, support)); }, x0); }
+
+function negsupps_vehicle (x0) { return neg_vehicle(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
 
 function neg_vehicle (onsuccess, x0) { 
    if (varp(x0)) {
@@ -384,361 +422,369 @@ function neg_vehicle (onsuccess, x0) {
       if (!(neg_vehicle_b === undefined)) return neg_vehicle_b(onsuccess, x0);
       else return undefined;} }
 
-function neg_vehicle_b (onsuccess, nsh2460) { 
+function neg_vehicle_b (onsuccess, nsh1582) { 
    var sofar = new set();
    var tmp;
-   var x0 = nsh2460;
+   var x0 = nsh1582;
    if (hascellvalue("color")) {
-      if (x0 === 8) {
+      if (x0 === 6) {
          var tlh0 = "tlh0";
          tlh0 = cellvalue("color");
-         if (!(4 === tlh0)) {
-            if (!(5 === tlh0)) {
+         if (!(10 === tlh0)) {
+            if (!(9 === tlh0)) {
                if (!(7 === tlh0)) {
                   tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2460;}
-      if (x0 === 8) {
+         x0 = nsh1582;}
+      if (x0 === 6) {
          var tlh0 = "tlh0";
          tlh0 = cellvalue("color");
-         if (!(tlh0 === 4)) {
-            if (!(5 === tlh0)) {
+         if (!(tlh0 === 10)) {
+            if (!(9 === tlh0)) {
                if (!(7 === tlh0)) {
                   tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2460;}
-      if (x0 === 8) {
+         x0 = nsh1582;}
+      if (x0 === 6) {
          var tlh0 = "tlh0";
          tlh0 = cellvalue("color");
-         if (!(4 === tlh0)) {
-            if (!(tlh0 === 5)) {
+         if (!(10 === tlh0)) {
+            if (!(tlh0 === 9)) {
                if (!(7 === tlh0)) {
                   tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2460;}
-      if (x0 === 8) {
+         x0 = nsh1582;}
+      if (x0 === 6) {
          var tlh0 = "tlh0";
          tlh0 = cellvalue("color");
-         if (!(tlh0 === 4)) {
-            if (!(tlh0 === 5)) {
+         if (!(tlh0 === 10)) {
+            if (!(tlh0 === 9)) {
                if (!(7 === tlh0)) {
                   tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2460;}
-      if (x0 === 8) {
+         x0 = nsh1582;}
+      if (x0 === 6) {
          var tlh0 = "tlh0";
          tlh0 = cellvalue("color");
-         if (!(4 === tlh0)) {
-            if (!(5 === tlh0)) {
+         if (!(10 === tlh0)) {
+            if (!(9 === tlh0)) {
                if (!(tlh0 === 7)) {
                   tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2460;}
-      if (x0 === 8) {
+         x0 = nsh1582;}
+      if (x0 === 6) {
          var tlh0 = "tlh0";
          tlh0 = cellvalue("color");
-         if (!(tlh0 === 4)) {
-            if (!(5 === tlh0)) {
+         if (!(tlh0 === 10)) {
+            if (!(9 === tlh0)) {
                if (!(tlh0 === 7)) {
                   tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2460;}
-      if (x0 === 8) {
+         x0 = nsh1582;}
+      if (x0 === 6) {
          var tlh0 = "tlh0";
          tlh0 = cellvalue("color");
-         if (!(4 === tlh0)) {
-            if (!(tlh0 === 5)) {
+         if (!(10 === tlh0)) {
+            if (!(tlh0 === 9)) {
                if (!(tlh0 === 7)) {
                   tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2460;}
-      if (x0 === 8) {
+         x0 = nsh1582;}
+      if (x0 === 6) {
          var tlh0 = "tlh0";
          tlh0 = cellvalue("color");
-         if (!(tlh0 === 4)) {
-            if (!(tlh0 === 5)) {
+         if (!(tlh0 === 10)) {
+            if (!(tlh0 === 9)) {
                if (!(tlh0 === 7)) {
                   tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}
-         x0 = nsh2460;}
-      if (x0 === 9) {
+         x0 = nsh1582;}
+      if (x0 === 5) {
          var tlh0 = "tlh0";
          tlh0 = cellvalue("color");
          if (!(7 === tlh0)) {
-            if (!(6 === tlh0)) {
+            if (!(8 === tlh0)) {
                tmp = onsuccess(new expr(x0), new set("color"), sofar);
-               if (ds.first(tmp)) return ds.second(tmp);
+               if (ds.first(tmp) === true) return ds.second(tmp);
                else sofar = ds.second(tmp);}}
-         x0 = nsh2460;}
-      if (x0 === 9) {
+         x0 = nsh1582;}
+      if (x0 === 5) {
          var tlh0 = "tlh0";
          tlh0 = cellvalue("color");
-         if (!(6 === tlh0)) {
+         if (!(8 === tlh0)) {
             if (!(tlh0 === 7)) {
                tmp = onsuccess(new expr(x0), new set("color"), sofar);
-               if (ds.first(tmp)) return ds.second(tmp);
+               if (ds.first(tmp) === true) return ds.second(tmp);
                else sofar = ds.second(tmp);}}
-         x0 = nsh2460;}
-      if (x0 === 9) {
+         x0 = nsh1582;}
+      if (x0 === 5) {
          var tlh0 = "tlh0";
          tlh0 = cellvalue("color");
          if (!(7 === tlh0)) {
-            if (!(tlh0 === 6)) {
+            if (!(tlh0 === 8)) {
                tmp = onsuccess(new expr(x0), new set("color"), sofar);
-               if (ds.first(tmp)) return ds.second(tmp);
+               if (ds.first(tmp) === true) return ds.second(tmp);
                else sofar = ds.second(tmp);}}
-         x0 = nsh2460;}
-      if (x0 === 9) {
+         x0 = nsh1582;}
+      if (x0 === 5) {
          var tlh0 = "tlh0";
          tlh0 = cellvalue("color");
          if (!(tlh0 === 7)) {
-            if (!(tlh0 === 6)) {
+            if (!(tlh0 === 8)) {
                tmp = onsuccess(new expr(x0), new set("color"), sofar);
-               if (ds.first(tmp)) return ds.second(tmp);
+               if (ds.first(tmp) === true) return ds.second(tmp);
                else sofar = ds.second(tmp);}}
-         x0 = nsh2460;}
-      if (x0 === 10) {
+         x0 = nsh1582;}
+      if (x0 === 4) {
          var tlh0 = "tlh0";
          tlh0 = cellvalue("color");
          if (!(7 === tlh0)) {
             tmp = onsuccess(new expr(x0), new set("color"), sofar);
-            if (ds.first(tmp)) return ds.second(tmp);
+            if (ds.first(tmp) === true) return ds.second(tmp);
             else sofar = ds.second(tmp);}
-         x0 = nsh2460;}
-      if (x0 === 10) {
+         x0 = nsh1582;}
+      if (x0 === 4) {
          var tlh0 = "tlh0";
          tlh0 = cellvalue("color");
          if (!(tlh0 === 7)) {
             tmp = onsuccess(new expr(x0), new set("color"), sofar);
-            if (ds.first(tmp)) return ds.second(tmp);
+            if (ds.first(tmp) === true) return ds.second(tmp);
             else sofar = ds.second(tmp);}
-         x0 = nsh2460;}
-      if (x0 === 10) {
+         x0 = nsh1582;}
+      if (x0 === 4) {
          if (!(cellvalue("color") === 7)) {
             tmp = onsuccess(new expr(x0), new set("color"), sofar);
-            if (ds.first(tmp)) return ds.second(tmp);
+            if (ds.first(tmp) === true) return ds.second(tmp);
             else sofar = ds.second(tmp);}
-         x0 = nsh2460;}}
+         x0 = nsh1582;}}
    if (!(x0 === x0)) {
       tmp = onsuccess(new expr(x0), new set(), sofar);
-      if (ds.first(tmp)) return ds.second(tmp);
+      if (ds.first(tmp) === true) return ds.second(tmp);
       else sofar = ds.second(tmp);
-      x0 = nsh2460;}
+      x0 = nsh1582;}
    return sofar; }
 
-function neg_vehicle_f (onsuccess, nsh2461) { 
+function neg_vehicle_f (onsuccess, nsh1583) { 
    var sofar = new set();
    var tmp;
-   var x0 = nsh2461;
+   var x0 = nsh1583;
    if (hascellvalue("color")) {
       var tlh0 = "tlh0";
       tlh0 = cellvalue("color");
-      if (!(4 === tlh0)) {
-         if (!(5 === tlh0)) {
+      if (!(10 === tlh0)) {
+         if (!(9 === tlh0)) {
             if (!(7 === tlh0)) {
-               var arh2476 = enum_vehicle_type(x0);
-               for (var key in ds.data(arh2476)) {
-                  x0 = ds.element(ds.element(arh2476, key), 0);
-                  if (x0 === 8) {
+               var arh1598 = enum_vehicle_type(x0);
+               for (var key in ds.data(arh1598)) {
+                  x0 = ds.element(ds.element(arh1598, key), 0);
+                  if (x0 === 6) {
                      tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                     if (ds.first(tmp)) return ds.second(tmp);
+                     if (ds.first(tmp) === true) return ds.second(tmp);
                      else sofar = ds.second(tmp);}}}}}
-      x0 = nsh2461;
+      x0 = nsh1583;
       var tlh0 = "tlh0";
       tlh0 = cellvalue("color");
-      if (!(tlh0 === 4)) {
-         if (!(5 === tlh0)) {
+      if (!(tlh0 === 10)) {
+         if (!(9 === tlh0)) {
             if (!(7 === tlh0)) {
-               var arh2477 = enum_vehicle_type(x0);
-               for (var key in ds.data(arh2477)) {
-                  x0 = ds.element(ds.element(arh2477, key), 0);
-                  if (x0 === 8) {
+               var arh1599 = enum_vehicle_type(x0);
+               for (var key in ds.data(arh1599)) {
+                  x0 = ds.element(ds.element(arh1599, key), 0);
+                  if (x0 === 6) {
                      tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                     if (ds.first(tmp)) return ds.second(tmp);
+                     if (ds.first(tmp) === true) return ds.second(tmp);
                      else sofar = ds.second(tmp);}}}}}
-      x0 = nsh2461;
+      x0 = nsh1583;
       var tlh0 = "tlh0";
       tlh0 = cellvalue("color");
-      if (!(4 === tlh0)) {
-         if (!(tlh0 === 5)) {
+      if (!(10 === tlh0)) {
+         if (!(tlh0 === 9)) {
             if (!(7 === tlh0)) {
-               var arh2478 = enum_vehicle_type(x0);
-               for (var key in ds.data(arh2478)) {
-                  x0 = ds.element(ds.element(arh2478, key), 0);
-                  if (x0 === 8) {
+               var arh1600 = enum_vehicle_type(x0);
+               for (var key in ds.data(arh1600)) {
+                  x0 = ds.element(ds.element(arh1600, key), 0);
+                  if (x0 === 6) {
                      tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                     if (ds.first(tmp)) return ds.second(tmp);
+                     if (ds.first(tmp) === true) return ds.second(tmp);
                      else sofar = ds.second(tmp);}}}}}
-      x0 = nsh2461;
+      x0 = nsh1583;
       var tlh0 = "tlh0";
       tlh0 = cellvalue("color");
-      if (!(tlh0 === 4)) {
-         if (!(tlh0 === 5)) {
+      if (!(tlh0 === 10)) {
+         if (!(tlh0 === 9)) {
             if (!(7 === tlh0)) {
-               var arh2479 = enum_vehicle_type(x0);
-               for (var key in ds.data(arh2479)) {
-                  x0 = ds.element(ds.element(arh2479, key), 0);
-                  if (x0 === 8) {
+               var arh1601 = enum_vehicle_type(x0);
+               for (var key in ds.data(arh1601)) {
+                  x0 = ds.element(ds.element(arh1601, key), 0);
+                  if (x0 === 6) {
                      tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                     if (ds.first(tmp)) return ds.second(tmp);
+                     if (ds.first(tmp) === true) return ds.second(tmp);
                      else sofar = ds.second(tmp);}}}}}
-      x0 = nsh2461;
+      x0 = nsh1583;
       var tlh0 = "tlh0";
       tlh0 = cellvalue("color");
-      if (!(4 === tlh0)) {
-         if (!(5 === tlh0)) {
+      if (!(10 === tlh0)) {
+         if (!(9 === tlh0)) {
             if (!(tlh0 === 7)) {
-               var arh2480 = enum_vehicle_type(x0);
-               for (var key in ds.data(arh2480)) {
-                  x0 = ds.element(ds.element(arh2480, key), 0);
-                  if (x0 === 8) {
+               var arh1602 = enum_vehicle_type(x0);
+               for (var key in ds.data(arh1602)) {
+                  x0 = ds.element(ds.element(arh1602, key), 0);
+                  if (x0 === 6) {
                      tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                     if (ds.first(tmp)) return ds.second(tmp);
+                     if (ds.first(tmp) === true) return ds.second(tmp);
                      else sofar = ds.second(tmp);}}}}}
-      x0 = nsh2461;
+      x0 = nsh1583;
       var tlh0 = "tlh0";
       tlh0 = cellvalue("color");
-      if (!(tlh0 === 4)) {
-         if (!(5 === tlh0)) {
+      if (!(tlh0 === 10)) {
+         if (!(9 === tlh0)) {
             if (!(tlh0 === 7)) {
-               var arh2481 = enum_vehicle_type(x0);
-               for (var key in ds.data(arh2481)) {
-                  x0 = ds.element(ds.element(arh2481, key), 0);
-                  if (x0 === 8) {
+               var arh1603 = enum_vehicle_type(x0);
+               for (var key in ds.data(arh1603)) {
+                  x0 = ds.element(ds.element(arh1603, key), 0);
+                  if (x0 === 6) {
                      tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                     if (ds.first(tmp)) return ds.second(tmp);
+                     if (ds.first(tmp) === true) return ds.second(tmp);
                      else sofar = ds.second(tmp);}}}}}
-      x0 = nsh2461;
+      x0 = nsh1583;
       var tlh0 = "tlh0";
       tlh0 = cellvalue("color");
-      if (!(4 === tlh0)) {
-         if (!(tlh0 === 5)) {
+      if (!(10 === tlh0)) {
+         if (!(tlh0 === 9)) {
             if (!(tlh0 === 7)) {
-               var arh2482 = enum_vehicle_type(x0);
-               for (var key in ds.data(arh2482)) {
-                  x0 = ds.element(ds.element(arh2482, key), 0);
-                  if (x0 === 8) {
+               var arh1604 = enum_vehicle_type(x0);
+               for (var key in ds.data(arh1604)) {
+                  x0 = ds.element(ds.element(arh1604, key), 0);
+                  if (x0 === 6) {
                      tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                     if (ds.first(tmp)) return ds.second(tmp);
+                     if (ds.first(tmp) === true) return ds.second(tmp);
                      else sofar = ds.second(tmp);}}}}}
-      x0 = nsh2461;
+      x0 = nsh1583;
       var tlh0 = "tlh0";
       tlh0 = cellvalue("color");
-      if (!(tlh0 === 4)) {
-         if (!(tlh0 === 5)) {
+      if (!(tlh0 === 10)) {
+         if (!(tlh0 === 9)) {
             if (!(tlh0 === 7)) {
-               var arh2483 = enum_vehicle_type(x0);
-               for (var key in ds.data(arh2483)) {
-                  x0 = ds.element(ds.element(arh2483, key), 0);
-                  if (x0 === 8) {
+               var arh1605 = enum_vehicle_type(x0);
+               for (var key in ds.data(arh1605)) {
+                  x0 = ds.element(ds.element(arh1605, key), 0);
+                  if (x0 === 6) {
                      tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                     if (ds.first(tmp)) return ds.second(tmp);
+                     if (ds.first(tmp) === true) return ds.second(tmp);
                      else sofar = ds.second(tmp);}}}}}
-      x0 = nsh2461;
+      x0 = nsh1583;
       var tlh0 = "tlh0";
       tlh0 = cellvalue("color");
       if (!(7 === tlh0)) {
-         if (!(6 === tlh0)) {
-            var arh2484 = enum_vehicle_type(x0);
-            for (var key in ds.data(arh2484)) {
-               x0 = ds.element(ds.element(arh2484, key), 0);
-               if (x0 === 9) {
+         if (!(8 === tlh0)) {
+            var arh1606 = enum_vehicle_type(x0);
+            for (var key in ds.data(arh1606)) {
+               x0 = ds.element(ds.element(arh1606, key), 0);
+               if (x0 === 5) {
                   tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}}
-      x0 = nsh2461;
+      x0 = nsh1583;
       var tlh0 = "tlh0";
       tlh0 = cellvalue("color");
-      if (!(6 === tlh0)) {
+      if (!(8 === tlh0)) {
          if (!(tlh0 === 7)) {
-            var arh2485 = enum_vehicle_type(x0);
-            for (var key in ds.data(arh2485)) {
-               x0 = ds.element(ds.element(arh2485, key), 0);
-               if (x0 === 9) {
+            var arh1607 = enum_vehicle_type(x0);
+            for (var key in ds.data(arh1607)) {
+               x0 = ds.element(ds.element(arh1607, key), 0);
+               if (x0 === 5) {
                   tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}}
-      x0 = nsh2461;
+      x0 = nsh1583;
       var tlh0 = "tlh0";
       tlh0 = cellvalue("color");
       if (!(7 === tlh0)) {
-         if (!(tlh0 === 6)) {
-            var arh2486 = enum_vehicle_type(x0);
-            for (var key in ds.data(arh2486)) {
-               x0 = ds.element(ds.element(arh2486, key), 0);
-               if (x0 === 9) {
+         if (!(tlh0 === 8)) {
+            var arh1608 = enum_vehicle_type(x0);
+            for (var key in ds.data(arh1608)) {
+               x0 = ds.element(ds.element(arh1608, key), 0);
+               if (x0 === 5) {
                   tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}}
-      x0 = nsh2461;
+      x0 = nsh1583;
       var tlh0 = "tlh0";
       tlh0 = cellvalue("color");
       if (!(tlh0 === 7)) {
-         if (!(tlh0 === 6)) {
-            var arh2487 = enum_vehicle_type(x0);
-            for (var key in ds.data(arh2487)) {
-               x0 = ds.element(ds.element(arh2487, key), 0);
-               if (x0 === 9) {
+         if (!(tlh0 === 8)) {
+            var arh1609 = enum_vehicle_type(x0);
+            for (var key in ds.data(arh1609)) {
+               x0 = ds.element(ds.element(arh1609, key), 0);
+               if (x0 === 5) {
                   tmp = onsuccess(new expr(x0), new set("color"), sofar);
-                  if (ds.first(tmp)) return ds.second(tmp);
+                  if (ds.first(tmp) === true) return ds.second(tmp);
                   else sofar = ds.second(tmp);}}}}
-      x0 = nsh2461;
+      x0 = nsh1583;
       var tlh0 = "tlh0";
       tlh0 = cellvalue("color");
       if (!(7 === tlh0)) {
-         var arh2488 = enum_vehicle_type(x0);
-         for (var key in ds.data(arh2488)) {
-            x0 = ds.element(ds.element(arh2488, key), 0);
-            if (x0 === 10) {
+         var arh1610 = enum_vehicle_type(x0);
+         for (var key in ds.data(arh1610)) {
+            x0 = ds.element(ds.element(arh1610, key), 0);
+            if (x0 === 4) {
                tmp = onsuccess(new expr(x0), new set("color"), sofar);
-               if (ds.first(tmp)) return ds.second(tmp);
+               if (ds.first(tmp) === true) return ds.second(tmp);
                else sofar = ds.second(tmp);}}}
-      x0 = nsh2461;
+      x0 = nsh1583;
       var tlh0 = "tlh0";
       tlh0 = cellvalue("color");
       if (!(tlh0 === 7)) {
-         var arh2489 = enum_vehicle_type(x0);
-         for (var key in ds.data(arh2489)) {
-            x0 = ds.element(ds.element(arh2489, key), 0);
-            if (x0 === 10) {
+         var arh1611 = enum_vehicle_type(x0);
+         for (var key in ds.data(arh1611)) {
+            x0 = ds.element(ds.element(arh1611, key), 0);
+            if (x0 === 4) {
                tmp = onsuccess(new expr(x0), new set("color"), sofar);
-               if (ds.first(tmp)) return ds.second(tmp);
+               if (ds.first(tmp) === true) return ds.second(tmp);
                else sofar = ds.second(tmp);}}}
-      x0 = nsh2461;
+      x0 = nsh1583;
       if (!(cellvalue("color") === 7)) {
-         var arh2490 = enum_vehicle_type(x0);
-         for (var key in ds.data(arh2490)) {
-            x0 = ds.element(ds.element(arh2490, key), 0);
-            if (x0 === 10) {
+         var arh1612 = enum_vehicle_type(x0);
+         for (var key in ds.data(arh1612)) {
+            x0 = ds.element(ds.element(arh1612, key), 0);
+            if (x0 === 4) {
                tmp = onsuccess(new expr(x0), new set("color"), sofar);
-               if (ds.first(tmp)) return ds.second(tmp);
+               if (ds.first(tmp) === true) return ds.second(tmp);
                else sofar = ds.second(tmp);}}
-         x0 = nsh2461;}}
-   var arh2491 = enum_vehicle_type(x0);
-   for (var key in ds.data(arh2491)) {
-      x0 = ds.element(ds.element(arh2491, key), 0);
+         x0 = nsh1583;}}
+   var arh1613 = enum_vehicle_type(x0);
+   for (var key in ds.data(arh1613)) {
+      x0 = ds.element(ds.element(arh1613, key), 0);
       if (!(x0 === x0)) {
          tmp = onsuccess(new expr(x0), new set(), sofar);
-         if (ds.first(tmp)) return ds.second(tmp);
+         if (ds.first(tmp) === true) return ds.second(tmp);
          else sofar = ds.second(tmp);}}
-   x0 = nsh2461;
+   x0 = nsh1583;
    return sofar; }
 
-function posx_color (x0) { return pos_color(function (newval, support, sofar) { return new pair(true, newval); }, x0); }
+function posx_color (x0) { return pos_color(function (newval, support, sofar) { 
 
-function poss_color (x0) { return pos_color(function (newval, support, sofar) { return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+return new pair(true, newval); }, x0); }
 
-function possuppx_color (x0) { return pos_color(function (newval, support, sofar) { return new pair(true, new pair(newval, support)); }, x0); }
+function poss_color (x0) { return pos_color(function (newval, support, sofar) { 
 
-function possupps_color (x0) { return pos_color(function (newval, support, sofar) { return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
+return new pair(false, ds.adjoin(sofar, newval, equalp)); }, x0); }
+
+function possuppx_color (x0) { return pos_color(function (newval, support, sofar) { 
+
+return new pair(true, new pair(newval, support)); }, x0); }
+
+function possupps_color (x0) { return pos_color(function (newval, support, sofar) { 
+
+return new pair(false, ds.adjoin(sofar, new pair(newval, support), equalp)); }, x0); }
 
 function pos_color (onsuccess, x0) { 
    if (varp(x0)) {
@@ -748,33 +794,33 @@ function pos_color (onsuccess, x0) {
       if (!(pos_color_b === undefined)) return pos_color_b(onsuccess, x0);
       else return undefined;} }
 
-function pos_color_b (onsuccess, nsh2491) { 
+function pos_color_b (onsuccess, nsh1613) { 
    var sofar = new set();
    var tmp;
-   var x0 = nsh2491;
+   var x0 = nsh1613;
    if (hascellvalue("vehicle")) {
       if (x0 === 7) {
-         if (cellvalue("vehicle") === 10) {
+         if (cellvalue("vehicle") === 4) {
             tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-            if (ds.first(tmp)) return ds.second(tmp);
+            if (ds.first(tmp) === true) return ds.second(tmp);
             else sofar = ds.second(tmp);}
-         x0 = nsh2491;}}
+         x0 = nsh1613;}}
    return sofar; }
 
-function pos_color_f (onsuccess, nsh2492) { 
+function pos_color_f (onsuccess, nsh1614) { 
    var sofar = new set();
    var tmp;
-   var x0 = nsh2492;
+   var x0 = nsh1614;
    if (hascellvalue("vehicle")) {
-      if (cellvalue("vehicle") === 10) {
-         var arh2492 = enum_color_type(x0);
-         for (var key in ds.data(arh2492)) {
-            x0 = ds.element(ds.element(arh2492, key), 0);
+      if (cellvalue("vehicle") === 4) {
+         var arh1614 = enum_color_type(x0);
+         for (var key in ds.data(arh1614)) {
+            x0 = ds.element(ds.element(arh1614, key), 0);
             if (x0 === 7) {
                tmp = onsuccess(new expr(x0), new set("vehicle"), sofar);
-               if (ds.first(tmp)) return ds.second(tmp);
+               if (ds.first(tmp) === true) return ds.second(tmp);
                else sofar = ds.second(tmp);}}
-         x0 = nsh2492;}}
+         x0 = nsh1614;}}
    return sofar; }
 
 </script>
@@ -809,24 +855,27 @@ Plato makes creating and maintaining complex web forms simple.  A web form desig
 
 <p>The following form was generated by Plato.  It allows users to select a Toyota Vehicle and color; however, not all combinations are legal.  Plato fields tell users which options are legal given the values for all other fields.  In addition, Plato allows users to select whichever combination of values they want, but tells them when their choices are illegal.  (Optionally, Plato can force users to select only legal combinations.)
 
-<div class="autoform"><center>
-<form><table>
+<div class="autoform">
+<span id="status"></span><center>
+<form method="post" action="/plato/commitform?" onsubmit="return submitprep()">
+<table>
 <tr><td class="description"><span class="description">Toyota Vehicle</span></td>
 <td class="required"><span class="required"></span></td>
 <td class="data"><div id="vehiclebox" class="databox" onMouseOver="selector_mouseover('vehicle')" onMouseOut="selector_mouseout('vehicle')" >
 <select name='vehicle' onChange="selector_change('vehicle')" onFocus="selector_focus('vehicle')"><option value='undefined'></option>
-<option value='10'>Camry</option>
-<option value='9'>Corolla</option>
-<option value='8'>Tundra</option>
+<option value='4'>Camry</option>
+<option value='5'>Corolla</option>
+<option value='6'>Tundra</option>
+
 </select></div></td></tr>
 <tr><td class="description"><span class="description">Color</span></td>
 <td class="required"><span class="required"></span></td>
 <td class="data"><div id="colorbox" class="databox" onMouseOver="selector_mouseover('color')" onMouseOut="selector_mouseout('color')" >
 <select name='color' onChange="selector_change('color')" onFocus="selector_focus('color')"><option value='undefined'></option>
 <option value='7'>Super White</option>
-<option value='6'>Magnetic Gray Metallic</option>
-<option value='5'>Black</option>
-<option value='4'>Nautical Blue Metallic</option>
+<option value='8'>Magnetic Gray Metallic</option>
+<option value='9'>Black</option>
+<option value='10'>Nautical Blue Metallic</option>
 </select></div></td></tr>
 </table>
 </form></center></div>
