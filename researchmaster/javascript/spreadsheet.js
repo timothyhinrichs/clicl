@@ -14,6 +14,7 @@
 var allowconflicts = false;
 var debug = true;
 var casesensitive = true;
+var useshortnames = true;
 var valuecount = 0;
 var fancyoptions = (BrowserDetect.browser === 'Firefox' && BrowserDetect.OS === 'Mac');
 
@@ -283,7 +284,8 @@ function remWidgetSlot (cell, obj) {
 	
 function formvalue (value) { 
 	if (value === 'undefined') return undefined;
-	return Number(value); }
+	if (useshortnames) return Number(value);
+	else return value; }
 
 function prettyname (value) { 
 	if (value === 'undefined') return prettynames[undefined];
@@ -296,7 +298,8 @@ function capitalize (str) {
 function uglyname (value) {
 	if (!casesensitive) value = value.toLowerCase();
 	if (!(value in uglynames)) { 
-		v = create_symbol(value);
+		if (useshortnames) v = create_symbol(value);
+		else v = value;
 		prettynames[v] = value;
 		uglynames[value] = v; }
 	else v = uglynames[value];

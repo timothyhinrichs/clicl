@@ -1,0 +1,120 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; conference
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    (conference.instance aaai)
+    (prettyname          aaai "AAAI Conference on Artificial Intelligence")
+    (shortname           aaai "AAAI")
+
+    (conference.instance acmsigcomm)
+    (prettyname          acmsigcomm "ACM Conference on Applications, Technologies, Architectures, and Protocols for Computer Communications")
+
+    (conference.instance acsac)
+    (prettyname          acsac "Annual Computer Security Applications Conference")
+    (shortname           acsac "ACSAC")
+
+    (conference.instance aiia)
+    (prettyname          aiia "Congress of Italian Association for Artificial Intelligence")
+
+    (conference.instance cade)
+    (prettyname          cade "Conference on Automated Deduction")
+    (shortname           cade "CADE")
+
+    (conference.instance ccs)
+    (prettyname          ccs "ACM Conference on Computer and Communications Security")
+    (shortname           ccs "CCS")
+
+    (conference.instance conference.34795723990)
+    (prettyname          conference.34795723990 "International Conference on Data Engineering")
+
+    (conference.instance conference.34894100565)
+    (prettyname          conference.34894100565 "International Conference on Economic, Technical and Organisational aspects of Product Configuration Systems")
+
+    (conference.instance conference.34953717465)
+    (prettyname          conference.34953717465 "Theory and Applications of Satisfiability Testing")
+
+    (conference.instance conference.35159437294)
+    (prettyname          conference.35159437294 "Computer Human Interaction")
+    (shortname           conference.35159437294 "CHI")
+
+    (conference.instance conference.35170675058)
+    (prettyname          conference.35170675058 "International ICST Conference on Security and Privacy in Communication Networks")
+    (shortname           conference.35170675058 "SecureComm")
+
+    (conference.instance constraints)
+    (prettyname          constraints "International Conference on Principles and Practice of Constraint Programming")
+    (shortname           constraints "CP")
+
+    (conference.instance designautomationconference)
+    (prettyname          designautomationconference "Design Automation Conference")
+
+    (conference.instance dlt)
+    (prettyname          dlt "International Conference on Developments in Language Theory")
+
+    (conference.instance eurosys)
+    (prettyname          eurosys "European Conference on Computer Systems")
+
+    (conference.instance flairs)
+    (prettyname          flairs "FLAIRS Conference")
+
+    (conference.instance hcss)
+    (prettyname          hcss "High Confidence Software and Systems Conference")
+
+    (conference.instance hpcc)
+    (prettyname          hpcc "IEEE International Conference on High Performance Computing and Communications")
+
+    (conference.instance iberamia)
+    (prettyname          iberamia "Ibero-American Conference on Artificial Intelligence")
+
+    (conference.instance iclp)
+    (prettyname          iclp "International Conference on Logic Programming")
+    (shortname           iclp "ICLP")
+
+    (conference.instance icwe)
+    (prettyname          icwe "International Conference on Web Engineering")
+
+    (conference.instance ijcai)
+    (prettyname          ijcai "International Joint Conference on Artificial Intelligence")
+    (shortname           ijcai "IJCAI")
+
+    (conference.instance ijcar)
+    (prettyname          ijcar "International Joint Conference on Automated Reasoning")
+    (shortname           ijcar "IJCAR")
+
+    (conference.instance kimas)
+    (prettyname          kimas "Integration of Knowledge Intensive Multi-Agent Systems")
+
+    (conference.instance kr)
+    (prettyname          kr "International Conference on Principles of Knowledge Representation and Reasoning")
+    (shortname           kr "KR")
+
+    (conference.instance memocode)
+    (prettyname          memocode "ACM-IEEE International Conference on Formal Methods and Models for Codesign")
+
+    (conference.instance oopsla)
+    (prettyname          oopsla "International Conference on Object Oriented Programming, Systems, Languages and Applications")
+    (shortname           oopsla "OOPSLA")
+
+    (conference.instance pdcs)
+    (prettyname          pdcs "International Conference on Parallel and Distributed Computing Systems")
+
+    (conference.instance pricai)
+    (prettyname          pricai "Pacific Rim International Conference on Artificial Intelligence")
+
+    (conference.instance supercomputing)
+    (prettyname          supercomputing "International Conference for High Performance Computing, Networking, Storage, and Analysis")
+
+    (conference.instance tacas)
+    (prettyname          tacas "International Conference on Tools and Algorithms for the Construction and Analysis of Systems")
+
+    (conference.instance vldb)
+    (prettyname          vldb "Very Large Databases Conference")
+    (shortname           vldb "VLDB")
+
+    (conference.instance www)
+    (prettyname          www "International World Wide Web Conference")
+    (shortname           www "WWW")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

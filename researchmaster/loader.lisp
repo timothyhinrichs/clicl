@@ -62,7 +62,7 @@
 
 (loaddata man *manager*)
 (mapdir #'(lambda (x) (loaddata x *repository*)) 
-	(namestring (loadfn "*" :dir '("state" "dumps" "ver6"))))
+	(namestring (loadfn "*" :dir '("state" "dumps" "ver7"))))
 (loaddata rul *library*)
 ;(loaddata lib *myviewserver*)
 (loadlog *mylog* *repository*)

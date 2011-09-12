@@ -1,5 +1,7 @@
 (in-package :common-lisp-user)
 
+; NOTE: server-side Lisp generation is likely broken since I turned off shortnames via making them equal to their prettynames.
+
 (defun starttcp1 (port)
   (process-run-function "tcp-handlers" #'tcp-handlers #'http-handler port))
 
@@ -26,6 +28,23 @@
 
 (defvar *tmp*)
 (defparameter *webformlog* nil)
+; note: ought to make this a per-form option.  Just need to add it as an option and replace the global var with the form far.
+;   On second thought, maybe not.  It's an implementation detail, not a behavioral detail.
+(defparameter *ws-use-value-shortnames* nil)  
+
+
+; TO INSTALL a new built-in
+; Options
+; 1) Extend basic language
+;    *ws-builtins*: add new parameter.
+;    tojavascript: translate Lisp version of built-in into Javascript 
+;       (Also, add implementations of the built-ins to the Lisp server stuff.  Can't remember where to do that right now.)
+; 2) Extend PHP function implementation
+;     add function definition to PHP implementation.  Search for *corejs* to find appropriate file.
+;         (Somewhat dangerous b/c may need to upgrade PHP file to fix bugs and all changes will be lost. 
+;     add function name with appropriate case to *ws-php-builtin-names* and recompute *ws-php-builtin-prefixed-names*
+; 3) Unimplemented idea: add a macro replacement step for one-to-one rewritings.  So if we want to include ===, the easiest approach
+;      is to add a macro that replaces === with =.
 
 #| TODO
 Output GUI
@@ -568,14 +587,15 @@ function addWidget (obj) {
 (defstruct htmlform cssincludes jsincludes javascript widgets errors options onload submitprep action name hidden server)
 (defstruct htmlwidget description required html)
 
-(defvar *extracss* '("/docserver/infoserver/examples/researchmaster/style/main.css"
-		     "/docserver/infoserver/examples/researchmaster/style/jack.css"))
-(defvar *extrajs* nil)
-(defvar *corecss* '("/docserver/infoserver/examples/researchmaster/style/websheet.css"))
-(defvar *corejs* '("/docserver/infoserver/examples/researchmaster/javascript/browser.js"
-		   "/docserver/infoserver/examples/researchmaster/javascript/util.js"
-		   "/docserver/infoserver/examples/researchmaster/javascript/spreadsheet.js"
-		   "/docserver/infoserver/examples/researchmaster/javascript/ds.js"))
+(defparameter *extracss* '("/docserver/infoserver/examples/researchmaster/style/main.css"
+			   "/docserver/infoserver/examples/researchmaster/style/jack.css"))
+(defparameter *extrajs* nil)
+(defparameter *corecss* '("/docserver/infoserver/examples/researchmaster/style/websheet.css"))
+(defparameter *corejs* '("/docserver/infoserver/examples/researchmaster/javascript/browser.js"
+			 "/docserver/infoserver/examples/researchmaster/javascript/util.js"
+			 "/docserver/infoserver/examples/researchmaster/javascript/spreadsheet.js"
+			 "/docserver/infoserver/examples/researchmaster/javascript/ds.js"
+			 "/docserver/infoserver/examples/researchmaster/javascript/phpjs.tlh.namespaced.min.js"))  ; http://phpjs.org/
 
 
 (defun output-htmlform (s html)
@@ -586,11 +606,12 @@ function addWidget (obj) {
   (mapc #'(lambda (x) (output-htmlform-style x s)) *extracss*)
   (mapc #'(lambda (x) (output-htmlform-style x s)) (htmlform-cssincludes html))
   (mapc #'(lambda (x) (output-htmlform-js x s)) (htmlform-jsincludes html))
-  (format s "<script type=\"text/javascript\">~%")
-  (format s "~A" (htmlform-javascript html))
-  (format s "~&</script>~%")
+  (when (htmlform-javascript html)
+    (format s "<script type=\"text/javascript\">~%")
+    (format s "~A" (htmlform-javascript html))
+    (format s "~&</script>~%"))
   (finish-head s)
-  (format-body s *bgcolor* "init()") (crlf s)
+  (if (htmlform-onload html) (format-body s *bgcolor* (htmlform-onload html)) (format-body s *bgcolor*)) (crlf s)
   (output-header s)
   (cond ((htmlform-errors html) 
 	 (dolist (msg (htmlform-errors html))
@@ -781,10 +802,37 @@ function addWidget (obj) {
 |#
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;; Load autoform theory into internal data structure ;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;; Load plato theory into internal data structure ;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defparameter *ws-builtins* 
+  (list    
+   (make-parameter :symbol '= :arity 2 :type 'relation)
+   (make-parameter :symbol 'lt :arity 2 :type 'relation)
+   (make-parameter :symbol 'gt :arity 2 :type 'relation)
+   (make-parameter :symbol 'lte :arity 2 :type 'relation)
+   (make-parameter :symbol 'gte :arity 2 :type 'relation)
+   (make-parameter :symbol '+ :arity 2 :type 'function)
+   (make-parameter :symbol '- :arity 2 :type 'function)
+   (make-parameter :symbol '* :arity 2 :type 'function)
+   (make-parameter :symbol '/ :arity 2 :type 'function)
+   (make-parameter :symbol '% :arity 2 :type 'function)
+   (make-parameter :symbol 'in :arity 2 :type 'relation)
+   (make-parameter :symbol 'tonum :arity 1 :type 'function)
+   (make-parameter :symbol 'tostr :arity 1 :type 'function)
+   (make-parameter :symbol 'tobool :arity 1 :type 'function)
+   ))
+(defun ws-builtins () (mapcar #'(lambda (x) (make-pred :parameter x :kind :builtin)) *ws-builtins*))
+(defparameter *ws-php-namespace* "PHP"
+  "The prefix that is added to PHP functions in our implementation of those functions.")
+; to recreate list....
+;egrep -o ',([0-9a-zA-Z])*:function' /Users/thinrich/Research/code/clicl/researchmaster/javascript/phpjs.tlh.namespaced.min.js | sed -e 's/^,\([0-9a-zA-Z]*\):function$/"\1"/' | tr '\n' ' '
+(defparameter *ws-php-builtin-names* '("abs" "acos" "acosh" "addcslashes" "addslashes" "arsort" "asin" "asinh" "asort" "atan" "atan2" "atanh" "bin2hex" "bindec" "ceil" "checkdate" "chop" "chr" "compact" "cos" "cosh" "count" "crc32" "date" "D" "j" "l" "N" "S" "w" "z" "W" "F" "m" "M" "n" "t" "L" "o" "Y" "y" "a" "A" "B" "g" "G" "h" "H" "i" "s" "u" "e" "I" "O" "P" "T" "Z" "c" "r" "U" "decbin" "dechex" "decoct" "deg2rad" "doubleval" "echo" "end" "exp" "explode" "expm1" "floatval" "floor" "fmod" "getdate" "getenv" "getrandmax" "gettype" "hexdec" "htmlentities" "htmlspecialchars" "hypot" "implode" "intval" "ip2long" "isset" "join" "krsort" "ksort" "lcfirst" "levenshtein" "localeconv" "log" "log10" "log1p" "long2ip" "ltrim" "max" "microtime" "min" "mktime" "natcasesort" "natsort" "nl2br" "octdec" "ord" "pi" "pow" "printf" "quotemeta" "rad2deg" "rand" "range" "rawurldecode" "rawurlencode" "reset" "round" "rsort" "rtrim" "serialize" "setcookie" "setlocale" "setrawcookie" "settype" "sha1" "shuffle" "sin" "sinh" "sizeof" "sort" "soundex" "split" "sprintf" "sqrt" "strcasecmp" "strchr" "strcmp" "strcspn" "stripos" "stripslashes" "stristr" "strlen" "strnatcasecmp" "strnatcmp" "strncasecmp" "strncmp" "strpbrk" "strpos" "strrchr" "strrev" "strripos" "strrpos" "strspn" "strstr" "strtok" "strtolower" "strtotime" "strtoupper" "strtr" "strval" "substr" "tan" "tanh" "time" "trim" "uasort" "ucfirst" "ucwords" "uksort" "unserialize" "urldecode" "urlencode" "usort" "vprintf" "vsprintf" "wordwrap"))
+; DANGER: make sure this parameter is created *after* *ws-php-builtin-names* is created
+(defparameter *ws-php-builtin-prefixed-names* 
+  (mapcar #'(lambda (x) (tostring *ws-php-namespace* "." x)) *ws-php-builtin-names*)
+  "The list of all php builtins with the namespace prefixed")
 
 (defstruct dictionary (index (make-hash-table :test #'equal)))
 (defun dictionary-lookup (n dict) 
@@ -810,8 +858,10 @@ function addWidget (obj) {
 			      (widget-unique (pred-display pred)) nil))
 (defun pred-univ (pred) (parameter-univ (pred-parameter pred)))
 
-(defvar *infinitetypes* '(string number))
+(defvar *infinitetypes* '(string number regexp))
 (defvar *builtintypes* (append *infinitetypes* '(boolean)))
+
+(define-condition unknown-symbol (error) ((comment :initarg :comment :accessor comment)))
 
 ; some of what follows would be simpler if we didn't have data replicated inside of widgets.
 ;   but to change that, we need to edit the HTML/Javascript construction code.  For now, we leave it ugly.
@@ -827,7 +877,7 @@ function addWidget (obj) {
   (setq *tmp3* th)
   (setq th (define-prologtheory (make-instance 'prologtheory) "" (contents th)))
   (let (w types preds constraints definitions widgets tmp univ options idb ts
-	  wnames valuecomp booluniv name)
+	  wnames valuecomp booluniv name vocab)
     (setq w (make-webform :name "myform"))
 
     ; divide theory
@@ -895,8 +945,7 @@ function addWidget (obj) {
     (setq preds nil)
     (push (make-pred :parameter (make-parameter :symbol (mak-univ) :arity 1 :type 'relation :univ univ)
 		     :kind :extensional) preds)
-    (push (make-pred :parameter (make-parameter :symbol '= :arity 2 :type 'relation)
-		     :kind :builtin) preds)
+    (setq preds (nconc (ws-builtins) preds))
 
     ; queries, widgets, and types into predicates
     (dolist (p widgets)
@@ -914,7 +963,7 @@ function addWidget (obj) {
 
     ; All undeclared predicates occurring in Constraints are defined in Definitions, 
     ;   meaning that they are either intensional or extensional.  This means 
-    ;   NO HELPER PREDICATES for the constraints.
+    ;   NO HELPER PREDICATES for the constraints.  All functions are builtin.
 
     ; IDBs are those occurring in the head of datalog rules.  EDB predicates are all those that remain.
     (setq idb (mapcarnot #'(lambda (x) (if (datap x) nil (relation (head x)))) 
@@ -929,6 +978,12 @@ function addWidget (obj) {
 	  (push (make-pred :parameter p :kind :intensional) preds)
 	  (push (make-pred :parameter p :kind :extensional) preds)))
     (setf (webform-preds w) (nreverse preds))
+
+    ; check that functions/relations that appear in constraints have been extracted
+    (setq vocab (mapcar #'parameter-symbol (delete-if #'isobject (get-vocabulary (maksand constraints)))))
+    (setq vocab (set-difference vocab (webform-preds w) 
+				:test #'(lambda (x y) (eq x (parameter-symbol (pred-parameter y))))))
+    (when vocab (error 'unknown-symbol :comment vocab))
     w))
 
 (defun ws-fixwidget (w univ types valuecomp)
@@ -1001,7 +1056,9 @@ function addWidget (obj) {
   "(ADDSHORTNAMES STRUCT) adds shortnames for all values in the universe."
   (let ((i 0))
     (dolist (v (webform-univ struct) struct)
-      (setf (value-shortname v)  i)
+      (if *ws-use-value-shortnames* 
+	  (setf (value-shortname v)  i)
+	  (setf (value-shortname v) (value-prettyname v)))
       (setq i (1+ i)))))
 
 (defun bool2monad (p widgets) 
@@ -1029,25 +1086,32 @@ function addWidget (obj) {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-condition inconsistent-constraints (error) ((comment :initarg :comment)))
-(define-condition cyclic-constraints (error) ((comment :initarg :comment)))
-(define-condition timeout (error) ((comment :initarg :comment)))
+(define-condition inconsistent-constraints (error) ((comment :initarg :comment :accessor comment)))
+(define-condition cyclic-constraints (error) ((comment :initarg :comment :accessor comment)))
+(define-condition timeout (error) ((comment :initarg :comment :accessor comment)))
 
 (defun make-stringbuffer () (make-array 0 :element-type 'character :adjustable t :fill-pointer 0))
-
+(defvar *tmp4*)
 (defun compile-websheet (th)
   "(COMPILE-WEBSHEET TH) given a declarative description of a web form, return an HTMLFORM."
   (let (struct code buf result)
     (setq result (make-htmlform))
     (when *webformlog* (logmessage (contents th) *webformlog*))
-    (setq struct (load-formstructure th))
+    (handler-case (setq struct (load-formstructure th))
+      (unknown-symbol (msg) 
+	(setf (htmlform-errors result) (list (format nil "Unknown symbol(s): ~A" (comment msg))))
+	(return-from compile-websheet result)))
     (setq *tmp* struct)
 
     ; compile websheet to code
-    (handler-case (setq code (construct-websheet-intcode-safe struct))
-      (inconsistent-constraints () (setf (htmlform-errors result) (list "Inconsistent constraints")))
-      (timeout () (setf (htmlform-errors result) (list "Permitted resources exhausted")))
-      (cyclic-constraints () (setf (htmlform-errors result) (list "Cyclic constraints"))))
+    (handler-case (setq code (construct-websheet-intcode struct))  ; call construct-websheet-intcode-safe, except then exception handling odd
+      (inconsistent-constraints () 
+	(setf (htmlform-errors result) (list "Inconsistent constraints")) (return-from compile-websheet result))
+      (timeout () 
+	(setf (htmlform-errors result) (list "Permitted resources exhausted")) (return-from compile-websheet result))
+      (cyclic-constraints () 
+	(setf (htmlform-errors result) (list "Cyclic constraints")) (return-from compile-websheet result)))
+    (setq *tmp4* code)
 
     ; translate code to client-side and server-side code
     (setq buf (make-stringbuffer))
@@ -1303,7 +1367,7 @@ function addWidget (obj) {
 (defparameter *prefixeq* 'tlheq)
 (defstruct datalog extensional intensional components completepreds)
 (defvar *tmp2*)
-(defstruct intcode tp support)
+(defstruct intcode tp support objs)
 
 ; wrap complex code with run-time
 (defun construct-websheet-intcode-safe (struct)
@@ -1314,8 +1378,17 @@ function addWidget (obj) {
 
 (defun construct-websheet-intcode (webform)
   (setq *tmp* webform)
-  (let (datalog code)
+  (let (datalog code falist)
     (setq datalog (construct-websheet-datalog webform))
+    ; prepend built-in function names to simulate namespaces
+    (setq falist (mapcar #'(lambda (x y) (cons (tosymbol x) (tosymbol y))) *ws-php-builtin-names* *ws-php-builtin-prefixed-names*))
+    (setf (datalog-extensional datalog) (mapcar #'(lambda (x) (subfun falist x)) (datalog-extensional datalog)))
+    (setf (datalog-intensional datalog) (mapcar #'(lambda (x) (subfun falist x)) (datalog-intensional datalog)))
+    ; change objects to their short-values (the values the intermediate code operates on directly for =)
+    (setq falist (mapcar #'(lambda (x) (cons (value-symbol x) (value-shortname x))) (webform-univ webform)))
+    (setf (datalog-extensional datalog) (mapcar #'(lambda (x) (subobj falist x)) (datalog-extensional datalog)))
+    (setf (datalog-intensional datalog) (mapcar #'(lambda (x) (subobj falist x)) (datalog-intensional datalog)))
+    ; compile datalog to intermediate code
     (setq *tmp2* datalog)
     (setq code (make-intcode))
     (setf (intcode-tp code) (compile-ext (append (datalog-extensional datalog) (datalog-intensional datalog))
@@ -1328,8 +1401,14 @@ function addWidget (obj) {
   (intcode-to-lisp (intcode-tp code) s))
 
 (defun intcode-to-client (code s)
+  (intcode-to-javascript (intcode-to-client-extra code) s)
   (intcode-to-javascript (intcode-support code) s)
   (intcode-to-javascript (intcode-tp code) s))
+
+(defun intcode-to-client-extra (code)
+  (declare (ignore code))
+  (list 
+   (mak-vardecl* `((,*ws-php-namespace* ,(mak-class "PHP_JS"))))))
 
 ; The following two functions expect a list of intcode statements
 (defun intcode-to-lisp (code s)
@@ -1349,8 +1428,11 @@ function addWidget (obj) {
 
 (defun construct-websheet-datalog (struct)
   "(CONSTRUCT-WEBSHEET-DATALOG STRUCT) computes datalog implementing constraints for
-   webform STRUCT."
-  (let (constraints definitions lpreds cpreds comp dpreds qpreds wpreds mpreds)
+   webform STRUCT.  Returns a list of (<=> (IMPL 'P) (or (and ...) ...)), one for
+   each widget and query predicate. The incoming constraints are allowed to include built-in 
+   functions; the resulting datalog flattens those functions, e.g. instead of the atom 
+   p(f(x,y),z), we get p(w,z) ^ w=f(x,y)."
+  (let (constraints lpreds cpreds comp dpreds qpreds wpreds mpreds)
     (setq constraints (add-uva (webform-constraints struct) struct))
     (multiple-value-setq (wpreds lpreds) 
       (split #'(lambda (x) (eq (pred-kind x) :widget)) (webform-preds struct)))
@@ -1381,10 +1463,8 @@ function addWidget (obj) {
 
     (setq cpreds (mapcar #'parameter-symbol cpreds))
     (setq comp (maptree #'parameter-symbol comp))
-    (setq constraints (ws-sym2short constraints struct))
-    (setq definitions (ws-sym2short (webform-definitions struct) struct))
 
-    (make-datalog :extensional (nconc (materialize definitions dpreds) 
+    (make-datalog :extensional (nconc (materialize (webform-definitions struct) dpreds) 
 				      (create-type-data (webform-preds struct)))
 		  :intensional constraints
 		  :components comp
@@ -1440,9 +1520,11 @@ function addWidget (obj) {
     (assert (eq (get-theory-type th) 'quantifier-free)
 	    nil "FHL-WEBFORM-NO-EQ requires a quantifier-free theory")
 
-    ; compute all prime clausal consequences using resolution and perform some simplification
-    (setq th (contents th))
+    ; compute all prime clausal consequences using resolution and perform some simplification.
+    ; flattening functions so that all built-in functions appear inside = (a built-in relation).
+    (setq th (mapcar #'(lambda (x) (flatten-functions (nnf x) :fullflat t)) (contents th)))
     (setq origsize (length th))
+    ;(print th)
     (setq th (funcall *resolution-closure* (clauses (maksand th)) *limit* cpreds))
     (when (member '(or) th :test #'equal)
       (return-from fhlc-webform-multi '((or))))
@@ -1450,6 +1532,7 @@ function addWidget (obj) {
     (when (member 'false th)
       (return-from fhlc-webform-multi '((or))))
     (setq th (remove-if #'(lambda (x) (eq x 'true)) th))
+    ;(print th)
     (setq ressize (length th))
     (when (> ressize 0)
       (format t "Orig: ~A, Resolution closure: ~A, Axiomatization percentage: ~D~%" 
@@ -1545,7 +1628,7 @@ function addWidget (obj) {
     (nconc n th)))
 
 (defun ws-sym2short (th webform)
-  (nsublis (mapcar #'(lambda (x) (cons (value-symbol x) (tosymbol (value-shortname x)))) 
+  (nsublis (mapcar #'(lambda (x) (cons (value-symbol x) (value-shortname x))) 
 		   (webform-univ webform))
 	   (contents th)
 	   :test #'eq))
@@ -1553,7 +1636,7 @@ function addWidget (obj) {
 (defun create-type-data (preds)
   (mapcan #'(lambda (p) (if (listp (pred-univ p))
 			    (mapcar #'(lambda (val) 
-					(list (pred-name p) (tosymbol (value-shortname val))))
+					(list (pred-name p) (value-symbol val)))
 				    (pred-univ p))
 			    nil))
 	  preds))
@@ -1639,7 +1722,7 @@ function addWidget (obj) {
     (list globalvars comp pretty ugly init extern submitprep)))
 
 (defun construct-websheet-code-externalinit () (mak-function 'external_init nil nil))
-(defun construct-websheet-code-globals () (mak-vardecl* '(univ)))
+(defun construct-websheet-code-globals () (mak-block (mak-vardecl* `(univ (useshortnames ,*ws-use-value-shortnames*)))))
 (defun construct-websheet-code-init2 (struct negdefs posdefs comp)
   (let (hasneg haspos mycomp body tmp)
     (dolist (o (webform-options struct))
@@ -1751,19 +1834,14 @@ function addWidget (obj) {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Datalog to Lisp-like code Compiler ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun compile-ext (th &optional (preds nil))
-  "(COMPILE-EXT TH PREDS) takes a datalog theory TH and a set of PRED objects, defined below
-   if not supplied. Assumes each IDB predicate is defined in terms of EDBs and widgets.
+(defun compile-ext (th preds)
+  "(COMPILE-EXT TH PREDS) takes a datalog theory TH and a set of webform PRED objects. 
+   Assumes each IDB predicate is defined in terms of EDBs and widgets.
    Outputs code that implements all signed IDB predicates."
   (let (data code extpreds typehash)
     ; force theory to satisfy compiler's assumptions
     (setq th (mapcar #'strip-impl (mapcar #'force-nice-vars (contents th))))
-    ; grab preds
-    (unless preds 
-      (setq preds (mapcar #'(lambda (x) (make-pred :parameter x)) 
-			  (preds (maksand th)))))
-    (setq extpreds (remove-if-not #'(lambda (x) 
-				      (eq (pred-kind x) :extensional)) preds))
+    (setq extpreds (remove-if-not #'(lambda (x) (eq (pred-kind x) :extensional)) preds))
     ; create hash-table for widget types (used in conjunct ordering)
     ;   infinite-typed cells are left out (and are therefore assigned univ)
     (setq typehash (make-hash-table))
@@ -1881,7 +1959,7 @@ function addWidget (obj) {
 (defun compile-ext-p-adorn (p bound preds typehash)
   "(COMPILE-EXT-P-ADORN P BOUND PREDS TYPEHASH) takes a sentence P of the form 
    (<=> [not ](p ?x1 ... ?xn) (exists blah (or (and blah) blah blah))), where each conjunction is
-   a list of literals and a list of variables bound in the head.
+   a list of literals, and a list of variables bound in the head.
    Returns a function that finds a single tuple of variables true of p.  BOUND is the set of
    variables that are assumed to be bound on entry."
   (let (pred fname vars newvars disjs builtins)
@@ -2091,10 +2169,6 @@ function addWidget (obj) {
 (defun construct-test (lit) 
   (cond ((negative-literalp lit) (mak-neg (construct-test (second lit))))
 	(t (cons (mak-check (car lit)) (cdr lit)))))
-(defun construct-builtin-test (lit)
-  (cond ((negative-literalp lit) (mak-neg (construct-builtin-test (second lit))))
-	((and (listp lit) (eq (car lit) '=)) (cons 'eq (cdr lit)))
-	(t lit)))
 (defun construct-widgettest (lit)
   (cond ((negative-literalp lit) (mak-neg (construct-widgettest (second lit))))
 	(t (if (and (listp lit) (cdr lit))   ; cell with an argument
@@ -2109,6 +2183,23 @@ function addWidget (obj) {
 					  (mak-quote (relation atom))))
 	     body))
 
+; because all built-in functions appear in an equality statement, e.g. (= ?x (* ?z ?w)), they are always compiled into
+;    the Lisp atom (eq ?x (* ?z ?w)).  This works as long as all of the functions are built-ins.  (If we wanted to allow
+;    the user to define his own functions, we would want to be able to use those functions to generate as well as validate,
+;    which we can't do under this scheme.)
+
+(defun construct-builtin-test (lit)
+  (cond ((negative-literalp lit) (mak-neg (construct-builtin-test (second lit))))
+	((and (listp lit) (eq (car lit) '=)) (cons 'eq (cdr lit)))
+	(t lit)))
+#|
+(defmethod construct-builtin-test-atom (atom (type (eql '=))) (cons 'eq (cdr atom)))
+(defmethod construct-builtin-test-atom (atom (type (eql '+r))) (mak-eq (cons '+ (butlast atom)) (first (last atom))))
+(defmethod construct-builtin-test-atom (atom (type (eql '-r))) (mak-eq (cons '- (butlast atom)) (first (last atom))))
+(defmethod construct-builtin-test-atom (atom (type (eql '*r))) (mak-eq (cons '* (butlast atom)) (first (last atom))))
+(defmethod construct-builtin-test-atom (atom (type (eql '/r))) (mak-eq (cons '/ (butlast atom)) (first (last atom))))
+(defmethod construct-builtin-test-atom (atom type) (declare (ignore type)) lit)
+|#
 #|
 (defun construct-for (vars valuesexp body) 
   (let ((assign nil) (i 0))
@@ -2144,7 +2235,7 @@ function addWidget (obj) {
 		  (with-collection-iterator (d (dictionary-get datastore (quote ,pred)))
 		    (setq m (expr-match ex (collection-element d)))
 		    (when (not (eq m ,(mak-false))) 
-		      (setq res (mak-array))
+		      (setq res ,(mak-class 'array))
 		      (setq i 0)
 		      (with-orderedcollection-iterator (e ,(maks-collection 'tuple args))
        			(if (varp e)
@@ -2373,7 +2464,7 @@ function addWidget (obj) {
 (defmethod tojavascript (form (type (eql 'defvar)) depth s)
   ;(js-indent depth s)
   (format s "var ~A" (js-varname (second form)))
-  (when (third form) 
+  (when (= (length form) 3)  ; notice can't use (third form) in case the last arg is NIL 
     (format s " = ")
     (tojavascript (third form) (signifier (third form)) -1 s))
   (when (> depth -1) (format s ";")))
@@ -2426,9 +2517,6 @@ function addWidget (obj) {
 (defmethod tojavascript (form (type (eql 'normreturn)) depth s)
   (tojavascript (list 'return (third form)) 'return depth s))
 
-(defmethod tojavascript (form (type (eql '+)) depth s)
-  (tojavascript-infixop '+ (cdr form) depth s))
-
 (defmethod tojavascript (form (type (eql 'array-assign)) depth s)
   (declare (ignore depth))
   (format s "~A[" (js-varname (second form)))
@@ -2465,11 +2553,27 @@ function addWidget (obj) {
   (tojavascript (second form) (signifier (second form)) -1 s)
   (format s ")"))
 
-(defmethod tojavascript (form (type (eql 'eq)) depth s)
-  (declare (ignore depth))
+;;;;; infix built-ins
+
+(defmethod tojavascript (form (type (eql 'eq)) depth s) (tojavascript-infixop "===" (cdr form) depth s))
+
+(defmethod tojavascript (form (type (eql 'lt)) depth s) (tojavascript-infixop "<" (cdr form) depth s))
+(defmethod tojavascript (form (type (eql 'lte)) depth s) (tojavascript-infixop "<=" (cdr form) depth s))
+(defmethod tojavascript (form (type (eql 'gt)) depth s) (tojavascript-infixop ">" (cdr form) depth s))
+(defmethod tojavascript (form (type (eql 'gte)) depth s) (tojavascript-infixop ">=" (cdr form) depth s))
+
+(defmethod tojavascript (form (type (eql '+)) depth s) (tojavascript-infixop '+ (cdr form) depth s))
+(defmethod tojavascript (form (type (eql '*)) depth s) (tojavascript-infixop '* (cdr form) depth s))
+(defmethod tojavascript (form (type (eql '-)) depth s) (tojavascript-infixop '- (cdr form) depth s))
+(defmethod tojavascript (form (type (eql '/)) depth s) (tojavascript-infixop '/ (cdr form) depth s))
+(defmethod tojavascript (form (type (eql '%)) depth s) (tojavascript-infixop '% (cdr form) depth s))
+
+(defmethod tojavascript (form (type (eql 'in)) depth s) 
+  (declare (ignore depth)) 
   (tojavascript (second form) (signifier (second form)) -1 s)
-  (format s " === ")
-  (tojavascript (third form) (signifier (third form)) -1 s))
+  (format s ".match(")
+  (tojavascript (third form) (signifier (third form)) -1 s)
+  (format s ")"))
 
  
 ;;;;; low-level 
@@ -2498,13 +2602,18 @@ function addWidget (obj) {
 	     (format s "\"~A\"" (js-thing (second form)))
 	     (tojavascript (cons 'list (mapcar #'quotify (second form))) 'list -1 s)))))
 
+; (function x) is #'x in Lisp, but (functionname x) is 'x.  In JS, both translated to x.
 (defmethod tojavascript (form (type (eql 'function)) depth s)
   (setq form (js-funcname-spec (second form)))
-  (tojavascript form (signifier form) depth s))
+  (if (stringp form)
+      (format s "~A" form)
+      (tojavascript form (signifier form) depth s)))
 
 (defmethod tojavascript (form (type (eql 'functionname)) depth s)
   (setq form (js-funcname-spec (second form)))
-  (tojavascript form (signifier form) depth s))
+  (if (stringp form)
+      (format s "~A" form)
+      (tojavascript form (signifier form) depth s)))
 
 (defmethod tojavascript (form type depth s)
   (declare (ignore type))
@@ -2524,21 +2633,39 @@ function addWidget (obj) {
 (defun js-indent (depth s) (indent depth s (lambda (x) (declare (ignore x)) " ")))
 ; only applied to atoms
 (defun js-funcname (f) 
-  (unless (stringp f)
+  (let (fnew)
     (setq f (js-funcname-spec f))
-    (setq f (tolower (substitute #\_ #\? (substitute #\_ #\- (tostring f))))))
-  f)
+    (cond ((stringp f) f)   ; lookup returned string
+	  ((setq fnew (find (tostring f) *ws-php-builtin-prefixed-names* :test #'equalp)) fnew) ; a php built-in: returning proper spelling.
+	  (t (tolower (substitute #\_ #\? (substitute #\_ #\- (tostring f))))))))  ; a program function: translate from Lisp to JS syntax
+#| New
+  (let (fnew fs)
+    (setq fs (tostring f))
+    (cond ((setq fnew (js-funcname-spec f)) fnew)
+	  ((setq fnew (find fs *ws-php-builtin-names* :test #'equalp)) ; php builtin -- need to prefix with phpnamespace
+	   (tostring *ws-php-namespace* "." fnew))
+	  (t f))))
+|#
+#| Old
+	   (if (stringp fnew)  ; if string leave alone; otherwise, massage
+	       fnew
+	       (tolower (substitute #\_ #\? (substitute #\_ #\- (tostring fnew))))))
+|#
+
 (defun js-funcname-spec (f)
   (case f
-    (member 'ds.member)
-    (collection-member 'ds.member)
-    (dictionary-get 'ds.get)
-    (dictionary-set 'ds.set)
-    (collection-adjoin 'ds.adjoin)
-    (collection-element 'ds.element)
-    (collection-first 'ds.first)
-    (collection-second 'ds.second)
-    (collection-equal 'equalp)
+    (member "ds.member")
+    (collection-member "ds.member")
+    (dictionary-get "ds.get")
+    (dictionary-set "ds.set")
+    (collection-adjoin "ds.adjoin")
+    (collection-element "ds.element")
+    (collection-first "ds.first")
+    (collection-second "ds.second")
+    (collection-equal "equalp")
+    (tostr "String")
+    (tonum "Number")
+    (tobool "Boolean")
     (otherwise f)))
 
 (defun js-argname (v) (js-thing v))

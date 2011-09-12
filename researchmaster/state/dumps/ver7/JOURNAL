@@ -1,0 +1,123 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; journal
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    (journal.instance acmcomputingsurveys)
+    (prettyname       acmcomputingsurveys "ACM Computing Surveys")
+
+    (journal.instance aicommunications)
+    (prettyname       aicommunications "AI Communications")
+
+    (journal.instance airesearch)
+    (prettyname       airesearch "Journal of Artificial Intelligence Research")
+
+    (journal.instance amai)
+    (prettyname       amai "Annals of Mathematics and Artificial Intelligence")
+
+    (journal.instance appliedlogic)
+    (prettyname       appliedlogic "Journal of Applied Logic")
+
+    (journal.instance artificialintelligence)
+    (prettyname       artificialintelligence "Artificial Intelligence")
+
+    (journal.instance cacm)
+    (prettyname       cacm "Communications of the ACM")
+
+    (journal.instance computer)
+    (prettyname       computer "The Computer Journal")
+
+    (journal.instance computersecurity)
+    (prettyname       computersecurity "Journal of Computer Security")
+
+    (journal.instance eacis)
+    (prettyname       eacis "Electronic Articles in Computing and Information Science")
+
+    (journal.instance ijis)
+    (prettyname       ijis "International Journal of Information Security")
+
+    (journal.instance infocomp)
+    (prettyname       infocomp "Information and Computation")
+
+    (journal.instance infosecuritytech)
+    (prettyname       infosecuritytech "Information Security Technical Report")
+
+    (journal.instance jacm)
+    (prettyname       jacm "Journal of the ACM")
+
+    (journal.instance jar)
+    (prettyname       jar "Journal of Automated Reasoning")
+
+    (journal.instance jlp)
+    (prettyname       jlp "Journal of Logic Programming")
+
+    (journal.instance joop)
+    (prettyname       joop "Journal of Object-Oriented Programming")
+
+    (journal.instance journal.34795694107)
+    (prettyname       journal.34795694107 "World Wide Web")
+
+    (journal.instance journal.34795734076)
+    (prettyname       journal.34795734076 "The VLDB Journal")
+
+    (journal.instance journal.34851931024)
+    (prettyname       journal.34851931024 "Fundamenta Informaticae")
+
+    (journal.instance journal.35132136392)
+    (prettyname       journal.35132136392 "IEEE Transactions on Robotics")
+    (shortname        journal.35132136392 "T-RO")
+
+    (journal.instance journal.35169205041)
+    (prettyname       journal.35169205041 "ACM Transactions on Software Engineering and Methodology,")
+    (shortname        journal.35169205041 "TOSEM")
+
+    (journal.instance knowengine)
+    (prettyname       knowengine "Knowledge Engineering Review")
+
+    (journal.instance lisp)
+    (prettyname       lisp "Lisp and Symbolic Computation")
+
+    (journal.instance lnai)
+    (prettyname       lnai "Lecture Notes in Artificial Intelligence")
+
+    (journal.instance lncs)
+    (prettyname       lncs "Lecture Notes in Computer Science")
+
+    (journal.instance logcomp)
+    (prettyname       logcomp "Journal of Logic and Computation")
+
+    (journal.instance multivaluedlogicjournal)
+    (prettyname       multivaluedlogicjournal "Multiple-Valued Logic")
+
+    (journal.instance sigact)
+    (prettyname       sigact "Special Interest Group on Algorithms and Computation theory")
+
+    (journal.instance sigmod)
+    (prettyname       sigmod "ACM SIG for the Management of Data")
+
+    (journal.instance synthese)
+    (prettyname       synthese "Synthese")
+
+    (journal.instance tcs)
+    (prettyname       tcs "Theoretical Computer Science")
+
+    (journal.instance tiss)
+    (prettyname       tiss "ACM Transactions on Information and System Security")
+
+    (journal.instance tods)
+    (prettyname       tods "ACM Transactions on Database Systems")
+
+    (journal.instance tois)
+    (prettyname       tois "ACM Transactions on Information Systems")
+
+    (journal.instance toplas)
+    (prettyname       toplas "ACM Transactions on Programming Languages and Systems")
+
+    (journal.instance tplp)
+    (prettyname       tplp "Theory and Practice of Logic Programming")
+
+    (journal.instance tse)
+    (prettyname       tse "IEEE Transactions on Software Engineering")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

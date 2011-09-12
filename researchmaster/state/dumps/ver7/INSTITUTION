@@ -1,0 +1,272 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; institution
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    (institution.instance berkeley)
+    (prettyname           berkeley "UC Berkeley")
+    (institution.url      berkeley "http://www.cs.berkeley.edu/")
+    (institution.rank     berkeley "1")
+
+    (institution.instance brown)
+    (prettyname           brown "Brown University")
+    (institution.url      brown "http://www.cs.brown.edu/")
+    (institution.rank     brown "20")
+
+    (institution.instance caltech)
+    (prettyname           caltech "California Institute of Technology")
+    (institution.url      caltech "http://www.cs.caltech.edu/")
+    (institution.rank     caltech "11")
+
+    (institution.instance cmu2)
+    (prettyname           cmu2 "Carnegie Mellon University")
+    (institution.url      cmu2 "http://www.cs.cmu.edu/")
+    (institution.rank     cmu2 "4")
+
+    (institution.instance columbia)
+    (prettyname           columbia "Columbia University")
+    (institution.url      columbia "http://www.cs.columbia.edu/")
+    (institution.rank     columbia "16")
+
+    (institution.instance cornell)
+    (prettyname           cornell "Cornell University")
+    (institution.url      cornell "http://www.cs.cornell.edu/")
+    (institution.rank     cornell "6")
+
+    (institution.instance duke)
+    (prettyname           duke "Duke University")
+    (institution.url      duke "http://www.cs.duke.edu/")
+    (institution.rank     duke "20")
+
+    (institution.instance harvard)
+    (prettyname           harvard "Harvard University")
+    (institution.url      harvard "http://eecs.harvard.edu/")
+    (institution.rank     harvard "16")
+
+    (institution.instance illinois)
+    (prettyname           illinois "University of Illinois at Urbana-Champaign")
+    (institution.url      illinois "http://cs.illinois.edu/")
+    (institution.rank     illinois "5")
+
+    (institution.instance institution.34789623508)
+    (prettyname           institution.34789623508 "Georgia Tech")
+    (institution.url      institution.34789623508 "http://www.cc.gatech.edu/")
+    (institution.rank     institution.34789623508 "9")
+
+    (institution.instance institution.34797283414)
+    (prettyname           institution.34797283414 "University of Massachusetts--Amherst")
+    (institution.url      institution.34797283414 "http://www.cs.umass.edu/")
+    (institution.rank     institution.34797283414 "20")
+
+    (institution.instance institution.34797304346)
+    (prettyname           institution.34797304346 "University of North Carolina--Chapel Hill ")
+    (institution.url      institution.34797304346 "http://www.cs.unc.edu/")
+    (institution.rank     institution.34797304346 "20")
+
+    (institution.instance institution.34797312278)
+    (prettyname           institution.34797312278 "University of Pennsylvania")
+    (institution.url      institution.34797312278 "http://www.cis.upenn.edu/")
+    (institution.rank     institution.34797312278 "20")
+
+    (institution.instance institution.34804189491)
+    (prettyname           institution.34804189491 "University of Southern California")
+    (institution.url      institution.34804189491 "http://www.cs.usc.edu/")
+    (institution.rank     institution.34804189491 "20")
+
+    (institution.instance institution.34807858890)
+    (prettyname           institution.34807858890 "Yale University")
+    (institution.url      institution.34807858890 "http://www.cs.yale.edu/")
+    (institution.rank     institution.34807858890 "20")
+
+    (institution.instance institution.34807860851)
+    (prettyname           institution.34807860851 "Duke University")
+    (institution.url      institution.34807860851 "http://www.cs.duke.edu/")
+    (institution.rank     institution.34807860851 "27")
+
+    (institution.instance institution.34807863262)
+    (prettyname           institution.34807863262 "Johns Hopkins University")
+    (institution.url      institution.34807863262 "http://www.cs.jhu.edu/")
+    (institution.rank     institution.34807863262 "28")
+
+    (institution.instance institution.34807869094)
+    (prettyname           institution.34807869094 "New York University")
+    (institution.url      institution.34807869094 "http://cs.nyu.edu/csweb/index.html")
+    (institution.rank     institution.34807869094 "28")
+
+    (institution.instance institution.34807872646)
+    (prettyname           institution.34807872646 "Ohio State University")
+    (institution.url      institution.34807872646 "http://www.cse.ohio-state.edu/")
+    (institution.rank     institution.34807872646 "28")
+
+    (institution.instance institution.34807880468)
+    (prettyname           institution.34807880468 "Pennsylvania State University--University Park ")
+    (institution.url      institution.34807880468 "http://www.cse.psu.edu/")
+    (institution.rank     institution.34807880468 "28")
+
+    (institution.instance institution.34807885250)
+    (prettyname           institution.34807885250 "Rutgers, the State University of New Jersey--New Brunswick")
+    (institution.url      institution.34807885250 "http://www.cs.rutgers.edu/")
+    (institution.rank     institution.34807885250 "28")
+
+    (institution.instance institution.34807889022)
+    (prettyname           institution.34807889022 "University of California--Irvine")
+    (institution.url      institution.34807889022 "http://www.ics.uci.edu/")
+    (institution.rank     institution.34807889022 "28")
+
+    (institution.instance institution.34807896924)
+    (prettyname           institution.34807896924 "University of Virginia")
+    (institution.url      institution.34807896924 "http://www.cs.virginia.edu/")
+    (institution.rank     institution.34807896924 "28")
+
+    (institution.instance institution.34808722145)
+    (prettyname           institution.34808722145 "Northwestern University")
+    (institution.url      institution.34808722145 "http://www.eecs.northwestern.edu/")
+    (institution.rank     institution.34808722145 "35")
+
+    (institution.instance institution.34808730317)
+    (prettyname           institution.34808730317 "University of California--Santa Barbara")
+    (institution.url      institution.34808730317 "http://www.cs.ucsb.edu/")
+    (institution.rank     institution.34808730317 "35")
+
+    (institution.instance institution.34808735149)
+    (prettyname           institution.34808735149 "University of Chicago")
+    (institution.url      institution.34808735149 "http://cs.uchicago.edu/")
+    (institution.rank     institution.34808735149 "35")
+
+    (institution.instance institution.34808739401)
+    (prettyname           institution.34808739401 "University of Minnesota--Twin Cities")
+    (institution.url      institution.34808739401 "http://www.cs.umn.edu/")
+    (institution.rank     institution.34808739401 "35")
+
+    (institution.instance institution.34808741833)
+    (prettyname           institution.34808741833 "University of California--Davis")
+    (institution.url      institution.34808741833 "http://www.cs.ucdavis.edu/")
+    (institution.rank     institution.34808741833 "39")
+
+    (institution.instance institution.34808747416)
+    (prettyname           institution.34808747416 "University of Colorado--Boulder")
+    (institution.url      institution.34808747416 "http://www.cs.colorado.edu/")
+    (institution.rank     institution.34808747416 "39")
+
+    (institution.instance institution.34808747417)
+    (prettyname           institution.34808747417 "University of Florida")
+    (institution.url      institution.34808747417 "http://www.cise.ufl.edu/")
+    (institution.rank     institution.34808747417 "39")
+
+    (institution.instance institution.34808753298)
+    (prettyname           institution.34808753298 "University of Utah")
+    (institution.url      institution.34808753298 "http://www.cs.utah.edu/")
+    (institution.rank     institution.34808753298 "39")
+
+    (institution.instance institution.34808759890)
+    (prettyname           institution.34808759890 "Washington University in St. Louis")
+    (institution.url      institution.34808759890 "http://cse.wustl.edu/Pages/default.aspx")
+    (institution.rank     institution.34808759890 "39")
+
+    (institution.instance institution.34809388963)
+    (prettyname           institution.34809388963 "Dartmouth College ")
+    (institution.url      institution.34809388963 "http://www.cs.dartmouth.edu/")
+    (institution.rank     institution.34809388963 "44")
+
+    (institution.instance institution.34809388964)
+    (prettyname           institution.34809388964 "SUNY--Stony Brook")
+    (institution.url      institution.34809388964 "http://www.cs.sunysb.edu/")
+    (institution.rank     institution.34809388964 "44")
+
+    (institution.instance institution.34809397845)
+    (prettyname           institution.34809397845 "Virginia Tech")
+    (institution.url      institution.34809397845 "http://www.cs.vt.edu/")
+    (institution.rank     institution.34809397845 "44")
+
+    (institution.instance institution.34811267256)
+    (prettyname           institution.34811267256 "Boston University")
+    (institution.url      institution.34811267256 "http://www.cs.bu.edu/")
+    (institution.rank     institution.34811267256 "47")
+
+    (institution.instance institution.34811267257)
+    (prettyname           institution.34811267257 "North Carolina State University")
+    (institution.url      institution.34811267257 "http://www.csc.ncsu.edu/")
+    (institution.rank     institution.34811267257 "47")
+
+    (institution.instance institution.34811273078)
+    (prettyname           institution.34811273078 "Rensselaer Polytechnic Institute")
+    (institution.url      institution.34811273078 "http://www.cs.rpi.edu/")
+    (institution.rank     institution.34811273078 "47")
+
+    (institution.instance institution.34811273079)
+    (prettyname           institution.34811273079 "Texas A&M University--College Station")
+    (institution.url      institution.34811273079 "http://www.cs.tamu.edu/")
+    (institution.rank     institution.34811273079 "47")
+
+    (institution.instance institution.34811281720)
+    (prettyname           institution.34811281720 "University of Arizona")
+    (institution.url      institution.34811281720 "http://www.cs.arizona.edu/")
+    (institution.rank     institution.34811281720 "47")
+
+    (institution.instance institution.34811283201)
+    (prettyname           institution.34811283201 "University of Rochester")
+    (institution.url      institution.34811283201 "http://www.cs.rochester.edu/")
+    (institution.rank     institution.34811283201 "47")
+
+    (institution.instance mit2)
+    (prettyname           mit2 "Massachusetts Institute of Technology")
+    (institution.url      mit2 "http://www.eecs.mit.edu/")
+    (institution.rank     mit2 "1")
+
+    (institution.instance princeton2)
+    (prettyname           princeton2 "Princeton University")
+    (institution.url      princeton2 "http://www.cs.princeton.edu/")
+    (institution.rank     princeton2 "6")
+
+    (institution.instance purdue)
+    (prettyname           purdue "Purdue University--West Lafayette")
+    (institution.url      purdue "http://www.cs.purdue.edu/")
+    (institution.rank     purdue "19")
+
+    (institution.instance rice)
+    (prettyname           rice "Rice University")
+    (institution.url      rice "http://compsci.rice.edu/")
+    (institution.rank     rice "20")
+
+    (institution.instance stanford)
+    (prettyname           stanford "Stanford University")
+    (institution.url      stanford "http://cs.stanford.edu/")
+    (institution.rank     stanford "1")
+
+    (institution.instance ucla)
+    (prettyname           ucla "University of California--Los Angeles")
+    (institution.url      ucla "http://www.cs.ucla.edu/")
+    (institution.rank     ucla "13")
+
+    (institution.instance ucsd)
+    (prettyname           ucsd "University of California--San Diego")
+    (institution.url      ucsd "http://www-cse.ucsd.edu/")
+    (institution.rank     ucsd "16")
+
+    (institution.instance umd)
+    (prettyname           umd "University of Maryland--College Park")
+    (institution.url      umd "http://www.cs.umd.edu/")
+    (institution.rank     umd "13")
+
+    (institution.instance umich)
+    (prettyname           umich "University of Michigan--Ann Arbor")
+    (institution.url      umich "http://www.eecs.umich.edu/")
+    (institution.rank     umich "13")
+
+    (institution.instance utaustin)
+    (prettyname           utaustin "University of Texas at Austin")
+    (institution.url      utaustin "http://www.cs.utexas.edu/")
+    (institution.rank     utaustin "9")
+
+    (institution.instance uwash)
+    (prettyname           uwash "University of Washington")
+    (institution.url      uwash "http://www.cs.washington.edu/")
+    (institution.rank     uwash "6")
+
+    (institution.instance wisc)
+    (prettyname           wisc "University of Wisconsin--Madison")
+    (institution.url      wisc "http://www.cs.wisc.edu/")
+    (institution.rank     wisc "11")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

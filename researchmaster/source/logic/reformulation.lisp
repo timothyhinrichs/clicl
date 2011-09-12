@@ -275,6 +275,53 @@
 	((member (car p) '(forall exists)) (list (first p) (second p) (mapopands func (third p))))
 	(t (funcall func p))))
 
+(defun mapterms (func p)
+  "(MAPTERMS FUNC P) applies function FUNC to all of the terms occurring in P 
+   (children before parent) and returns the result.  Treats quoted sentences as proper sentences."
+  (labels ((mapmyfunc (x)
+	     (cond ((atom x) (funcall func x))
+		   ((eq (first x) 'quote) (list (first x) (mapterms func (second x))))
+		   (t (funcall func (cons (car x) (mapcar #'mapmyfunc (cdr x))))))))
+    (cond ((atom p) p)
+	  ((member (car p) '(or not and => <= <=>)) 
+	   (cons (car p) (mapcar #'(lambda (x) (mapterms func x)) (cdr p))))
+	  ((member (car p) '(forall exists)) (list (first p) (second p) (mapterms func (third p))))
+	  (t (cons (car p) (mapcar #'mapmyfunc (cdr p)))))))
+
+(defun subobj (alist p &key (test #'eq))
+  "(SUBFUN ALIST P) applies the substitution list ALIST to all of the
+   object constants in the sentence P.  Returns the new sentence."
+  (mapterms #'(lambda (x) (if (atom x) (sublis alist x :test test) x)) p))
+
+(defun subfun (alist p &key (test #'eq))
+  "(SUBFUN ALIST P) applies the substitution list ALIST to all of the
+   function constants (but not object constants) in the sentence P.  Returns the new sentence."
+  (mapterms #'(lambda (x) (if (listp x) (cons (sublis alist (car x) :test test) (cdr x)) x)) p))
+
+(defun nsubfun (alist p)
+  "(NSUBFUN ALIST P) destructively applies the substitution list ALIST to all of the
+   function constants (but not object constants) in the sentence P.  Returns the new sentence."
+  (cond ((atom p))
+	((member (car p) '(and or not <= => <=>))
+	 (mapc #'(lambda (x) (nsubfun alist x)) (cdr p)))
+	((member (car p) '(forall exists))
+	 (nsubfun alist (third p)))
+	((eq (car p) 'quote) (nsubfun alist (second p)))
+	(t (mapc #'(lambda (x) (nsubfun-term alist x)) (cdr p))))
+  p)
+
+(defun nsubfun-term (alist term)
+  "(NSUBFUN-TERM ALIST TERM) destructively applies the substitution list ALIST to all of
+   the function constants (but not object constants) in the term TERM.  Returns the new term."
+  (cond ((atom term))
+	((eq (car term) 'quote) (nsubfun alist (second term)))
+	((listp term)
+	 (let (f)
+	   (setq f (assoc (first term) alist))
+	   (when f
+	     (setf (first term) (cdr f)))
+	   (mapc #'(lambda (x) (nsubfun-term alist x)) (cdr term)))))
+  term)
 
 (defun transform-theory (f th &optional (saver #'save))
   "(TRANSFORM-THEORY F TH) applies F to all the sentences in TH, putting the
@@ -286,21 +333,28 @@
           (sentences '? th))
     newth))
 
-(defun flatten-functions (p &optional (fullflat nil))
-  "(FLATTEN-FUNCTIONS P) takes a positive boolean combination of literals and returns a likewise sentence 
+(defun flatten-functions (p &key (fullflat nil) (universal t))
+  "(FLATTEN-FUNCTIONS P) takes a NNF formula P and returns a QF sentence 
    equivalent to p except the depth of function nesting is
    always at most 1, e.g. (p (f a (g ?x (h ?y)))) becomes
    (and (p (f a ?z2)) (= ?z2 (g ?x ?z3)) (= ?z3 (h ?y))).
    FULLFLAT forces all functional terms to be forced outside, e.g.
    (and (p ?z1) (= ?z1 (f a ?z2)) (= ?z2 (g ?x ?z3)) (= ?z3 (h ?y))).
-   FULLFLAT being NIL makes flatten-functions idempotent."
+   FULLFLAT being NIL makes flatten-functions idempotent.
+   UNIVERSAL controls whether the implicit quantifier is universal or existential."
   (cond ((atom p) p)
-	((member (car p) '(and or not))
-	 (multiple-value-bind (newps extra) (mapcaraccum #'(lambda (x) (flatten-functions x fullflat)) (cdr p))
-	   (maksand (cons (cons (car p) newps) extra))))
+	;((member (car p) '(and or not))   ;  OLD version of code???  Leave in case not
+	; (multiple-value-bind (newps extra) (mapcaraccum #'(lambda (x) (flatten-functions x fullflat)) (cdr p))
+	;   (maksand (cons (cons (car p) newps) extra))))
+	((member (car p) '(or not and)) 
+	  ; don't include =>, <=, or <=> b/c the new variables need to be existentially quantified.
+	  ;   Can of course rewrite this code, but don't have the time.  Can instead convert to NNF before flattening.
+	 (flatten-operator (cons (car p) (mapcar #'(lambda (q) (flatten-functions q :fullflat fullflat :universal universal)) (cdr p)))))	 
 	(fullflat 
 	 (multiple-value-bind (newargs extra) (mapcaraccum #'flatten-term (cdr p))
-	   (maksand (cons (cons (car p) newargs) extra))))
+	   (if universal
+	       (maksred (cons (cons (car p) newargs) extra))
+	       (maksand (cons (cons (car p) newargs) extra)))))
 	(t (multiple-value-bind (newargs extra) 
 	       (mapcaraccum 
 		#'(lambda (term) 
@@ -312,7 +366,9 @@
 			    (setq newextra termextra)))
 		      (values newterm newextra)))
 		(cdr p))
-	     (maksand (cons (cons (car p) newargs) extra))))))
+	     (if universal
+		 (maksred (cons (cons (car p) newargs) extra))
+		 (maksand (cons (cons (car p) newargs) extra)))))))
 
 (defun flatten-term (term)
   (cond ((atom term) (values term nil))

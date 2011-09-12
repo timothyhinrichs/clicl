@@ -1,0 +1,105 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; symposium
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    (symposium.instance aaai-reasoningwithdiagrammaticrepresentations)
+    (prettyname         aaai-reasoningwithdiagrammaticrepresentations "AAAI Symposium on Reasoning with Diagrammatic Representations ")
+
+    (symposium.instance acmsigops)
+    (prettyname         acmsigops "ACM Symposium on Operating Systems Principles")
+
+    (symposium.instance csf)
+    (prettyname         csf "IEEE Computer Security Foundations Symposium")
+
+    (symposium.instance esorics)
+    (prettyname         esorics "European Symposium on Research in Computer Security")
+
+    (symposium.instance foiks)
+    (prettyname         foiks "Symposium on Foundations of Information and Knowledge Systems ")
+
+    (symposium.instance frocos)
+    (prettyname         frocos "International Symposium on Frontiers of Combining Systems")
+
+    (symposium.instance hpdc)
+    (prettyname         hpdc "ACM/IEEE International Symposium on High Performance Distributed Computing")
+
+    (symposium.instance ieee-nca)
+    (prettyname         ieee-nca "IEEE International Symposium on Network Computing and Applications")
+
+    (symposium.instance ieeertss)
+    (prettyname         ieeertss "IEEE International Real-Time Systems Symposium")
+
+    (symposium.instance ieeesap)
+    (prettyname         ieeesap "IEEE Symposium on Security and Privacy")
+    (shortname          ieeesap "Oakland")
+
+    (symposium.instance ieeesymposiumonvisuallanguages)
+    (prettyname         ieeesymposiumonvisuallanguages "IEEE Symposium on Visual Languages")
+
+    (symposium.instance isaac)
+    (prettyname         isaac "International Symposium on Symbolic and Algebraic Computation")
+
+    (symposium.instance lics)
+    (prettyname         lics "Symposium on Logic in Computer Science")
+    (shortname          lics "LICS")
+
+    (symposium.instance ndss)
+    (prettyname         ndss "Network and Distributed System Security Symposium")
+    (shortname          ndss "NDSS")
+
+    (symposium.instance padl)
+    (prettyname         padl "Symposium on Practical Aspects of Declarative Languages")
+    (shortname          padl "PADL")
+
+    (symposium.instance pods)
+    (prettyname         pods "ACM Symposium on Principles of Database Systems")
+
+    (symposium.instance popl)
+    (prettyname         popl "ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages")
+    (shortname          popl "POPL")
+
+    (symposium.instance sac)
+    (prettyname         sac "ACM Symposium on Applied Computing")
+
+    (symposium.instance sara)
+    (prettyname         sara "Symposium of Abstraction, Reformulation, and Approximation")
+    (shortname          sara "SARA")
+
+    (symposium.instance sigsoft)
+    (prettyname         sigsoft "ACM International Symposium on Software Testing and Analysis")
+
+    (symposium.instance stacs)
+    (prettyname         stacs "Symposium on Theoretical Aspects of Computer Science")
+
+    (symposium.instance stoc)
+    (prettyname         stoc "Symposium on the Theory of Computing")
+    (shortname          stoc "STOC")
+
+    (symposium.instance symposium.34795776088)
+    (prettyname         symposium.34795776088 "International Symposium on Formal Methods for Components and Objects")
+
+    (symposium.instance symposium.34795785002)
+    (prettyname         symposium.34795785002 "ASIAN Symposium on Programming Languages and Systems")
+
+    (symposium.instance symposium.34797481637)
+    (prettyname         symposium.34797481637 "ACM SIGPLAN Symposium on Principles and Practice of Declarative Programming")
+
+    (symposium.instance symposium.35010046501)
+    (prettyname         symposium.35010046501 "Database Engineering and Application Symposium")
+    (shortname          symposium.35010046501 "IDEAS")
+
+    (symposium.instance symposium.35167985579)
+    (prettyname         symposium.35167985579 "ACM Symposium on Access Control Models and Technologies")
+    (shortname          symposium.35167985579 "SACMAT")
+
+    (symposium.instance symposium.35169784900)
+    (prettyname         symposium.35169784900 "ACM Symposium on Information, Computer and Communications Security")
+    (shortname          symposium.35169784900 "ASIACCS")
+
+    (symposium.instance usenix)
+    (prettyname         usenix "Usenix Security Symposium")
+    (shortname          usenix "Usenix")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

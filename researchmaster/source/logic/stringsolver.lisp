@@ -1,34 +1,36 @@
 ; all regexps are pcre (perl compatible regular expressions)
 ; requires Kaluza as a helper, which only runs on Linux
 
-(defvar *ss-max-length* 300 
+(defVar *ss-max-length* 300 
   "maximum length of a string")
-(defvar *ss-max-val* 999 
+(defVar *ss-max-val* 999 
   "maximum value for a numeric variable")
-(defvar *ss-guess-maxlen* t
+(defVar *ss-guess-maxlen* t
   "whether or not to guess the value for *ss-max-length* by examining constraints")
 
-(defvar *quiet* t
+(defVar *quiet* t
   "quiet basic progress and error printouts")
-(defvar *ss-debug* nil
+(defVar *ss-debug* nil
   "print out debugging info if t")
-(defvar *break-on-external-solver-error* t
+(defVar *break-on-external-solver-error* t
   "whether or not to break when hampi returns an error")
-(defvar *check-dynamic-regexp* t
+(defVar *check-dynamic-regexp* t
   "whether or not to ensure that our dynamically created regexps can be translated")
-(defvar *command-line* nil
+(defVar *command-line* nil
   "whether being executed from the command line.  If NIL, errors result in CCL breaks; otherwise, errors quit.")
-(defparameter *ss-ignore-variable-source* nil
+(defParameter *ss-ignore-variable-source* nil
   "whether or not to treat the same variable name from get/post/cookie as the same variable")
+(defParameter *ss-type-inference-full-depth* t
+  "whether or not to ensure type inference is complete by searching to full depth of space")
 
 ; external helper routines
-(defparameter *hampi-regtest-tmp* "/tmp/hampiregtest.txt"
+(defParameter *hampi-regtest-tmp* "/tmp/hampiregtest.txt"
   "location for testing regular expressions")
-(defparameter *hampi-checkreg-tmp* "/tmp/bar.hmp"
+(defParameter *hampi-checkreg-tmp* "/tmp/bar.hmp"
   "location for testing a given string against a regular expression")
-(defparameter *hampi-reg* "hampireg" "script for converting pcre regexps to hampi regexps")
-(defparameter *hampi-regtest* "hampiregtest" "script for checking regexp translator works")
-(defparameter *reg-check* "regcheck" "script that checks whether a given string belongs to a given regexp")
+(defParameter *hampi-reg* "hampireg" "script for converting pcre regexps to hampi regexps")
+(defParameter *hampi-regtest* "hampiregtest" "script for checking regexp translator works")
+(defParameter *reg-check* "regcheck" "script that checks whether a given string belongs to a given regexp")
 
 #|
 ; hampi invocation info: right now using server version 
@@ -46,29 +48,29 @@
 |#
 
 ; Kaluza invocation info
-(defvar *solver-input-file* "/tmp/ss/b.kaluza" 
+(defVar *solver-input-file* "/tmp/ss/b.kaluza" 
   "base temp filename for Kaluza input")
-(defvar *solver-max-storage* 100 
+(defVar *solver-max-storage* 100 
   "max number of files stored on disk for any one solution attempt")
-(defvar *store-external-solver-files* nil
+(defVar *store-external-solver-files* nil
   "whether to store all external solver attempts (up to *solver-max-storage*)")
 
-(defparameter *solver-init* "echo")
-(defparameter *solver-init-args* '("noop"))
-(defparameter *solver-invoke* "kaluza")
-(defparameter *solver-invoke-args* nil)
-(defparameter *solver-kill* "echo")
-(defparameter *solver-kill-args* '("noop"))
+(defParameter *solver-init* "echo")
+(defParameter *solver-init-args* '("noop"))
+(defParameter *solver-invoke* "kaluza")
+(defParameter *solver-invoke-args* nil)
+(defParameter *solver-kill* "echo")
+(defParameter *solver-kill-args* '("noop"))
 
 
 ; internal globals
-(defparameter *ss-canonical* "Used to store canonical representations of sentences.")
-(defparameter *reg-special-chars* (list #\\ #\^ #\$ #\( #\) #\[ #\] #\{ #\} #\. #\* #\? #\| #\+ #\-))
-(defparameter *ss-cast-types* (make-hash-table))  ; to avoid passing types everywhere
-(define-condition ss-type-error (error) ((text :initarg :text :reader text)))
-(define-condition ss-symbol-error (error) ((text :initarg :text :reader text)))
-(define-condition ss-boolean-error (error) ((text :initarg :text :reader text)))
-(define-condition ss-syntax-error (error) ((text :initarg :text :reader text)))
+(defParameter *ss-canonical* "Used to store canonical representations of sentences.")
+(defParameter *reg-special-chars* (list #\\ #\^ #\$ #\( #\) #\[ #\] #\{ #\} #\. #\* #\? #\| #\+ #\- #\/))
+(defParameter *ss-cast-types* (make-hash-table))  ; to avoid passing types everywhere
+(defIne-condition ss-type-error (error) ((text :initarg :text :reader text)))
+(defIne-condition ss-symbol-error (error) ((text :initarg :text :reader text)))
+(defIne-condition ss-boolean-error (error) ((text :initarg :text :reader text)))
+(defIne-condition ss-syntax-error (error) ((text :initarg :text :reader text)))
 
 (defun ss-regesc (s &optional (charlist *reg-special-chars*))
   "(SS-REGESC S) translates s so that all special characters are escaped for regular expressions."
@@ -80,22 +82,22 @@
 	  (push char res)))
     (apply #'stringappend (nreverse res))))
 
-(defparameter *charreg* 
-  (stringappend "[" (ss-regesc (apply #'stringappend *reg-special-chars*)) "/ \\w!@#%&:=\"><;,'`~" "]"))
-(defparameter *boolreg* "true | false")
-(defparameter *strreg* (stringappend *charreg* "*"))
-(defparameter *strreg1* (stringappend *charreg* "+"))
-(defparameter *numreg* "[0-9]+")
+(defParameter *charreg* 
+  (stringappend "[" (ss-regesc (apply #'stringappend *reg-special-chars*)) " \\w!@#%&:=\"><;,'`~" "]"))
+(defParameter *boolreg* "true | false")
+(defParameter *strreg* (stringappend *charreg* "*"))
+(defParameter *strreg1* (stringappend *charreg* "+"))
+(defParameter *numreg* "[0-9]+")
 
-(defvar *counter* 1)
-(defvar *ss-solve-count* 0)
-(defvar *ss-varmapping* nil "binding list for cleansing variables")
-(defvar *ss-vars* nil "var list for cleansing variables")
-(defvar *external-solver-errored* nil "whether or not the external solver errored")
+(defVar *counter* 1)
+(defVar *ss-solve-count* 0)
+(defVar *ss-varmapping* nil "binding list for cleansing variables")
+(defVar *ss-vars* nil "var list for cleansing variables")
+(defVar *external-solver-errored* nil "whether or not the external solver errored")
 
 ; input problem structure
 ; possible statuses: inconsistent, valid, contingent
-(defstruct ss-prob 
+(defStruct SS-PROB 
   ; user-supplied 
   (name nil) phi (space 'true) (types nil)  (unique t) (required t) (init nil)
   (status :contingent) (metafields nil)
@@ -269,10 +271,13 @@
 
 (defun ss-checksat (p types bl)
   (and (ss-checksat-types bl types)
-       (eq (handler-case (ss-evaluate (plug p bl))
-	     (ss-type-error () 'false))
-	   'true)))
+       (ss-sat p bl)))
 
+(defun ss-sat (p bl)
+  (eq (handler-case (ss-evaluate (plug p bl))
+	(ss-type-error () 'false))
+      'true))
+ 
 (defun ss-checksat-types (bl types)
   (let (y)
     (dolist (b bl t)
@@ -378,7 +383,8 @@
   prob)
 
 (defun ss-cleanse-more* (thing prob &optional (justvars nil))
-  (let (*ss-varmapping* *ss-vars*)
+;(print (hash2bl (ss-prob-types prob))) 
+ (let (*ss-varmapping* *ss-vars*)
     (unless justvars
       (setq thing (ss-fix-php-ops thing))
       (setq thing (ss-fix-boolean-funcs thing))
@@ -401,6 +407,7 @@
   "(SS-CLEANSE-MORE THING PROB) applies the full ss-cleanse to a new sentence THING
    in the context of PROB. "
   ; do lightweight cleansing
+
   (setq thing (ss-cleanse-more* thing prob))
   ; remove syntactic sugar completely
   (setq thing (ss-drop-syntactic-sugar thing)) 
@@ -410,11 +417,11 @@
   (setq thing (ss-simplify thing))
   thing)
 
-(defun ss-uncleanse (thing prob)
+(defun ss-uncleanse (thing prob &optional (alist-builder #'ss-build-prob-alist))
   "(SS-UNCLEANSE THING PROB) undoes the externally important changes made by ss-cleanse.
    Destructive."
   (let (alist)
-    (setq alist (mapcar #'(lambda (x) (cons (first x) (list (third x) (second x)))) (ss-prob-varnames prob)))
+    (setq alist (funcall alist-builder prob))
     (cond ((atom thing) (nsublis alist thing))  
 	  ((listp thing) (nsublis alist thing))
 	  ((ss-prob-p thing)
@@ -423,6 +430,9 @@
 	   (setf (ss-prob-types thing) (nsublis alist (ss-prob-types thing)))
 	   thing)
 	  (t thing))))
+
+(defun ss-build-prob-alist (prob)
+  (mapcar #'(lambda (x) (cons (first x) (list (third x) (second x)))) (ss-prob-varnames prob)))
 
 (defun ss-fix-php-ops (p)
   (setq p (sublis '((&& . and)
@@ -487,7 +497,7 @@
 		   (ss-prob-types prob)))
     ; need to extract all of p's atoms and then flatten them.
     (setq p (find-atoms (maksand p)))
-    (setq p (flatten-operator (maksand (mapcar #'flatten-functions p))))
+    (setq p (flatten-operator (maksand (mapcar #'(lambda (x) (flatten-functions x :universal nil)) p))))
     ; grab types
     (setq types (ss-type-inference (and2list p)))  ; list of (var . <list of types>)
     ; if ambiguity, don't include type in *ss-cast-types*
@@ -515,7 +525,7 @@
 		       (ss-prob-types prob))))
     ; need to extract all of p's atoms and then flatten them.
     (setq p (find-atoms (maksand p)))
-    (setq p (flatten-operator (maksand (mapcar #'flatten-functions p))))
+    (setq p (flatten-operator (maksand (mapcar #'(lambda (x) (flatten-functions x :universal nil)) p))))
     ; grab types
     (setq types (ss-type-inference (and2list p)))
     ; if ambiguity, don't include type in *ss-cast-types*
@@ -589,9 +599,9 @@
 		  (let (src strvar varentry)
 		    (setq src (first p))
 		    (when (eq src 'request) (setq src 'var))   ; use VAR if src is unknown
-		    (setq strvar (tostring (second p)))
+		    (setq strvar (varspelling (tostring (second p))))
 		    (if (eq src 'var)
-			(setq varentry (find strvar *ss-varmapping* :key #'second :test #'equal))
+ 			(setq varentry (find strvar *ss-varmapping* :key #'second :test #'equal))
 			(setq varentry (find-if #'(lambda (x) (and (or (eq (third x) 'var) (eq (third x) src)) (equal (second x) strvar))) 
 						*ss-varmapping*)))
 		    (cond (varentry 
@@ -658,8 +668,8 @@
 (defun ss-drop-syntactic-sugar (p) (ss-drop-sugar-sent p))
 (defun ss-drop-syntactic-sugar* (p)
   "(SS-DROP-SYNTACTIC-SUGAR* P) is a lightweight version of ss-drop-syntactic-sugar*.
-   It does translations that don't change the structure of the sentence."
-  (mapopands #'ss-drop-sugar-toplevel (mapatomterm #'(lambda (x) (ss-drop-sugar1 x (signifier x))) p)))
+   It does translations that don't change the boolean structure of the sentence."
+  (mapopands #'ss-drop-sugar-toplevel (mapatomterm #'(lambda (x) (ss-drop-sugar1* x)) p)))
 
 (defun ss-drop-sugar-sent (p) (mapopands #'ss-drop-sugar-atom p))
 (defun ss-drop-sugar-atom (p)  
@@ -700,46 +710,58 @@
   (setq term (ss-drop-sugar1 term type))
   (ss-drop-sugar2 term (signifier term)))
 
-(defgeneric ss-drop-sugar1 (term type))
+(defun ss-drop-sugar1* (term)
+  (setq term (ss-drop-sugar1 term (signifier term)))
+  (cond ((atom term) term)
+	((eq (car term) '!=)  ; change (!= NULL <var>) to (require <var>)
+	 (cond ((and (eq (second term) 'null) (varp (third term)))
+		`(require ,(third term)))
+	       ((and (eq (third term) 'null) (varp (second term)))
+		`(require ,(second term)))
+	       (t term)))
+	(t term)))
+	       
+
+(defGeneric ss-drop-sugar1 (term type))
 ;  (SS-DROP-SUGAR1 TERM TYPE) handles the lightweight transformations of ss-drop-sugar.
 ;  In particular, doesn't change structure of formulas--no new vars, no new boolean ops.
 ;  Useful to split the two apart so that we can translate most of external language into
 ;  language that we can manipulate to some extent.
 
-(defmethod ss-drop-sugar1 (term (type (eql 'strlen))) (list 'len (second term)))
-(defmethod ss-drop-sugar1 (term (type (eql 'isset))) `(require ,(second term)))
-(defmethod ss-drop-sugar1 (term (type (eql '==))) (cons '= (cdr term)))
-(defmethod ss-drop-sugar1 (term (type (eql '===))) (cons '= (cdr term)))
-(defmethod ss-drop-sugar1 (term (type (eql '<>))) (cons '!= (cdr term)))
-(defmethod ss-drop-sugar1 (term (type (eql '>))) (cons 'gt (cdr term)))
-(defmethod ss-drop-sugar1 (term (type (eql '<))) (cons 'lt (cdr term)))
-(defmethod ss-drop-sugar1 (term (type (eql '>=))) (cons 'gte (cdr term)))
+(defMethod ss-drop-sugar1 (term (type (eql 'strlen))) (list 'len (second term)))
+(defMethod ss-drop-sugar1 (term (type (eql 'isset))) `(require ,(second term)))
+(defMethod ss-drop-sugar1 (term (type (eql '==))) (cons '= (cdr term)))
+(defMethod ss-drop-sugar1 (term (type (eql '===))) (cons '= (cdr term)))
+(defMethod ss-drop-sugar1 (term (type (eql '<>))) (cons '!= (cdr term)))
+(defMethod ss-drop-sugar1 (term (type (eql '>))) (cons 'gt (cdr term)))
+(defMethod ss-drop-sugar1 (term (type (eql '<))) (cons 'lt (cdr term)))
+(defMethod ss-drop-sugar1 (term (type (eql '>=))) (cons 'gte (cdr term)))
 ; can't translate <= as lte since <= is obviously implication
-(defmethod ss-drop-sugar1 (term (type (eql '++))) `(+ ,(second term) 1))
-(defmethod ss-drop-sugar1 (term (type (eql '--))) `(- ,(second term) 1))
+(defMethod ss-drop-sugar1 (term (type (eql '++))) `(+ ,(second term) 1))
+(defMethod ss-drop-sugar1 (term (type (eql '--))) `(- ,(second term) 1))
 ; can't handle b/c of side effects: += -= *= /= %= .=  
-(defmethod ss-drop-sugar1 (term (type (eql 'int))) `(tonum ,(second term)))
-(defmethod ss-drop-sugar1 (term (type (eql 'integer))) `(tonum ,(second term)))
-(defmethod ss-drop-sugar1 (term (type (eql 'intval))) `(tonum ,(second term)))
-(defmethod ss-drop-sugar1 (term (type (eql 'bool))) `(tobool ,(second term)))
-(defmethod ss-drop-sugar1 (term (type (eql 'boolean))) `(tobool ,(second term)))
-(defmethod ss-drop-sugar1 (term (type (eql 'float))) `(tonum ,(second term)))
-(defmethod ss-drop-sugar1 (term (type (eql 'double))) `(tonum ,(second term)))
-(defmethod ss-drop-sugar1 (term (type (eql 'real))) `(tonum ,(second term)))
-(defmethod ss-drop-sugar1 (term (type (eql 'string))) `(tostring ,(second term)))
-(defmethod ss-drop-sugar1 (term (type (eql 'strval))) `(tostring ,(second term)))
-(defmethod ss-drop-sugar1 (term (type (eql 'eregi))) `(in ,(third term) ,(second term)))
-(defmethod ss-drop-sugar1 (term (type (eql 'ereg))) `(in ,(third term) ,(second term)))
-(defmethod ss-drop-sugar1 (term (type (eql 'stripos))) (cons 'strpos (cdr term)))
+(defMethod ss-drop-sugar1 (term (type (eql 'int))) `(tonum ,(second term)))
+(defMethod ss-drop-sugar1 (term (type (eql 'integer))) `(tonum ,(second term)))
+(defMethod ss-drop-sugar1 (term (type (eql 'intval))) `(tonum ,(second term)))
+(defMethod ss-drop-sugar1 (term (type (eql 'bool))) `(tobool ,(second term)))
+(defMethod ss-drop-sugar1 (term (type (eql 'boolean))) `(tobool ,(second term)))
+(defMethod ss-drop-sugar1 (term (type (eql 'float))) `(tonum ,(second term)))
+(defMethod ss-drop-sugar1 (term (type (eql 'double))) `(tonum ,(second term)))
+(defMethod ss-drop-sugar1 (term (type (eql 'real))) `(tonum ,(second term)))
+(defMethod ss-drop-sugar1 (term (type (eql 'string))) `(tostring ,(second term)))
+(defMethod ss-drop-sugar1 (term (type (eql 'strval))) `(tostring ,(second term)))
+(defMethod ss-drop-sugar1 (term (type (eql 'eregi))) `(in ,(third term) ,(second term)))
+(defMethod ss-drop-sugar1 (term (type (eql 'ereg))) `(in ,(third term) ,(second term)))
+(defMethod ss-drop-sugar1 (term (type (eql 'stripos))) (cons 'strpos (cdr term)))
 ; ignoring some functions
-(defmethod ss-drop-sugar1 (term (type (eql 'htmlspecialchars))) (second term))
-(defmethod ss-drop-sugar1 (term (type (eql 'stripslashes))) (second term))
-(defmethod ss-drop-sugar1 (term (type (eql 'base64_decode))) (second term))
-(defmethod ss-drop-sugar1 (term (type (eql 'addslashes))) (second term))
+(defMethod ss-drop-sugar1 (term (type (eql 'htmlspecialchars))) (second term))
+(defMethod ss-drop-sugar1 (term (type (eql 'stripslashes))) (second term))
+(defMethod ss-drop-sugar1 (term (type (eql 'base64_decode))) (second term))
+(defMethod ss-drop-sugar1 (term (type (eql 'addslashes))) (second term))
 ; default to no rewrite
-(defmethod ss-drop-sugar1 (term type) (declare (ignore type)) term)
+(defMethod ss-drop-sugar1 (term type) (declare (ignore type)) term)
 
-(defgeneric ss-drop-sugar2 (term type))
+(defGeneric ss-drop-sugar2 (term type))
 ;  (SS-DROP-SUGAR2 TERM TYPE) removes the sugar from TERM, which is either
 ;   an atom or a functional term whose arguments have already been desugared.
 ;   Returns 2 values: the new term and a list of supporting statements.
@@ -775,10 +797,10 @@
 
 
 
-(defmethod ss-drop-sugar2 (term (type (eql 'istrue)))
+(defMethod ss-drop-sugar2 (term (type (eql 'istrue)))
   (ss-php-true (second term)))
 
-(defmethod ss-drop-sugar2 (term (type (eql 'ltrim)))
+(defMethod ss-drop-sugar2 (term (type (eql 'ltrim)))
   (let ((thing (second term))
 	(chars (if (cddr term) (third term) '("\\t" "\\n" "\\r" " "))))
     (let ((y (newindvar)) 
@@ -788,7 +810,7 @@
 		  (in ,z ,(stringappend white "*"))
 		  (nin ,y ,(stringappend "^" white "+")))))))
 
-(defmethod ss-drop-sugar2 (term (type (eql 'rtrim)))
+(defMethod ss-drop-sugar2 (term (type (eql 'rtrim)))
   (let ((thing (second term))
 	(chars (if (cddr term) (third term) '("\\t" "\\n" "\\r" " "))))
     (let ((y (newindvar)) 
@@ -798,15 +820,15 @@
 		  (in ,z ,(stringappend white "*"))
 		  (nin ,y ,(stringappend white "+$")))))))
 
-(defmethod ss-drop-sugar2 (term (type (eql 'trim)))
+(defMethod ss-drop-sugar2 (term (type (eql 'trim)))
   (if (cddr term)
       (ss-drop-sugar-term (list 'ltrim (cons 'rtrim (third term)) (third term)))
       (ss-drop-sugar-term `(ltrim (rtrim ,(second term))))))
 
-(defmethod ss-drop-sugar2 (term (type (eql 'chop)))
+(defMethod ss-drop-sugar2 (term (type (eql 'chop)))
   (ss-drop-sugar2 term 'rtrim))
 
-(defmethod ss-drop-sugar2 (term (type (eql 'notstrpos)))
+(defMethod ss-drop-sugar2 (term (type (eql 'notstrpos)))
   ; bool notstrpos ( string $haystack , mixed $needle [, int $offset = 0 ] )
   (let* ((leftvar (newindvar))
 	 (remainvar (newindvar)))
@@ -817,7 +839,7 @@
 	  (t
 	   `(not (in ,(second term) ,(third term)))))))
 
-(defmethod ss-drop-sugar2 (term (type (eql 'strpos)))
+(defMethod ss-drop-sugar2 (term (type (eql 'strpos)))
   ; int strpos ( string $haystack , mixed $needle [, int $offset = 0 ] )
   ; NOT CORRECTLY HANDLING WITH WHEN NEEDLE DOESN'T EXIST B/C STRPOS RETURNS FALSE, which is of the wrong type.
   ;  Instead, use NOTSTRPOS.
@@ -830,7 +852,7 @@
       (push `(gte (len ,leftvar) ,(fourth term)) sents))
     (values `(len ,leftvar) sents)))
 
-(defmethod ss-drop-sugar2 (term (type (eql 'strstr)))
+(defMethod ss-drop-sugar2 (term (type (eql 'strstr)))
   ; string strstr ( string haystack , string needle [, bool before_needle = false ] )
   ;  HANDLING WHEN NEEDLE CAN'T BE FOUND WEIRDLY.  RETURNING "" INSTEAD OF FALS.
   ;     NECESSARY SINCE FALSE IS OF THE WRONG TYPE.
@@ -854,7 +876,7 @@
 		     sents))
 	   (values outvar sents)))))
 
-(defmethod ss-drop-sugar2 (term (type (eql 'substr)))
+(defMethod ss-drop-sugar2 (term (type (eql 'substr)))
   ; (substr string start <length>)
   (let* ((leftvar (newindvar))
 	 (returnvar (newindvar))
@@ -868,7 +890,7 @@
 		      (= (len ,leftvar) ,(third term)))))
     (values returnvar sents)))
 
-(defmethod ss-drop-sugar2 (term (type (eql 'substr_replace)))
+(defMethod ss-drop-sugar2 (term (type (eql 'substr_replace)))
   ; substr_replace(string,replacement,start,<length>)
   ;  assume start>=0 and length>=0 since underlying solver has only positive numbers.
   (let* ((leftvar (newindvar))
@@ -883,26 +905,26 @@
     (values `(concat ,leftvar (concat ,(third term) ,rightvar))
 	    sents)))
 
-(defmethod ss-drop-sugar2 (term (type (eql 'preg_match)))
+(defMethod ss-drop-sugar2 (term (type (eql 'preg_match)))
   ; preg_match($pattern, $subject, [$matches [, $flags [, $offset]]]);
   ; ignoring extra arguments
   (if (fourth term)
       (list* 'untyped term)
       `(in ,(third term) ,(second term))))
 
-(defmethod ss-drop-sugar2 (term (type (eql 'preg_match_all)))
+(defMethod ss-drop-sugar2 (term (type (eql 'preg_match_all)))
   ; int preg_match_all(string $pattern,string $subject,array &$matches  [, int $flags [, int $offset = 0  ]] )
   ; the purpose of this is to return the array of matches, and we can't do that.
   (list* 'untyped term))
 
-(defmethod ss-drop-sugar2 (term (type (eql 'preg_replace)))
+(defMethod ss-drop-sugar2 (term (type (eql 'preg_replace)))
   ; preg_replace ($pattern , $replacement , $subject [, int $limit = -1 [, int &$count ]] )
   ; $pattern/$replacement can either be strings or arrays.
   ; implement an approximation: replace only one instance
   (cond ((fifth term) (list* 'untyped term))
 	(t (ss-drop-sugar2-array-replace term 'preg_replace1))))
 
-(defmethod ss-drop-sugar2 (term (type (eql 'str_replace)))
+(defMethod ss-drop-sugar2 (term (type (eql 'str_replace)))
   ; str_replace ( mixed $search , mixed $replace , mixed $subject [, int &$count ] )
   ; replace only 1 instance
   (cond ((fifth term) term)
@@ -924,7 +946,7 @@
       (setq new (build zip (fourth term)))
       (ss-drop-sugar-term new))))
 
-(defmethod ss-drop-sugar2 (term (type (eql 'str_replace1)))
+(defMethod ss-drop-sugar2 (term (type (eql 'str_replace1)))
   ; str_replace ($search , $replacement , $subject [, $limit [, $count]])
   ; CAUTION: only performs 1 replacement; ignores $limit and $count
   (cond ((stringp (second term))
@@ -946,7 +968,7 @@
 ;    (in ?y pattern)
 ;    (=> (in ?y pattern)(= ?x (substr_replace ...)))
 ;    (=> (notin pattern subject) (= ?x subject))
-(defmethod ss-drop-sugar2 (term (type (eql 'preg_replace1)))
+(defMethod ss-drop-sugar2 (term (type (eql 'preg_replace1)))
   ; preg_replace ($pattern , $replacement , $subject [, $limit [, $count]])
   ; CAUTION: only performs 1 replacement; ignores $limit and $count
   (let* ((leftvar (newindvar)) (rightvar (newindvar)) (outvar (newindvar)) (matchvar (newindvar))
@@ -962,7 +984,7 @@
 				     (= ,haystack (concat ,leftvar (concat ,matchvar ,rightvar)))
 				     (= ,outvar (concat ,leftvar (concat ,repl ,rightvar)))))))))))
 
-(defmethod ss-drop-sugar2 (term (type (eql 'empty)))
+(defMethod ss-drop-sugar2 (term (type (eql 'empty)))
    ; PHP 5 notion of empty (skipping NULL and objects)
   `(or (= ,(second term) "")
        (= ,(second term) 0)
@@ -970,7 +992,7 @@
        (= ,(second term) false)
        (forbid ,(second term))))
 
-(defmethod ss-drop-sugar2 (term type)
+(defMethod ss-drop-sugar2 (term type)
   (declare (ignore type))
   term)
 
@@ -1086,7 +1108,7 @@
 
 ;;;;;;;;;;;; Conjunctive Constraint solving ;;;;;;;;;;;;
 ; actual solving.
-(defvar *ss-tmp*)
+(defVar *ss-tmp*)
 (defun ss-solve-atoms (ps types &optional required forbidden)
   "(SS-SOLVE-ATOMS PS TYPES REQUIRED) uses External Solver to find a solution to the atoms given as input.
    Each atom takes the following form or one of the symmetric instances of the below.
@@ -1134,7 +1156,7 @@
     (when (not (listp ps)) (return-from ss-solve-atoms nil))
     (setq psvars (vars ps))
     (when (intersectionp psvars forbidden) (return-from ss-solve-atoms nil))  ; if var shows up in PS, we're finding value
-    (setq ps (and2list (flatten-operator (flatten-functions (maksand ps) t))))
+    (setq ps (and2list (flatten-operator (flatten-functions (maksand ps) :fullflat t :universal nil))))
 
     ; remove equality for (= var ground); leave (= var unground) since we need flat terms for Kaluza.
     ;   REMOVED BECAUSE WE'RE MISSING UNSAT CASES
@@ -1763,7 +1785,7 @@
 |#
 
 (defun php-false (x) (or (eq x 'false) (eq x 0) (equal x "") (equal x "0")))
-(defparameter *ss-false-values* #'php-false)
+(defParameter *ss-false-values* #'php-false)
 
 ; assumes all types for variables are known
 (defun ss-cast-tonum (x) 
@@ -1945,7 +1967,7 @@
 (defun ss-type-inference (ps)
   "(SS-TYPE-INFERENCE PS) given a list of atoms, compute types of variables.
    Returns two values: a hash keyed on variables giving a type and a list of errors. "
-  (let (vs al th val val2)
+  (let (vs al th val val2 depthlimit)
     ; grab all types for all variables appearing in PS, using datalog
     (setq vs (vars ps))
     (setq al (mapcar #'(lambda (x) (cons x (quotify x))) vs))
@@ -1955,8 +1977,11 @@
     (setq th (define-theory (make-instance 'prologtheory) "" (mapcar #'(lambda (x) (list 'atom x)) ps)))
     (includes th 'sstypes)
     (setq val nil)
+    (if *ss-type-inference-full-depth*
+	(setq depthlimit (* 3 (length vs)))
+	(setq depthlimit 3))
     (dolist (v vs)
-      (let ((*depth* (* 3 (length vs))) 
+      (let ((*depth* depthlimit) ; ) 
 	    (*ancestry* t))  ; never need to go more than depth 3, except for = over vars
 	(setq val2 nil)
 	(when (viewfindp `(argtype ,(quotify v) str) th) (push 'str val2))
@@ -1999,10 +2024,10 @@
   (cond ((atom x) nil)
 	((eq (car x) 'reg) (stringp (second x)))))
 
-(defparameter *ss-internal-complements*
+(defParameter *ss-internal-complements*
   '((= . !=) (lt . gte) (gt . lte) (lt . gt) (in . notin) (in . nin) (require . forbid))
 )
-(defparameter *ss-internal-vocab* 
+(defParameter *ss-internal-vocab* 
   (list (make-parameter :symbol 'lt :arity 2 :type 'relation)
 	(make-parameter :symbol 'lte :arity 2 :type 'relation)
 	(make-parameter :symbol 'gt :arity 2 :type 'relation)
@@ -2501,7 +2526,7 @@
 
 ;;;;;;;;;;;; Kaluza interface ;;;;;;;;;;;;
 
-(defparameter *ss-kaluza-vocab* 
+(defParameter *ss-kaluza-vocab* 
   (list (make-parameter :symbol 'lt :arity 2 :type 'relation)
 	(make-parameter :symbol 'lte :arity 2 :type 'relation)
 	(make-parameter :symbol 'gt :arity 2 :type 'relation)
@@ -2704,14 +2729,16 @@
   (format s "~A" op))
 
 (defun ss-invoke-kaluza-parse (str)
-  "(SS-INVOKE-KALUZA-PARSE STR) parses Hampi's output to return a value."
+  "(SS-INVOKE-KALUZA-PARSE STR) parses Kaluza's output to return a value."
   (setq str (string-trim '(#\Space) str))
   (cond ((eq (length str) 0) :unsat)
+	((every #'(lambda (i) (or (= (length i) 0) (eq (search "rm: " i) 0))) (split-string str '(#\Newline))) :unsat)
 	(t
 	 (let (l bl)
 	   (setq l (split-string str '(#\Newline)))
 	   (dolist (i l bl)   ; walk over result and find var assign or unsat
-	     (cond ((= (length i) 0))
+	     (cond ((= (length i) 0))  ; ignore blanks
+		   ((eq (search "rm: " i) 0))  ; ignore rm warnings
 		   ((search "ASSERT" i)
 		    (let (vari eqi q1i q2i)
 		      (setq vari 7)  ; after ASSERT(

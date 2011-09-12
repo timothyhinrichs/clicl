@@ -1,0 +1,91 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; technique
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    (technique.instance    bilevel)
+    (prettyname            bilevel "Bilevel Reasoning")
+    (shortname             bilevel "Bi")
+    (matrixshow            bilevel true)
+    (technique.description bilevel "Split the problem into two pieces: the data and the axioms.")
+
+    (technique.instance    chirkovareformulation)
+    (prettyname            chirkovareformulation "Chirkova Reformulation")
+    (shortname             chirkovareformulation "Chirkova")
+    (matrixshow            chirkovareformulation true)
+    (technique.description chirkovareformulation "Computes the optimal viewset for transforming an unknown (but fixed-size) database into a new database that more efficiently answers a given query set.")
+
+    (technique.instance    consistency2deduction)
+    (prettyname            consistency2deduction "Consistency2Deduction")
+    (shortname             consistency2deduction "C2D")
+    (matrixshow            consistency2deduction true)
+    (technique.description consistency2deduction "Consistency2Deduction[Delta,phi(xbar)] computes an expression that represents for all the query instances tbar such that Delta U {phi(tbar)} is consistent.")
+
+    (technique.instance    dataextraction)
+    (prettyname            dataextraction "Data Extraction")
+    (shortname             dataextraction "Extraction")
+    (matrixshow            dataextraction true)
+    (technique.description dataextraction "Pulls data out of a rule or set of rules, places that data into tables, and appropriately adjusts the rule so that semantically the original and the new versions are identical.  Inverse of dataInfusion.")
+
+    (technique.instance    datainfusion)
+    (prettyname            datainfusion "Data Infusion")
+    (shortname             datainfusion "Infusion")
+    (matrixshow            datainfusion true)
+    (technique.description datainfusion "Pushes data from a table into rules, a special form of partial deduction from the logic programming literature.  Inverse of dataExtraction.")
+
+    (technique.instance    generateoverguess)
+    (prettyname            generateoverguess "Generate Over Guess")
+    (shortname             generateoverguess "GOG")
+    (matrixshow            generateoverguess true)
+    (technique.description generateoverguess "Technique that changes a guess-and-check problem formulation reformulation into a formulation that generates the answer constructively.")
+
+    (technique.instance    naf)
+    (prettyname            naf "Negation as Failure")
+    (shortname             naf "NAF")
+    (matrixshow            naf true)
+    (technique.description naf "Negation as failure is a meta-inference rule: if the closed sentence p is not entailed (cannot be proven) then infer -p.  We've found it useful for performing iteration, and it is also useful in complete theories when failing to prove p in the positive space is easier than proving -p directly.  ")
+
+    (technique.instance    objectifying)
+    (prettyname            objectifying "Objectifying")
+    (shortname             objectifying "2Obj")
+    (matrixshow            objectifying false)
+    (technique.description objectifying "Form of reification where relation constants become function or object constants.")
+
+    (technique.instance    reification)
+    (prettyname            reification "Reification")
+    (shortname             reification "Reification")
+    (matrixshow            reification true)
+    (technique.description reification "Reification is an umbrella technique that encompasses all kinds of vocabulary and conceptualization shifts.")
+
+    (technique.instance    relationalizing)
+    (prettyname            relationalizing "Relationalizing")
+    (shortname             relationalizing "2Reln")
+    (matrixshow            relationalizing false)
+    (technique.description relationalizing "Form of reification where object/function constants are turned into relation constants.")
+
+    (technique.instance    residuesrewrite)
+    (prettyname            residuesrewrite "Rewrite with Residues")
+    (shortname             residuesrewrite "Residue")
+    (matrixshow            residuesrewrite true)
+    (technique.description residuesrewrite "Given a query phi, a set of sentences Delta, and a set of relations R, find all residues for phi in Delta wrt R.  Turn the result into a disjunction and simplify it.")
+
+    (technique.instance    staticconjordering)
+    (prettyname            staticconjordering "Static Conjunct Ordering")
+    (shortname             staticconjordering "StatCO")
+    (matrixshow            staticconjordering true)
+    (technique.description staticconjordering "For model elimination, ordering conjuncts statically requires simply changing the sequence of literals in the body of the rules.")
+
+    (technique.instance    symmetryanalysis)
+    (prettyname            symmetryanalysis "Symmetry Analysis")
+    (shortname             symmetryanalysis "Sym")
+    (matrixshow            symmetryanalysis true)
+    (technique.description symmetryanalysis "Take advantage of symmetry in the problem to reduce the search space.")
+
+    (technique.instance    unnamed)
+    (prettyname            unnamed "Unnamed")
+    (shortname             unnamed "?")
+    (matrixshow            unnamed true)
+    (technique.description unnamed "Encompasses all unnamed techniques.")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

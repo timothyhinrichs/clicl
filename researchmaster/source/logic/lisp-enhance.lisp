@@ -190,7 +190,21 @@
       (setq neg (cons (car ls) neg)))))
 
 (defun group-by (list func &key (test #'eq))
-  (hash2bl (group-by-hash list func :test test)))
+  (if (or (eq test #'eq) (eq test #'equal) (eq test #'equalp))
+      (hash2bl (group-by-hash list func :test test))
+      (group-by-list list func :test test)))
+
+(defun group-by-list (list func &key (test #'eq))
+  (let (map v entry)
+    ; group list elements by function
+    (setq map nil)
+    (dolist (l list)
+      (setq v (funcall func l))
+      (setq entry (assoc v map :test test))
+      (if entry
+	  (push l (cdr entry))
+	  (push (cons v (list l)) map)))
+    map))
 
 (defun group-by-hash (list func &key (test #'eq))
   (let (h v)
@@ -453,6 +467,13 @@ rest of the given `string', if any."
      (do ((sentence (read s nil) (read s nil)) (nl))
          ((null sentence) (nreverse nl))
        (setq nl (cons sentence nl))))))
+
+(defun read-lines* (s)
+  "(READ-LINES S) except doesn't ignore errors."
+   (with-input-from-string (s s)
+     (do ((sentence (read s nil) (read s nil)) (nl))
+         ((null sentence) (nreverse nl))
+       (setq nl (cons sentence nl)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;; Files ;;;;;;;;;;;;;;;;;

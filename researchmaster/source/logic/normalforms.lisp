@@ -87,27 +87,28 @@
       ((= i n) (nreverse v))
     (push (tosymbol (format nil "~A~A" prefix i)) v)))
 
-(defun similarize-head (r vs)
-  (cond ((null vs) r)
+(defun similarize-head (r vars)
+  "(SIMILARIZE-HEAD R VARS) takes any sentence of the forms (Op Lit p1 ... pn) or Lit and a list of variables VARS.
+   Returns a rule equivalent to R except all of the arguments to Lit are VARS."
+  (cond ((null vars) r)
+	((atom r) r)
         (t
-         (when (not (member (car r) '(<= =>))) (setq r (list '<= r)))  ; stick a <= on the front, if not already there
-         (let ((headterms (if (atomicp (second r)) (cdr (second r)) (cdr (second (second r)))))
-               (newhead (cons (relation r) vs))
-               ;(oldvars (vars r))
-               (equality))
-
-           ; turn back negative if original was.
-           (when (not (atomicp (second r))) (setq newhead (maknot newhead)))  
-
-           ; construct new equality statements
-           (setq equality (mapcar #'(lambda (x y) (list '= x y)) vs headterms))
-#|
-           ; append the new equality to the old body, add the existential quantification, and return the new rule
-           (if oldvars
-             (list '<= newhead `(exists ,oldvars ,(maksand (append equality (cddr r)))))
-             (list '<= newhead (maksand (append equality (cddr r))))))))) 
-|#
-             (list (car r) newhead (maksand (propagate-equality (append equality (cddr r)) vs)))))))
+         (unless (member (car r) '(<= =>)) (setq r (list '<= r)))  ; stick a <= on the front, if not already there
+	 (let (head newhead equality oldargs)
+	   (setq head (drop-not (head r)))
+	   (setq oldargs (cdr head))
+	   (cond ((atom head) r)
+		 ((not (= (length oldargs) (length vars))) r)
+		 (t
+		  (setq equality nil)
+		  (do ((vs vars (cdr vs))
+		       (as oldargs (cdr as)))
+		      ((null vs))
+		    (unless (equal (car vs) (car as)) (push `(= ,(car vs) ,(car as)) equality)))
+		  (setq equality (nreverse equality))
+		  (setq newhead (cons (first head) vars))
+		  (when (negative-literalp (head r)) (setq newhead (maknot newhead)))
+		  (maksred (cons newhead (nconc equality (cddr r))))))))))
 
 (defun existentially-quantify-body (p)
   (cond ((atom p) p)
