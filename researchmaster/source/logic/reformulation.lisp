@@ -109,6 +109,12 @@
 	((atom (car p)) (cdr p))
 	(t p)))
 
+(defun drop-ops (p)
+  "(DROP-OPS P) turns p into a list by dropping outermost operator."
+  (cond ((atom p) (list p))
+	((atom (car p)) (cdr p))
+	(t (list p))))
+
 (defun drop-not (p)
   (cond ((atom p) p)
         ((eq (car p) 'not) (second p))
@@ -118,6 +124,12 @@
   (cond ((atom p) p)
         ((eq (car p) 'or) (cdr p))
         (t p)))
+
+(defun drop-ors (p)
+  "(DROP-ORS P) turns P into a list by dropping outermost OR."
+  (cond ((atom p) (list p))
+        ((eq (car p) 'or) (cdr p))
+        (t (list p))))
 
 (defun drop-and (p)
   (cond ((atom p) p)
@@ -131,16 +143,22 @@
         ((eq (car p) 'and) (mapcan #'drop-ands (cdr p)))
         (t (list p))))
 
+(defun drop-exists (p)
+  (cond ((atom p) p)
+	((eq (car p) 'exists) (third p))
+	(t p)))
+
+(defun drop-forall (p)
+  (cond ((atom p) p)
+	((eq (car p) 'forall) (third p))
+	(t p)))
+
 (defun drop-things (p thing &key (test #'eq))
   (cond ((atom p) (list p))
 	((funcall test (car p) thing) 
 	 (mapcan #'(lambda (x) (drop-things x thing :test test)) (cdr p)))
 	(t (list p))))
 
-(defun drop-exists (p)
-  (cond ((atom p) p)
-	((eq (car p) 'exists) (third p))
-	(t p)))
 
 (defun boolops2kif (p)
   "(BOOLOPS2KIF P) translate non-kif boolean operators to KIF operators."
@@ -289,7 +307,7 @@
 	  (t (cons (car p) (mapcar #'mapmyfunc (cdr p)))))))
 
 (defun subobj (alist p &key (test #'eq))
-  "(SUBFUN ALIST P) applies the substitution list ALIST to all of the
+  "(SUBOBJ ALIST P) applies the substitution list ALIST to all of the
    object constants in the sentence P.  Returns the new sentence."
   (mapterms #'(lambda (x) (if (atom x) (sublis alist x :test test) x)) p))
 
@@ -297,6 +315,12 @@
   "(SUBFUN ALIST P) applies the substitution list ALIST to all of the
    function constants (but not object constants) in the sentence P.  Returns the new sentence."
   (mapterms #'(lambda (x) (if (listp x) (cons (sublis alist (car x) :test test) (cdr x)) x)) p))
+
+(defun subrel (alist p &key (test #'eq))
+  "(SUBFUN ALIST P) applies the substitution list ALIST to all of the
+   function constants (but not object constants) in the sentence P.  Returns the new sentence."
+  (mapopands #'(lambda (x) (if (atom x) (sublis alist p :test test) (cons (sublis alist (car x) :test test) (cdr x))))
+	     p))
 
 (defun nsubfun (alist p)
   "(NSUBFUN ALIST P) destructively applies the substitution list ALIST to all of the
@@ -333,14 +357,18 @@
           (sentences '? th))
     newth))
 
+(defun shallow-term (thing)
+  "(SHALLOW-TERM THING) returns T iff the KIF expression given has a nesting of at most 1
+   where a quoted term is defined to have depth 0."
+  (cond ((atom thing) t)
+	((eq (car thing) 'quote) t)
+	(t (every #'(lambda (x) (or (atom x) (and (listp x) (eq (car x) 'quote)))) (cdr thing)))))
+
 (defun flatten-functions (p &key (fullflat nil) (universal t))
   "(FLATTEN-FUNCTIONS P) takes a NNF formula P and returns a QF sentence 
    equivalent to p except the depth of function nesting is
    always at most 1, e.g. (p (f a (g ?x (h ?y)))) becomes
    (and (p (f a ?z2)) (= ?z2 (g ?x ?z3)) (= ?z3 (h ?y))).
-   FULLFLAT forces all functional terms to be forced outside, e.g.
-   (and (p ?z1) (= ?z1 (f a ?z2)) (= ?z2 (g ?x ?z3)) (= ?z3 (h ?y))).
-   FULLFLAT being NIL makes flatten-functions idempotent.
    UNIVERSAL controls whether the implicit quantifier is universal or existential."
   (cond ((atom p) p)
 	;((member (car p) '(and or not))   ;  OLD version of code???  Leave in case not
@@ -349,12 +377,16 @@
 	((member (car p) '(or not and)) 
 	  ; don't include =>, <=, or <=> b/c the new variables need to be existentially quantified.
 	  ;   Can of course rewrite this code, but don't have the time.  Can instead convert to NNF before flattening.
-	 (flatten-operator (cons (car p) (mapcar #'(lambda (q) (flatten-functions q :fullflat fullflat :universal universal)) (cdr p)))))	 
-	(fullflat 
+	 (flatten-operator (cons (car p) (mapcar #'(lambda (q) 
+						     (flatten-functions q :fullflat fullflat :universal universal)) 
+						 (cdr p)))))	 
+	((and (eq (car p) '=) (shallow-term (second p)) (shallow-term (third p))) p)
+	(t
 	 (multiple-value-bind (newargs extra) (mapcaraccum #'flatten-term (cdr p))
 	   (if universal
-	       (maksred (cons (cons (car p) newargs) extra))
-	       (maksand (cons (cons (car p) newargs) extra)))))
+	       (maksor (cons (cons (car p) newargs) (mapcar #'maknot extra)))
+	       (maksand (cons (cons (car p) newargs) extra)))))))
+#|  Old version of flatten functions
 	(t (multiple-value-bind (newargs extra) 
 	       (mapcaraccum 
 		#'(lambda (term) 
@@ -369,6 +401,7 @@
 	     (if universal
 		 (maksred (cons (cons (car p) newargs) extra))
 		 (maksand (cons (cons (car p) newargs) extra)))))))
+|#
 
 (defun flatten-term (term)
   (cond ((atom term) (values term nil))
@@ -1057,8 +1090,86 @@
     (multiple-value-setq (p1 p2) (split #'(lambda (x) (member (signed-relation x) set :test #'equal)) literals))
     (nconc p1 p2)))
 
+(defun test-order-datalog (&optional (rule nil) (debug nil))
+  (let (tests failures out h hash)
+    (setq h (make-hash-table))
+    (setf (gethash 'r h) '((r ?x ?y ?z) . (rtype ?x ?y ?z)))
+    (setf (gethash 'p1 h) '((p1 ?x) . (ab ?x)))
+    (setf (gethash 'q1 h) '((q1 ?x) . (ab ?x)))
+    ; (input output bound assign)
+    (setq tests `(
+		  ; basic
+		  ((<= p q r s) (<= p q r s))
+		  ((<= (p ?x) (not (q ?x)) (r ?x)) (<= (p ?x) (r ?x) (not (q ?x))))
+		  ((<= (p ?x) (not (q ?y)) (r ?x ?y)) (<= (p ?x) (r ?x ?y) (not (q ?y)))) 
+		  ((<= (p ?x ?y)) (<= (p ?x ?y) (univ ?x) (univ ?y)))
+		  ((<= (p ?x) (not (r ?y)) (q ?y)) (<= (p ?x) (q ?y) (not (r ?y)) (univ ?x)))
+		  ((<= (p ?x) (not (r ?x ?y)) (not (r ?y ?z)) (s ?y) (s ?x) (s ?z))
+		   (<= (p ?x) (s ?y) (s ?x) (not (r ?x ?y)) (s ?z) (not (r ?y ?z))))
+		  ((<= (p ?w) (not (r ?w ?t)) (not (r ?x ?y)) (not (r ?y ?z)) (s ?y) (s ?x) (s ?z))
+		   (<= (p ?w) (s ?y) (s ?x) (not (r ?x ?y)) (s ?z) (not (r ?y ?z)) (univ ?w) (univ ?t) (not (r ?w ?t))))
+		  
+		  ; with equality
+		  ((<= (p ?x) (= (f ?y) ?x) (q ?y)) (<= (p ?x) (q ?y) (<- ?x (f ?y))))
+		  ((<= (p ?x) (= (f ?y) (g ?z)) (q ?y)) (<= (p ?x) (q ?y) (univ ?x) (univ ?z) (= (f ?y) (g ?z))))
+		  ((<= (p ?x) (= (f ?y) a) (q ?y)) (<= (p ?x) (q ?y) (= (f ?y) a) (univ ?x)))
+		  ((<= (p ?x) (= ?x ?y) (q ?y)) (<= (p ?x) (q ?y) (<- ?x ?y)))
+		  ((<= (p ?x) (= (f ?y ?z) ?x) (q ?y)) (<= (p ?x) (q ?y) (univ ?z) (<- ?x (f ?y ?z))))
+		  ((<= (p ?x) (= (f ?y ?z) ?x) (r ?z) (q ?y)) (<= (p ?x) (r ?z) (q ?y) (<- ?x (f ?y ?z))))
+		  ((<= (p ?t2) (= (f ?t1 ?t3) ?t2) (q ?t1) (not (r ?w ?t)) (not (r ?x ?y)) (not (r ?y ?z)) (s ?y) (s ?x) (s ?z))
+		   (<= (p ?t2) (q ?t1) (s ?y) (s ?x) (not (r ?x ?y)) (s ?z) (not (r ?y ?z)) (univ ?t3) (<- ?t2 (f ?t1 ?t3)) 
+		       (univ ?w) (univ ?t) (not (r ?w ?t))))
+		  ((<= (Q ?X0) (= ?X0 ?TLH0) (P ?TLH0)) (<= (Q ?X0) (P ?TLH0) (<- ?X0 ?TLH0)))
 
-(defun order-datalog-conjuncts (p hashedtypes &optional (defaulttype 'univ) (attach nil) (bound nil))
+		  ; with initial binding
+		  ((<= (p ?x)) (<= (p ?x)) (?x))
+		  ((<= (p ?x ?y)) (<= (p ?x ?y) (univ ?y)) (?x))
+		  ((<= (p ?x ?y) (q ?y) (not (r ?x))) (<= (p ?x ?y) (not (r ?x)) (q ?y)) (?x))
+
+		  ; with hashed types
+		  ((<= (p ?x) (not (r ?x ?y ?z)))
+		   (<= (p ?x) (rtype ?x ?y ?z) (not (r ?x ?y ?z)))
+		   nil nil ,h)
+		  ((<= (Q1 ?X0) (= ?X0 ?TLH0) (P1 ?TLH0)) (<= (Q1 ?X0) (P1 ?TLH0) (<- ?X0 ?TLH0))
+		   nil nil ,h)
+
+		  ; with attachments
+		  ((<= (p ?x) (q ?x)) (<= (p ?x) (q ?x)) 
+		   nil ,(list (make-parameter :symbol 'q :type 'function :arity 1)))
+		  ((<= (p ?x) (q ?x)) (<= (p ?x) (univ ?x) (q ?x)) 
+		   nil ,(list (make-parameter :symbol 'q :type 'relation :arity 1)))
+		  ))
+    (setq failures 0)
+    (dolist (e tests)
+      (when (or (not rule) (equal rule (first e)))
+	(if (fifth e) (setq hash (fifth e)) (setq hash (make-hash-table)))
+	(setq out (order-datalog-rule (first e) :bound (third e) :attach (fourth e) :hashedtypes hash :assign '<- :debug debug))
+	(format t "~A ----->>>> ~A~%" (first e) out)
+	(unless (equal (second e) out)
+	  (setq failures (1+ failures))
+	  (format t "Error on ~A~%" (first e)))))
+    (if (> failures 0) (format t "ERRORS: ~A~%" failures) (format t "SUCCESS~%"))))
+	  
+(defun order-datalog-rule (p &key (hashedtypes (make-hash-table)) (defaulttype 'univ) (attach nil) (bound nil) (assign nil) (debug nil))
+  "(ORDER-DATALOG-RULE P) takes a sentence P of the form (<= LIT0 LIT1 .... LITN).  Returns 
+   a rule equivalent to P except with the body reordered and possibly with additional
+   body literals to make left-to-right evaluation safe and efficient.  See ORDER-DATALOG-CONJUNCTS
+   for explanation of other parameters."
+  (cond ((atom p) p)
+	((eq (car p) '<=) 
+	 (let (nlit b)
+	   ; add nlit to body to ensure the variables in the head are made safe
+	   (setq nlit (maknot (drop-not (head p))))
+	   (setq b  (order-datalog-conjuncts (adjoin nlit (body p) :test #'equalp) :hashedtypes hashedtypes 
+					     :defaulttype defaulttype :attach attach 
+					     :bound bound :assign assign :debug debug))
+	   ; remove nlit from the body
+	   (setq b (remove nlit b))
+	   (list* '<= (head p) b)))
+	(t (order-datalog-rule (list '<= p) :hashedtypes hashedtypes :defaulttype defaulttype 
+			       :attach attach :bound bound :assign assign :debug debug))))
+	   
+(defun order-datalog-conjuncts (p &key (hashedtypes (make-hash-table)) (defaulttype 'univ) (attach nil) (bound nil) (assign nil) (debug nil))
   "(ORDER-DATALOG-CONJUNCTS P HASHEDTYPES) takes a list of literals P, a hash 
    table keyed on predicates, and optionally a DEFAULTTYPE.  Returns P where
    the negative literals may be reordered, possibly with additional type guards 
@@ -1066,86 +1177,165 @@
    negative literals at evaluation time, as long as DEFAULTTYPE is non-nil.  
    The p entry in HASHEDTYPES is a dotted
    pair of the form ((p ?x1 ... ?xn) . (q ?x1 ... ?xm)).  ATTACH is a list of 
-   predicates that should be treated as though they were negatives.  BOUND is a list
-   of variables that are known to be bound at evaluation time."
-  (let (pos neg poshash neghash res vs typeexpr bl needsguardp)
-    (setq needsguardp #'(lambda (x) (or (negative-literalp x) (member (relation x) attach))))
-    (setq poshash (make-hash-table))
-    (setq neghash (make-hash-table))
-    (multiple-value-setq (neg pos) (split needsguardp p))
-    (setq res nil)
-    ; hash neg on all variables, and if no vars in neg literal, add at front.
-    (dolist (n neg)
-      (setq vs (set-difference (vars n) bound))
-      (if (null vs)
-	  (push n res)
-	  (dolist (v vs)
-	    (setf (gethash v neghash) (cons n (gethash v neghash))))))
+   parameters that are only implemented via procedural code.  BOUND is a list
+   of variables that are known to be bound at evaluation time.  Allows
+   function constants to appear but (i) only in positive = lits 
+   (i.e. flatten-functions has been called) and (ii) assumes all functions are all attached.
+   ASSIGN when non-NIL changes (= t u)  to (,assign t u) to indicate the 2nd arg (a var) is being assigned
+   the third arg.  Assumes ASSIGN does not appear in P.  Also, assumes no (= ?x ?y), i.e. where both
+   args to = are vars -- if assumption broken, ordering produced may be less efficient.
+   Warning: we assume DEFAULTTYPE is the union of all domains of built-ins as well as relations.
+      In practice, this doesn't happen since Univ is always finite and builtins are often infinite.
+      Thus in practice, we may miss answers."
+  (let (res equality pos neg varhash eqhash poshash neghash) 
+    (labels ((needsguardp (lit)
+	       (or (negative-literalp lit) 
+		   (and (positive-literalp lit) (eq (relation lit) '=) (not (varp (second lit))) (not (varp (third lit))))
+		   (let (r a)
+		     (setq r (relation lit))
+		     (setq a (arity lit))
+		     (find-if #'(lambda (param) (and (eq a (parameter-arity param))
+						     (eq r (parameter-symbol param))
+						     (isrelation param)))
+			      attach))))
+	     (markvar (v) (setf (gethash v varhash) t))
+	     (varmarked (v) (gethash v varhash))
+	     (hashonvars (vs lit hash)
+	       (dolist (v vs)
+		 (setf (gethash v hash) (cons lit (gethash v hash)))))
+	     (unboundvars (thing) (remove-if #'(lambda (x) (gethash x varhash)) (vars thing)))
+	     (varsbound (thing) (every #'(lambda (x) (gethash x varhash)) (vars thing)))
+	     (indexeq () ; for each equality atom, hash on all unbound vars *in 2nd arg* and if none return it.
+	       (let ((safe nil) (vs nil))
+		 (dolist (p equality) 
+		   (setq vs (unboundvars (third p)))
+		   (if vs (hashonvars vs p eqhash) (push (modeq p) safe)))
+		 (mapc #'(lambda (x) (pushlit x 'equality)) (nreverse safe))))
+	     (indexpos ()  ; written out so that we can modify 'pos' directly
+	       (let ((safe nil) (vs nil))
+		 (dolist (p pos) 
+		   (setq vs (unboundvars p))
+		   (if vs (hashonvars vs p poshash) (push p safe)))
+		 (mapc #'(lambda (x) (pushlit x 'pos)) (nreverse safe))))
+	     (indexneg ()
+	       (let ((safe nil) (vs nil))
+		 (dolist (p neg) 
+		   (setq vs (unboundvars p))
+		   (if vs (hashonvars vs p neghash) (push p safe)))
+		 (mapc #'(lambda (x) (pushlit x 'neg)) (nreverse safe))))
+	     (modeq (e) (if assign (if (varsbound (second e)) e (list assign (second e) (third e))) e)) ; turn = into <-
+	     (addall (vars) (let (newvs)
+			      (setq newvs (addeq vars))  ;addeq can mark new vars; pos/neg can't
+			      (setq newvs (nconc newvs vars))
+			      (addpos newvs) 
+			      (addneg newvs)))
+	     (addeq (vars)  ; return list of variables newly by addeq marked
+	       (let (newvs)
+		 (dolist (v vars)
+		   (dolist (e (gethash v eqhash))
+		     (when (and (varsbound (third e)) (member e equality))
+		       (setq newvs (nconc (pushlit e 'equality) newvs)))))
+		 (when newvs (setq newvs (nconc (addeq newvs) newvs)))		 
+		 ;(format t "addeq(~A) returns ~A~%" vars newvs)
+		 newvs))
+	     (addneg (vars)  ; add negative literals whose variables were just marked.
+	       (dolist (v vars)
+		 (dolist (n (gethash v neghash))
+		   (when (and (varsbound n) (member n neg))
+		     (pushlit n 'neg)))))
+	     (addpos (vars)  ; add positive literals whose vars just marked.
+	       (dolist (v vars)
+		 (dolist (p (gethash v poshash))
+		   (when (and (varsbound p) (member p pos))
+		     (pushlit p 'pos)))))
+	     (pushlitadd (lit type)
+	       (addall (pushlit lit type)))
+	     (pushlit (lit type) ; returns list of newly marked vars
+	       (let (vs)
+		 (setq vs (unboundvars lit))
+		 (case type
+		   (equality (setq equality (delete lit equality)) (setq lit (modeq lit)))
+		   (pos (setq pos (delete lit pos)))
+		   (neg (setq neg (delete lit neg))))
+		 (push lit res)
+		 (mapc #'markvar vs)
+		 ;(format t "pushinglit ~A ~A returns ~A~%" lit type vs)
+		 vs))
+	     ; idea for these: walk over lits and compute (i) the set of vars that will be bound
+	     ;    if we add this lit (including those set by =) and (ii) the number of literals
+	     ;    that will then be safe.  Then choose the lit that makes the most new lits safe.
+	     (choose-positive-literal (l) (car l))
+	     (choose-typed-negative-literal (l) (find-if #'(lambda (x) (gethash (relation x) hashedtypes)) l))
+	     (choose-negative-literal (l) (car l))
+	     (choose-equality-literal (l) (car l))
+	     (output-internals (msg)
+	       (format t "~&~A: ~A~%" msg res)
+	       (format t "varhash: ~A~%" (hash2bl varhash))
+	       (format t "pos: ~A~%" pos)
+	       (format t "poshash: ~A~%" (hash2bl poshash))
+	       (format t "equality: ~A~%" equality)
+	       (format t "eqhash: ~A~%" (hash2bl eqhash))
+	       (format t "neg: ~A~%" neg)
+	       (format t "neghash: ~A~%" (hash2bl neghash))))
+      ; initialize "global" variables; the labels funcs below can modify these directly
+      (setq attach (remove '= attach :key #'parameter-symbol))  ; treat = specially
+      (setq res nil)
+      (multiple-value-setq (neg pos) (split #'needsguardp p))
+      (multiple-value-setq (equality pos) (split #'(lambda (x) (eq (relation x) '=)) pos))
+      ; don't have all positive = literals--only those where at least one arg is a variable.
+      ;   Orient them all so that the first arg is a variable. 
+      (setq equality (mapcar #'(lambda (x) (if (varp (second x)) x `(= ,(third x) ,(second x)))) equality))
+      (setq varhash (make-hash-table)) ; whether or not a given var is bound
+      (setq eqhash (make-hash-table))  ; pointers to equality literals, keyed on vars
+      (setq poshash (make-hash-table)) ; pointer to positive literals, keyed on vars
+      (setq neghash (make-hash-table))  ; pointers to negative literals, keyed on vars
+      ; initialize those hashes: varhash with bound, eq/pos/neg-hash with equality/pos/neg
+      ; index-eq/pos/neg return lits that have no unbound vars, so make them conjuncts immediately
+      (mapc #'markvar bound)	
+      (indexeq)
+      (indexpos)
+      (indexneg)
+      (when debug (output-internals "result after initial construction"))
 
-;    (format t "result after initial construction: ~A~%" res)
-;    (format t "pos: ~A~%" pos)
-;    (format t "neg: ~A~%" neg)
-;    (pretty-print neghash)
+      ; add positive literals one at a time and each time add the now-safe neg/equality literals.
+      (do ((p (choose-positive-literal pos) (choose-positive-literal pos)))
+	  ((not p))
+	(pushlitadd p 'pos))
+      (when debug (output-internals "result after adding positive conjuncts"))
 
-    ; create new conjunct ordering by adding positive literals and negative literals
-    ;   that the positive literals make safe.
-    (dolist (v bound) (setf (gethash v poshash) t))
-    (dolist (p pos)
-      ; add positive conjunct and mark all added variables
-      (push p res)
-      (setq vs (vars p))  ;(setq vs (union (vars p) bound))
-      (dolist (v vs)
-	(setf (gethash v poshash) t))
-      ; add all negative literals whose variables were just positively marked
-      (dolist (v vs)
-	(dolist (n (gethash v neghash))
-	  (when (and (every #'(lambda (x) (gethash x poshash)) (vars n))
-		     (member n neg))
-	    (push n res)
-	    (setq neg (delete n neg))))))
+      ; for each remaining negative literal, add type guards.
+      ;  (Equality literals have no types, since we don't have types for builtins.)
+      (do ((n (choose-typed-negative-literal neg) (choose-typed-negative-literal neg))
+	   (bl) (typeexpr))
+	  ((not n))
+	(setq typeexpr (gethash (relation n) hashedtypes))
+	(when typeexpr
+	  (setq typeexpr (stdize typeexpr))
+	  (setq bl nil)
+	  (when typeexpr (setq bl (mgu (first typeexpr) (drop-not n))))
+	  (when bl
+	    (push (plug (cdr typeexpr) bl) res)
+	    (pushlitadd n 'neg))))
+      (when debug (output-internals "result after adding negative conjuncts"))
 
-
-;    (format t "result after adding positive conjuncts: ~A~%" res)
-;    (format t "pos: ~A~%" pos)
-;    (pretty-print poshash)
-;    (format t "neg: ~A~%" neg)
-;    (pretty-print neghash)
-
-    ; for each remaining negative literal, add type guards.
-    ;  Want to apply univ only as a last resort.  So walk over the
-    ;  remaining literals and if we have types for all arguments,
-    ;  add that literal.  Keep iterating over set until no
-    ;  changes are made.
-    (setq neg (set-difference neg (remove-if-not needsguardp res)))
-    (do ((change t) (toremove nil nil)) 
-	((not change))
-      (setq change nil)
-      (dolist (n neg)
-	(setq vs (vars n))
-	(cond ((every #'(lambda (x) (gethash x poshash)) vs) 
-	       (push n res)
-	       (push n toremove))
-	      ((setq typeexpr (gethash (relation n) hashedtypes))
-	       (setq typeexpr (stdize typeexpr))
-	       (setq bl nil)
-	       (when typeexpr (setq bl (mgu (first typeexpr) (drop-not n))))
-	       (when bl
-		 (push (plug (cdr typeexpr) bl) res)
-		 (push n res)
-		 (setq change t)
-		 (mapc #'(lambda (x) (setf (gethash x poshash) t)) vs)
-		 (push n toremove)))))
-      (setq neg (delete-if #'(lambda (x) (member x toremove)) neg)))
-
-    ; all of the neg that remain have no types: use univ
-    (when defaulttype
-      (dolist (n neg)
-	(dolist (v (vars n))
-	  (unless (gethash n poshash)
-	    (push (list defaulttype v) res)))
-	(push n res)))
+      ; all of the eq/neg that remain have no types: use univ.  Start with eq to bind more.
+      ; infinite domain limitation occurs here. consider (= 7 (f ?y)).
+      ;   We just produce (and (univ ?y) (= 7 (f ?y))), even though UNIV will always be finite.
+      (do ((e (choose-equality-literal equality) (choose-equality-literal equality)))
+	  ((not e))
+	(dolist (v (vars (third e))) ; just need to bind the 2nd arg vars
+	  (unless (varmarked v) (push (list defaulttype v) res) (markvar v)))
+	(pushlitadd e 'equality))
+      (when debug (output-internals "result after adding equality with univ"))
+      
+      (do ((e (choose-negative-literal neg) (choose-negative-literal neg)))
+	  ((not e))
+	(dolist (v (vars e))
+	  (unless (varmarked v) (push (list defaulttype v) res) (markvar v)))
+	(pushlitadd e 'neg))
+      (when debug (output-internals "result after adding negatives with univ")))
     (nreverse res)))
-
+  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Logical Compression
 ;;;     Taking logical constraints and constructing constraints + tables

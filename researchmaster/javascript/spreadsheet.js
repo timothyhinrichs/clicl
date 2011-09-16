@@ -247,7 +247,6 @@ cell.prototype.enable = function () {
 cell.prototype.toString = function() {
 		return "cell(name: " + this.name + ", value: " + this.value +  ")"; }
 
-
 cell.prototype.setPosImplied = function () {
 	if (this.possupports !== undefined) this.posimplied = this.possupports('?x'); }
 
@@ -507,6 +506,7 @@ function findSelected (select) {
 			res.adjoin(select.options[i].value);
 	return res; }
 
+
 /*************************** Colors ***************************/
 
 function update_gui_comp (cell) { findcell(cell).component.mapc(update_gui); }
@@ -546,6 +546,31 @@ function colorAllRed() {
 		if (cells.hasOwnProperty(c)) {
 			highlight(cells[c].name, "red"); }}}
 
+/*************************** Example developer routines ***************************/
+
+// field_update is a routine that has no semantics--it is simply called
+//    after the cell updates have all occurred.
+
+var invisible; // remember which ones are hidden
+// called once when the form is initialized
+function devel_init () {
+	 invisible = new set();  
+}
+
+// called each time a cell is updated
+function devel_update (cell) {
+	if (typeof poss_invisible === 'function') {
+		var hidden = poss_invisible('?x');
+		hidden = hidden.mapcar(function (x) {return prettyname(x.element(0))}).toSet();
+		var toshow = invisible.difference(hidden);
+		//alert("toshow: " + toshow + "; hidden: " + hidden);
+		toshow.mapcar(showcell);
+		hidden.mapcar(hidecell);
+		invisible = hidden; }}
+
+function hidecell(x) { document.getElementById(getBigBoxName(x)).style.display = 'none'; }
+function showcell(x) { document.getElementById(getBigBoxName(x)).style.display = ''; }
+
 
 /*************************************************************************/
 /*************************************************************************/
@@ -559,12 +584,14 @@ function initspread (cellarray) {
 	for (var i = 0; i < cellarray.length; i++)
 		cells[cellarray[i].name] = cellarray[i];
 	if (external_init !== undefined) external_init();   // externally initialize form fields
+	if (devel_init !== undefined) devel_init(); 
 	for (var i = 0; i < cellarray.length; i++) {
 		cell = cellarray[i].name;
 		update_implied(cell);
 		update_forced(cell);
 		update_conflicts(cell);
-		update_gui(cell); }}
+		update_gui(cell); 
+		if (devel_update !== undefined) devel_update(cell); }}
 
 /*************************************************************************/
 /*************************** Selector Behavior ***************************/
@@ -722,7 +749,8 @@ function update_cell(cell) {
 	update_implied_comp(cell);
 	update_forced_comp(cell);
 	update_conflicts_comp(cell);
-	update_gui_comp(cell); }
+	update_gui_comp(cell); 
+	if (devel_update !== undefined) devel_update(cell); }
 
 /*************************************************************/
 /*************************** Scrap ***************************/

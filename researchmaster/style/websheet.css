@@ -1,17 +1,8 @@
 
-body {
-	font-family: verdana;
-	font-size: 90%;
-}
-
-.title {
-	font-family: courier;
-	font-size: 150%;
-}
-
-.databox {
-	padding: 3px;
-}
+body { font-family: verdana; font-size: 90%; }
+.autoform { margin-top: 20px; text-align: center; }
+.details { font-size: 80% }
+.title { font-family: courier; font-size: 150%; }
 
 #status { 
 	color: white;
@@ -20,36 +11,29 @@ body {
 	visibility: hidden;
 }
 
-td.required {
-	text-align: center;
-}
-td.description {
-	text-align: right;
-}
-td.data {
-	text-align: left;
-	padding: 4px;
-	font-size: 80%
-}
+/* Fonts for form elements */
+.required { color: blue; padding: 0px 5px;	}
+.description { color: #333333; }
 
-.required {
-	color: blue;
-	padding: 0px 5px;
-}
-.description {
-	color: #333333;
-}
+/* table behavior but with divs */
+div.inputtd { float: left; width: 200px; text-align: left; padding: 3px;}
+div.requiredtd { float: left; width: 20px; text-align: center; }
+div.descriptiontd {float: left; }
+div.righttd { clear: both; }
 
-.autoform {
-	margin-top: 20px;
-	text-align: center;
-}
 
-.details {
-	font-size: 80%
-}
+/* table version */
+td.required { text-align: center; }
+td.description { text-align: right; }
+td.data { text-align: left; padding: 4px; font-size: 80% }
 
+/* Active box around input elements */
+.databox { padding: 3px; }
+
+/* Active coloring */
 .conflict { color: blue; }
 .stipulated { color: green; }
 .forbidden { color: red; }
 .normal { color: black; }
+
+

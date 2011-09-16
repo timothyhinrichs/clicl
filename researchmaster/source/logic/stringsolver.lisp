@@ -1156,7 +1156,7 @@
     (when (not (listp ps)) (return-from ss-solve-atoms nil))
     (setq psvars (vars ps))
     (when (intersectionp psvars forbidden) (return-from ss-solve-atoms nil))  ; if var shows up in PS, we're finding value
-    (setq ps (and2list (flatten-operator (flatten-functions (maksand ps) :fullflat t :universal nil))))
+    (setq ps (and2list (flatten-operator (flatten-functions (maksand ps) :universal nil))))
 
     ; remove equality for (= var ground); leave (= var unground) since we need flat terms for Kaluza.
     ;   REMOVED BECAUSE WE'RE MISSING UNSAT CASES

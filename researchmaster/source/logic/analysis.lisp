@@ -428,6 +428,10 @@
 		    (mapcar #'parameter-symbol 
 			    (delete-if-not #'isobject (get-vocabulary p)))))
 
+(defun arity (lit)
+  (cond ((atom lit) 0)
+	((eq (car lit) 'not) (arity (second lit)))
+	(t (length (cdr lit)))))
 
 (defun relation (rule)
   "(RELATION RULE) returns the relation for rule."

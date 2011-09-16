@@ -5,8 +5,11 @@
 (defun starttcp1 (port)
   (process-run-function "tcp-handlers" #'tcp-handlers #'http-handler port))
 
-(defun starttcp (port)
+(defun starttcpbroken (port)
   (process-run-function "tcp-handlers" #'(lambda () (ignore-errors (tcp-handlers #'http-handler port)))))
+
+(defun starttcp (port)
+  (process-run-function "tcp-handlers" #'(lambda () (ignore-errors (tcp-servers #'http-handler port)))))
 
 (defun starttcp2 (port)
   (ignore-errors (tcp-handlers #'http-handler port)))
@@ -15,9 +18,11 @@
   (tcp-handlers #'http-handler port))
 
 (defun stoptcp ()
-  (dolist (p (all-processes))
-    (when (equalp (process-name p) "tcp-handlers")
-      (process-kill p))))
+  (let (titles)
+    (setq titles '("tcp handler" "tcp-handler"))
+    (dolist (p (all-processes))
+      (when (some #'(lambda (x) (search x (process-name p) :test #'char-equal)) titles)
+	(process-kill p)))))
 
 (defun find-all-lisp-funcs (filename)
   (let ((s (read-file filename)))
@@ -31,7 +36,7 @@
 ; note: ought to make this a per-form option.  Just need to add it as an option and replace the global var with the form far.
 ;   On second thought, maybe not.  It's an implementation detail, not a behavioral detail.
 (defparameter *ws-use-value-shortnames* nil)  
-
+(defparameter *ws-assign* '<- "symbol for assignment in datalog")
 
 ; TO INSTALL a new built-in
 ; Options
@@ -585,7 +590,7 @@ function addWidget (obj) {
 	   (format s ", ~A" v)))))
 
 (defstruct htmlform cssincludes jsincludes javascript widgets errors options onload submitprep action name hidden server)
-(defstruct htmlwidget description required html)
+(defstruct htmlwidget description required html name)
 
 (defparameter *extracss* '("/docserver/infoserver/examples/researchmaster/style/main.css"
 			   "/docserver/infoserver/examples/researchmaster/style/jack.css"))
@@ -595,10 +600,10 @@ function addWidget (obj) {
 			 "/docserver/infoserver/examples/researchmaster/javascript/util.js"
 			 "/docserver/infoserver/examples/researchmaster/javascript/spreadsheet.js"
 			 "/docserver/infoserver/examples/researchmaster/javascript/ds.js"
-			 "/docserver/infoserver/examples/researchmaster/javascript/phpjs.tlh.namespaced.min.js"))  ; http://phpjs.org/
+			 "/docserver/infoserver/examples/researchmaster/javascript/phpjs.tlh.namespaced.min.js"))  ; http://phpjs.org
 
 
-(defun output-htmlform (s html)
+(defun output-htmlform (s html &optional (table t))
   "(OUTPUT-HTMLFORM S TH) given a declarative description of a web form, return an HTMLFORM."
   (format-html s) (crlf s)
   (format-head s)
@@ -609,6 +614,7 @@ function addWidget (obj) {
   (when (htmlform-javascript html)
     (format s "<script type=\"text/javascript\">~%")
     (format s "~A" (htmlform-javascript html))
+    (format s "function getBigBoxName (x) { return x + 'BIGBOX'; }~%")
     (format s "~&</script>~%"))
   (finish-head s)
   (if (htmlform-onload html) (format-body s *bgcolor* (htmlform-onload html)) (format-body s *bgcolor*)) (crlf s)
@@ -622,15 +628,26 @@ function addWidget (obj) {
 	 (format s "<center>~%")
 	 (format s "<form method=\"post\" action=\"~A\" onsubmit=\"return ~A\">~%" 
 		 (htmlform-action html) (htmlform-submitprep html))
-	 (format s "<table>~%")
-	 (dolist (w (htmlform-widgets html))
-	   (format s "<tr><td class=\"description\"><span class=\"description\">~A</span></td>~%"
-		   (htmlwidget-description w))
-	   (format s "<td class=\"required\"><span class=\"required\">~A</span></td>~%" 
-		   (if (htmlwidget-required w) "*" ""))
-	   (format s "<td class=\"data\">~A</td></tr>~%"
-		   (htmlwidget-html w)))
-	 (format s "</table>~%")
+	 (cond (table
+		(format s "<table>~%")
+		(dolist (w (htmlform-widgets html))
+		  (format s "<tr id='~(~A~)BIGBOX'><td class=\"description\"><span class=\"description\">~A</span></td>~%"
+			  (htmlwidget-name w) (htmlwidget-description w))
+		  (format s "<td class=\"required\"><span class=\"required\">~A</span></td>~%" 
+			  (if (htmlwidget-required w) "*" ""))
+		  (format s "<td class=\"data\">~A</td></tr>~%"
+			  (htmlwidget-html w)))
+		(format s "</table>~%"))
+	       (t
+		(format s "<center><table><tr><td>~%")
+		(dolist (w (htmlform-widgets html))
+		  (format s "<div class='row' id='~(~A~)BIGBOX'>" (htmlwidget-name w))
+		  (format s "<div class='inputtd'>~A</div>" (htmlwidget-html w))
+		  (format s "<div class='requiredtd'>~A</div>" (if (htmlwidget-required w) "*" "&nbsp;"))
+		  (format s "<div class='descriptiontd'>~A</div>" (htmlwidget-description w))
+		  (format s "<div class='righttd'></div>")  ; to terminate "row"
+		  (format s "</div>~%"))
+		(format s "</td></tr></table></center>")))
 	 (format s "<p><input type=\"submit\" value=\"Submit\">")
 	 (dolist (h (htmlform-hidden html))
 	   (princ h s))
@@ -806,6 +823,14 @@ function addWidget (obj) {
 ;;;;;;;;;;;;;;;;;;; Load plato theory into internal data structure ;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defparameter *ws-vocab-macro*
+  (list `(,*ws-assign* = relation)))
+(defun ws-macrorepl (p)
+  (let (fa ra)
+    (setq fa (mapcarnot #'(lambda (x) (if (eq (third x) 'function) (cons (first x) (second x)) nil)) *ws-vocab-macro*))
+    (setq ra (mapcarnot #'(lambda (x) (if (eq (third x) 'relation) (cons (first x) (second x)) nil)) *ws-vocab-macro*))
+  (subrel ra (subfun fa p))))
+
 (defparameter *ws-builtins* 
   (list    
    (make-parameter :symbol '= :arity 2 :type 'relation)
@@ -822,8 +847,16 @@ function addWidget (obj) {
    (make-parameter :symbol 'tonum :arity 1 :type 'function)
    (make-parameter :symbol 'tostr :arity 1 :type 'function)
    (make-parameter :symbol 'tobool :arity 1 :type 'function)
+   (make-parameter :symbol *ws-assign* :arity 2 :type 'relation)  ; assignment (semantic synonym for =)
    ))
-(defun ws-builtins () (mapcar #'(lambda (x) (make-pred :parameter x :kind :builtin)) *ws-builtins*))
+(defun ws-builtins () 
+  (nconc (mapcar #'(lambda (x) (make-pred :parameter x 
+					  :kind :builtin)) 
+		 *ws-builtins*)
+	 (mapcar #'(lambda (x) (make-pred :parameter (make-parameter :symbol (tosymbol x) :type 'function) 
+					  :kind :builtin))
+		 *ws-php-builtin-names*)))
+
 (defparameter *ws-php-namespace* "PHP"
   "The prefix that is added to PHP functions in our implementation of those functions.")
 ; to recreate list....
@@ -874,9 +907,8 @@ function addWidget (obj) {
 (defun load-formstructure (th)
   "(LOAD-FORMSTRUCTURE TH) given a dump (as output by dump-formstructure),
    create the internal WEBFORM object that the code that follows operates on."
-  (setq *tmp3* th)
   (setq th (define-prologtheory (make-instance 'prologtheory) "" (contents th)))
-  (let (w types preds constraints definitions widgets tmp univ options idb ts
+  (let (w types preds constraints definitions widgets tmp univ options idb edb ts
 	  wnames valuecomp booluniv name vocab)
     (setq w (make-webform :name "myform"))
 
@@ -893,6 +925,9 @@ function addWidget (obj) {
     ; collapse multiple constraint/definition sets
     (setq constraints (mapcan #'(lambda (x) (second (second x))) constraints))
     (setq definitions (mapcan #'(lambda (x) (second (second x))) definitions))
+    ; macro replacement
+    (setq constraints (mapcar #'ws-macrorepl constraints))
+    (setq definitions (mapcar #'ws-macrorepl definitions))
     
     ; case sensitivity for values
     (if (viewfindp '(option casesensitive t) options) (setq valuecomp #'equal) (setq valuecomp #'equalp))
@@ -941,18 +976,27 @@ function addWidget (obj) {
     ; adjust widgets
     (mapc #'(lambda (x) (ws-fixwidget x univ types valuecomp)) widgets)
 
-    ;;; build predicate list from queries types, widgets, constraints, definitions ;;;
+    ;;; Build predicate list ;;;
+    ; Widgets: those declared to be widgets
+    ; IDB: those appearing in the head of some rule in Definitions
+    ; EDB: those appearing only as data in Definitions
+    ; Builtins: the pre-defined relations/functions
+    ; Queries: all the remaining predicates in the constraints 
+    ;   (all functions are Builtins)
     (setq preds nil)
+
+    ; Builtins
     (push (make-pred :parameter (make-parameter :symbol (mak-univ) :arity 1 :type 'relation :univ univ)
 		     :kind :extensional) preds)
     (setq preds (nconc (ws-builtins) preds))
 
-    ; queries, widgets, and types into predicates
+    ; Widgets stay :widget
     (dolist (p widgets)
       (push (make-pred :parameter (make-parameter :symbol (widget-name p) 
 						  :arity 1 :type 'relation
 						  :univ (widget-typename p))
 		       :kind :widget :display p) preds))
+    ; Types become :EDB
     (dolist (p types)
      (cond ((listp (parameter-univ p)) 
 	    (push (make-pred :parameter p :kind :extensional) preds))
@@ -961,29 +1005,27 @@ function addWidget (obj) {
 	   (t (assert nil nil (format nil "Unknown named type ~A for typename ~A~%" 
 				      (parameter-univ p) (parameter-symbol p))))))
 
-    ; All undeclared predicates occurring in Constraints are defined in Definitions, 
-    ;   meaning that they are either intensional or extensional.  This means 
-    ;   NO HELPER PREDICATES for the constraints.  All functions are builtin.
-
-    ; IDBs are those occurring in the head of datalog rules.  EDB predicates are all those that remain.
-    (setq idb (mapcarnot #'(lambda (x) (if (datap x) nil (relation (head x)))) 
-			 (webform-definitions w)))
-    (dolist (p (set-difference 
-		(union (preds (maksand (webform-definitions w)))
-		       (preds (maksand (webform-constraints w)))
-		       :test #'equalp)
-		(mapcar #'pred-parameter preds)
-		:key #'parameter-symbol))
-      (if (find (parameter-symbol p) idb)
-	  (push (make-pred :parameter p :kind :intensional) preds)
-	  (push (make-pred :parameter p :kind :extensional) preds)))
+    ; IDB/EDB
+    (multiple-value-setq (edb idb) (split #'datap (webform-definitions w)))
+    (setq idb (preds (maksand idb)))
+    (setq edb (set-difference (preds (maksand edb)) idb :test #'param-equal))
+    (dolist (p idb) (push (make-pred :parameter p :kind :intensional) preds))
+    (dolist (p edb) (push (make-pred :parameter p :kind :extensional) preds))
+ 
+    ; Queries
+    (dolist (p (set-difference (preds (maksand constraints))
+			       (mapcar #'pred-parameter preds)
+			       :test #'param-equal))
+      (push (make-pred :parameter p :kind :query) preds))
     (setf (webform-preds w) (nreverse preds))
 
-    ; check that functions/relations that appear in constraints have been extracted
-    (setq vocab (mapcar #'parameter-symbol (delete-if #'isobject (get-vocabulary (maksand constraints)))))
-    (setq vocab (set-difference vocab (webform-preds w) 
-				:test #'(lambda (x y) (eq x (parameter-symbol (pred-parameter y))))))
-    (when vocab (error 'unknown-symbol :comment vocab))
+    ; check that functions that appear in constraints are part of our pred list.
+    ;   (All relations are accounted for, by the definitions of :query.)
+    ;  Note that we don't have arities recorded for all builtins, so we're just comparing names.
+    (when constraints  ; if constraints empty, true appears which isn't a built-in relation
+      (setq vocab (mapcar #'parameter-symbol (delete-if #'isobject (get-vocabulary (maksand constraints)))))
+      (setq preds (mapcar #'(lambda (x) (parameter-symbol (pred-parameter x))) (webform-preds w)))
+      (when (set-difference vocab preds) (error 'unknown-symbol :comment vocab)))
     w))
 
 (defun ws-fixwidget (w univ types valuecomp)
@@ -1074,10 +1116,10 @@ function addWidget (obj) {
 ; swap all user object constants with symbols
 ; assumes predicates are disjoint from objects
 (defun websheet-theory-prettynames-to-symbols (th webform &key (test #'equal))
-  (nsublis (mapcar #'(lambda (x) (cons (value-prettyname x) (value-symbol x))) 
-		   (webform-univ webform))
-	   (contents th)
-	   :test test))
+  (let (alist)
+    (setq alist (mapcar #'(lambda (x) (cons (value-prettyname x) (value-symbol x))) 
+		  (webform-univ webform)))
+    (mapcar #'(lambda (x) (subobj alist x :test test)) (contents th))))
  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1094,6 +1136,7 @@ function addWidget (obj) {
 (defvar *tmp4*)
 (defun compile-websheet (th)
   "(COMPILE-WEBSHEET TH) given a declarative description of a web form, return an HTMLFORM."
+  (setq *tmp* nil *tmp2* nil *tmp3* nil *tmp4* nil)  ; for commandline debugging
   (let (struct code buf result)
     (setq result (make-htmlform))
     (when *webformlog* (logmessage (contents th) *webformlog*))
@@ -1104,13 +1147,17 @@ function addWidget (obj) {
     (setq *tmp* struct)
 
     ; compile websheet to code
-    (handler-case (setq code (construct-websheet-intcode struct))  ; call construct-websheet-intcode-safe, except then exception handling odd
+    ; call construct-websheet-intcode-safe, except then exception handling doesn't work
+    (handler-case (setq code (construct-websheet-intcode struct))  
       (inconsistent-constraints () 
-	(setf (htmlform-errors result) (list "Inconsistent constraints")) (return-from compile-websheet result))
+	(setf (htmlform-errors result) (list "Inconsistent constraints")) 
+	(return-from compile-websheet result))
       (timeout () 
-	(setf (htmlform-errors result) (list "Permitted resources exhausted")) (return-from compile-websheet result))
+	(setf (htmlform-errors result) (list "Permitted resources exhausted")) 
+	(return-from compile-websheet result))
       (cyclic-constraints () 
-	(setf (htmlform-errors result) (list "Cyclic constraints")) (return-from compile-websheet result)))
+	(setf (htmlform-errors result) (list "Cyclic constraints")) 
+	(return-from compile-websheet result)))
     (setq *tmp4* code)
 
     ; translate code to client-side and server-side code
@@ -1146,10 +1193,11 @@ function addWidget (obj) {
   (let ((res nil) s)
     (when (widget-name r)
       (setq res (make-htmlwidget))
+      (setf (htmlwidget-name res) (widget-name r))
       (setf (htmlwidget-description res) (widget-desc r))
       (setf (htmlwidget-required res) (widget-req r))
       (setq s (make-array 0 :element-type 'character :adjustable t :fill-pointer 0))
-      (format s "<div id=\"~Abox\" class=\"databox\" onMouseOver=\"~A\" onMouseOut=\"~A\" >~%" 
+      (format s "<span id=\"~Abox\" class=\"databox\" onMouseOver=\"~A\" onMouseOut=\"~A\" >~%" 
 	      (websheet-cellname (widget-name r))
 	      (format nil "~(~A_mouseover('~A')~)" (widget-style r) (websheet-cellname (widget-name r)))
 	      (format nil "~(~A_mouseout('~A')~)" (widget-style r) (websheet-cellname (widget-name r))))
@@ -1192,7 +1240,7 @@ function addWidget (obj) {
 	      (widget-init r)
 	      (tostring (list "checkbox_change('" (websheet-cellname (widget-name r)) "')"))
 	      (tostring (list "checkbox_focus('" (websheet-cellname (widget-name r)) "')")))))
-      (format s "</div>")
+      (format s "</span>")
       (setf (htmlwidget-html res) s)
       res)))
 
@@ -1381,7 +1429,8 @@ function addWidget (obj) {
   (let (datalog code falist)
     (setq datalog (construct-websheet-datalog webform))
     ; prepend built-in function names to simulate namespaces
-    (setq falist (mapcar #'(lambda (x y) (cons (tosymbol x) (tosymbol y))) *ws-php-builtin-names* *ws-php-builtin-prefixed-names*))
+    (setq falist (mapcar #'(lambda (x y) (cons (tosymbol x) (tosymbol y)))
+			 *ws-php-builtin-names* *ws-php-builtin-prefixed-names*))
     (setf (datalog-extensional datalog) (mapcar #'(lambda (x) (subfun falist x)) (datalog-extensional datalog)))
     (setf (datalog-intensional datalog) (mapcar #'(lambda (x) (subfun falist x)) (datalog-intensional datalog)))
     ; change objects to their short-values (the values the intermediate code operates on directly for =)
@@ -1432,21 +1481,30 @@ function addWidget (obj) {
    each widget and query predicate. The incoming constraints are allowed to include built-in 
    functions; the resulting datalog flattens those functions, e.g. instead of the atom 
    p(f(x,y),z), we get p(w,z) ^ w=f(x,y)."
-  (let (constraints lpreds cpreds comp dpreds qpreds wpreds mpreds)
+  (let (constraints lpreds cpreds comp dpreds qpreds wpreds)
     (setq constraints (add-uva (webform-constraints struct) struct))
     (multiple-value-setq (wpreds lpreds) 
       (split #'(lambda (x) (eq (pred-kind x) :widget)) (webform-preds struct)))
-    (setq mpreds (remove-if #'(lambda (x) (widget-unique (pred-display x))) wpreds))
+    ;(setq mpreds (remove-if #'(lambda (x) (widget-unique (pred-display x))) wpreds))
     (multiple-value-setq (qpreds cpreds) 
       (split #'(lambda (x) (eq (pred-kind x) :query)) lpreds))
     (setq dpreds (remove-if #'(lambda (x) (eq (pred-kind x) :builtin)) cpreds))
 
     (setq wpreds (mapcar #'pred-parameter wpreds)) ; widgets
-    (setq mpreds (mapcar #'pred-parameter mpreds)) ; non-unique (multi) widgets
+    ;(setq mpreds (mapcar #'pred-parameter mpreds)) ; non-unique (multi) widgets
     (setq lpreds (mapcar #'pred-parameter lpreds))
     (setq qpreds (mapcar #'pred-parameter qpreds)) ; query-only
     (setq cpreds (mapcar #'pred-parameter cpreds)) ; complete
     (setq dpreds (mapcar #'pred-parameter dpreds)) ; preds with definitions in defs
+#|
+    (format t "~&wpreds: ~A~%lpreds: ~A~%qpreds: ~A~%cpreds: ~A~%dpreds: ~A~%"
+	    (mapcar #'parameter-symbol wpreds)
+	    ;(mapcar #'parameter-symbol mpreds)
+	    (mapcar #'parameter-symbol lpreds)
+	    (mapcar #'parameter-symbol qpreds)
+	    (mapcar #'parameter-symbol cpreds)
+	    (mapcar #'parameter-symbol dpreds))
+|#
 
     (when (and (intersection cpreds (preds constraints) :key #'parameter-symbol)
 	       (agraph-cyclicp (syntactic-finiteness-graph (propositional-clauses (maksand constraints)))))
@@ -1457,7 +1515,7 @@ function addWidget (obj) {
 		(undirected-dependency-graph constraints lpreds :test #'param-equal) 
 		:test #'param-equal))
 
-    (setq constraints (fhlc-webform-multi constraints cpreds mpreds qpreds))
+    (setq constraints (fhlc-webform-multi constraints cpreds qpreds))
     (when (member '(or) constraints :test #'equal)
       (error 'inconsistent-constraints))
 
@@ -1469,6 +1527,24 @@ function addWidget (obj) {
 		  :intensional constraints
 		  :components comp
 		  :completepreds cpreds)))
+
+(defun ws-datalog-ordering (p bound preds typehash univ)
+  "(WS-DATALOG-ORDERING P BOUND PREDS TYPEHASH) takes a biconditional P: (<=[>] LIT [(or] RULEBOD1 ... RULEBODN[)])
+   where each RULEBODI is a conjunction of literals, a list of variables BOUND that are bound,
+   the list of webform predicates (including relations/functions), a TYPEHASH that maps predicate names
+   to type names, and the predicate name for the universe.  
+   Returns a list of datalog queries: one for each RULEBOD1, made safe and efficient for left-to-right eval."
+  (let (disjs builtins)
+    (setq builtins (mapcarnot #'(lambda (x) (if (eq (pred-kind x) :builtin) (pred-parameter x) nil)) preds))
+    (setq disjs (drop-ors (drop-exists (third p))))
+    ; order each conjunction, taking binding list into account
+    (setq disjs (mapcar #'(lambda (x) (maksand (body (order-datalog-rule (list* '<= (head p) (drop-ands x))
+									 :hashedtypes typehash :defaulttype univ 
+									 :attach builtins :bound bound :assign *ws-assign*))))
+			disjs))
+    ; check for degenerate cases--should never need this, but just in case.
+    (setq disjs (delete 'false disjs))
+    (if (member 'true disjs) '(true) disjs)))
 
 #|  Call for non-uva version, sort of
 (defun fhlc-webform-nonuva (th cpreds)
@@ -1501,7 +1577,7 @@ function addWidget (obj) {
 	    origsize hornsize (* 100 (* 1.0 (/ hornsize origsize))))
  
     ; compute set of query predicates and turn clauses into clausesets
-    (setq th (mapcar #'drop-or th))
+    (setq th (mapcar #'drop-ors th))
 
     ; split definite Horn and purely negative clauses (while ignoring cpreds)
     (multiple-value-setq (pos neg) 
@@ -1515,16 +1591,16 @@ function addWidget (obj) {
     (setq neg (fhl-webform-uva-negative neg cpreds qpreds))
     (nconc pos neg)))
 
-(defun fhlc-webform-multi (th cpreds multipreds qpreds)
+(defun fhlc-webform-multi (th cpreds qpreds)
   (let (origsize ressize)
     (assert (eq (get-theory-type th) 'quantifier-free)
 	    nil "FHL-WEBFORM-NO-EQ requires a quantifier-free theory")
 
     ; compute all prime clausal consequences using resolution and perform some simplification.
     ; flattening functions so that all built-in functions appear inside = (a built-in relation).
-    (setq th (mapcar #'(lambda (x) (flatten-functions (nnf x) :fullflat t)) (contents th)))
+    (setq th (mapcar #'(lambda (x) (flatten-functions (nnf x))) (contents th)))
     (setq origsize (length th))
-    ;(print th)
+    (print th)
     (setq th (funcall *resolution-closure* (clauses (maksand th)) *limit* cpreds))
     (when (member '(or) th :test #'equal)
       (return-from fhlc-webform-multi '((or))))
@@ -1532,18 +1608,19 @@ function addWidget (obj) {
     (when (member 'false th)
       (return-from fhlc-webform-multi '((or))))
     (setq th (remove-if #'(lambda (x) (eq x 'true)) th))
-    ;(print th)
+    (print th)
     (setq ressize (length th))
     (when (> ressize 0)
       (format t "Orig: ~A, Resolution closure: ~A, Axiomatization percentage: ~D~%" 
 	      origsize ressize (* 100 (* 1.0 (/ origsize ressize)))))
 
     ; fully factor all clauses and turn into clausesets
-    (setq th (mapcarnot #'(lambda (x) (fully-factor-all x (union cpreds multipreds :test #'param-equal))) th))
+    ;  Removed since it seems unsound for multi-valued widgets
+    ;(setq th (mapcarnot #'(lambda (x) (fully-factor-all x (union cpreds multipreds :test #'param-equal))) th))
 
     ; construct all rules
     (fhl-webform-uva-impl-queries 
-     (mapcan #'(lambda (x) (contrapositives* x cpreds)) th) qpreds)))
+     (mapcan #'(lambda (x) (contrapositives* x (remove-if #'isfunction cpreds))) th) qpreds)))
 
 (defun fully-factor-all (lits &optional (ignorepreds nil))
   "(FULLY-FACTOR-ALL LITS) takes a list of literals LITS. Suppose p occurs in LITS and is not in IGNOREPREDS. 
@@ -1830,9 +1907,9 @@ function addWidget (obj) {
 (defun construct-type (elems) (maks-collection 'hashbag elems))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Datalog to Lisp-like code Compiler ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Datalog to Lisp Compiler ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun compile-ext (th preds)
   "(COMPILE-EXT TH PREDS) takes a datalog theory TH and a set of webform PRED objects. 
@@ -1843,11 +1920,21 @@ function addWidget (obj) {
     (setq th (mapcar #'strip-impl (mapcar #'force-nice-vars (contents th))))
     (setq extpreds (remove-if-not #'(lambda (x) (eq (pred-kind x) :extensional)) preds))
     ; create hash-table for widget types (used in conjunct ordering)
-    ;   infinite-typed cells are left out (and are therefore assigned univ)
+    (setq typehash (compile-ext-typehash preds))
+    ; compile data and complex sentences differently
+    (multiple-value-setq (data th) (split #'atomicp th))
+    (setq code (mapcan #'(lambda (x) (compile-ext-p x preds typehash)) th))
+    (setq code (nconc (mapcar #'def-enum extpreds) code))
+    (setq code (nconc (mapcar #'def-check extpreds) code))
+    (push (def-init data) code)
+    (nconc (def-globals) code)))
+
+(defun compile-ext-typehash (preds)
+  "(COMPILE-EXT-TYPEHASH PREDS) create hash of types for preds.  infinite types are left out."
+  (let (typehash)
     (setq typehash (make-hash-table))
     (dolist (w (remove-if-not #'(lambda (x) (eq (pred-kind x) :widget)) preds))
       ;(format t "(find ~A in ~S)~%" (widget-typename (pred-display w)) preds)
-      
       (unless (or (member (widget-typename (pred-display w)) *infinitetypes*)
 		  (= (parameter-arity (pred-parameter w)) 0))
 		  ;(and (setq tmp (find (widget-typename (pred-display w)) preds 
@@ -1856,14 +1943,7 @@ function addWidget (obj) {
 	(setf (gethash (pred-name w) typehash)
 	      (cons (list (pred-name w) '?x) 
 		    (list (widget-typename (pred-display w)) '?x)))))
-
-    ; compile data and complex sentences differently
-    (multiple-value-setq (data th) (split #'atomicp th))
-    (setq code (mapcan #'(lambda (x) (compile-ext-p x preds typehash)) th))
-    (setq code (nconc (mapcar #'def-enum extpreds) code))
-    (setq code (nconc (mapcar #'def-check extpreds) code))
-    (push (def-init data) code)
-    (nconc (def-globals) code)))
+    typehash))
 
 (defun strip-impl (p)
   (cond ((atom p) p)
@@ -1892,7 +1972,8 @@ function addWidget (obj) {
 
 (defun compile-ext-p (p preds typehash)
   (let ((res nil) (sr (signed-relation (head p))) pred sign)
-    (setq pred (find (relation sr) preds :key #'pred-name))
+    (setq pred (find (relation sr) preds 
+		     :test #'(lambda (x y) (and (eq x (pred-name y)) (isrelation (pred-parameter y))))))
     (if (negative-literalp sr) (setq sign 'neg) (setq sign 'pos))
     (push (construct-x pred sign) res)
     (push (construct-s pred sign) res)
@@ -1955,36 +2036,21 @@ function addWidget (obj) {
 	   (mak-if (mak-funcall 'varp (car argsleft))
 		   (construct-adornswitch (cdr argsleft) pred sign (cons 'f sofar) args fname)
 		   (construct-adornswitch (cdr argsleft) pred sign (cons 'b sofar) args fname))))))
-    
+
 (defun compile-ext-p-adorn (p bound preds typehash)
   "(COMPILE-EXT-P-ADORN P BOUND PREDS TYPEHASH) takes a sentence P of the form 
    (<=> [not ](p ?x1 ... ?xn) (exists blah (or (and blah) blah blah))), where each conjunction is
    a list of literals, and a list of variables bound in the head.
    Returns a function that finds a single tuple of variables true of p.  BOUND is the set of
    variables that are assumed to be bound on entry."
-  (let (pred fname vars newvars disjs builtins)
-    (setq pred (relation (head p)))
+  (let (fname vars newvars disjs)
     (setq vars (vars (second p)))
     (setq newvars (maptimes #'(lambda () (tosymbol (gentemp "?nsh"))) (length vars)))
     (setq fname (construct-funcname (relation (second p)) (negative-literalp (head p)) bound vars))
-    (setq builtins (mapcarnot #'(lambda (x) (if (eq (pred-kind x) :builtin) (pred-name x) nil))
-			      preds))
-    ; grab list of disjs, each of which is a conjunction
-    (setq disjs (third p))
-    (when (and (listp disjs) (eq (car disjs) 'exists)) (setq disjs (third disjs)))
-    (if (and (listp disjs) (eq (car disjs) 'or))
-	(setq disjs (cdr disjs))
-	(setq disjs (list disjs)))	
-    ; order each conjunction, taking binding list into account
-    (setq disjs (mapcar #'(lambda (x) 
-			    (let ((lit (maknot (list pred (car (head-args 1))))))
-			      (maksand (delete lit (order-datalog-conjuncts 
-						     (include-in-list lit x)
-						     typehash (mak-univ) builtins bound)))))
-			(mapcar #'(lambda (x) (if (and (listp x) (eq (car x) 'and))
-						  (cdr x) (list x))) disjs)))
-    ; group disjunctions by occurring widgets and compile each group
+    (setq disjs (ws-datalog-ordering p bound preds typehash (mak-univ)))
+    (setq *tmp3* disjs)
     (setq disjs (group-by disjs #'(lambda (x) (find-widget-preds x preds)) :test #'equal))
+    
     (mak-function  
      fname
      (cons 'onsuccess (mapcar #'(lambda (x) (devariable x)) newvars))
@@ -2060,7 +2126,8 @@ function addWidget (obj) {
    those preds occurring in P that are of kind :widget.  Returns list of sorted
    predicate names."
   (let (widgets)
-    (setq widgets (mapcarnot #'(lambda (x) (find x preds :key #'pred-name)) (relns p)))
+    (setq widgets (mapcarnot #'(lambda (x) (find x preds :test #'(lambda (y z) (param-equal y (pred-parameter z))))) 
+			     (preds p)))
     (setq widgets (delete-if-not #'(lambda (x) (eq (pred-kind x) :widget)) widgets))
     (sort (mapcar #'pred-name widgets) #'string< :key #'tostring)))
 
@@ -2092,7 +2159,7 @@ function addWidget (obj) {
 			   (return-from ,fname (collection-second tmp))
 			   (setq sofar (collection-second tmp))))))
 	(t
-	 (let (lit vs its newbdg rec letbdg pred)
+	 (let (lit vs its newbdg rec letbdg pred litparam)
 	   (setq lit (car lits))
 	   (setq lit (quote-lit-args lit #'(lambda (x) (not (varp x)))))
 	   (setq lit (plug lit binding))
@@ -2111,12 +2178,16 @@ function addWidget (obj) {
 					  fname
 					  preds
 					  predgroup))
-	   (setq pred (find (relation lit) preds :key #'pred-name))
-	   (assert pred nil (format nil "Predicate list missing ~A." (relation lit)))
+	   (setq litparam (pred lit))
+	   (setq pred (find-if #'(lambda (x) (param-equal litparam (pred-parameter x))) preds))
+	   (assert pred nil (format nil "Unknown predicate: ~A." (parameter-symbol litparam)))
 
-	   ; built-ins and negative literals must be lookups (vs is empty)
+	   ; built-ins and negative literals must be lookups, except for assignment
 	   (when (or (eq (pred-kind pred) :builtin) (negative-literalp lit))
-	     (assert (null vs) nil "Bad conjunct ordering."))
+	     (let ((bindingok (if (and (positive-literalp lit) (eq (pred-name pred) *ws-assign*))
+				  (equal vs (list (second (car lits))))
+				  (null vs))))
+	       (assert bindingok nil (format nil "Bad conjunct ordering for lit ~A with vars ~A" lit vs))))
 
 	   ; positive widgets and extensions may be either lookups or constructions
 	   ; unique-valued widget enumerations have a special form
@@ -2133,6 +2204,8 @@ function addWidget (obj) {
 		  (if (pred-unique pred)
 		      (setq rec (construct-widgetset (car its) lit rec))
 		      (setq rec (construct-collectioniter its lit rec t))))
+		 ((eq (pred-name pred) *ws-assign*)
+		  (setq rec (mak-block (construct-assignment lit) rec)))
 		 (t (setq rec (construct-collectioniter its lit rec))))
 	   (mak-vardecl letbdg rec)))))
 
@@ -2188,9 +2261,17 @@ function addWidget (obj) {
 ;    the user to define his own functions, we would want to be able to use those functions to generate as well as validate,
 ;    which we can't do under this scheme.)
 
+(defun construct-assignment (lit)
+  (assert (positive-literalp lit) nil (format nil "Assignment lit cannot be negative: ~A" lit))
+  (assert (listp lit) nil (format nil "Assignment lit must be a list: ~A" lit))
+  (cons 'setq (mapcar #'construct-builtin-eval (cdr lit))))
+
+(defun construct-builtin-eval (term)
+  term)
+
 (defun construct-builtin-test (lit)
   (cond ((negative-literalp lit) (mak-neg (construct-builtin-test (second lit))))
-	((and (listp lit) (eq (car lit) '=)) (cons 'eq (cdr lit)))
+	((and (listp lit) (eq (car lit) '=)) (cons 'eq (mapcar #'construct-builtin-eval (cdr lit))))
 	(t lit)))
 #|
 (defmethod construct-builtin-test-atom (atom (type (eql '=))) (cons 'eq (cdr atom)))
