@@ -319,7 +319,7 @@
 (defun subrel (alist p &key (test #'eq))
   "(SUBFUN ALIST P) applies the substitution list ALIST to all of the
    function constants (but not object constants) in the sentence P.  Returns the new sentence."
-  (mapopands #'(lambda (x) (if (atom x) (sublis alist p :test test) (cons (sublis alist (car x) :test test) (cdr x))))
+  (mapopands #'(lambda (x) (if (atom x) (sublis alist x :test test) (cons (sublis alist (car x) :test test) (cdr x))))
 	     p))
 
 (defun nsubfun (alist p)

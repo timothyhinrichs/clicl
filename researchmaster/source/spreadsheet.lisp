@@ -36,7 +36,6 @@
 ; note: ought to make this a per-form option.  Just need to add it as an option and replace the global var with the form far.
 ;   On second thought, maybe not.  It's an implementation detail, not a behavioral detail.
 (defparameter *ws-use-value-shortnames* nil)  
-(defparameter *ws-assign* '<- "symbol for assignment in datalog")
 
 ; TO INSTALL a new built-in
 ; Options
@@ -823,6 +822,7 @@ function addWidget (obj) {
 ;;;;;;;;;;;;;;;;;;; Load plato theory into internal data structure ;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defparameter *ws-assign* '<- "symbol for assignment in datalog")
 (defparameter *ws-vocab-macro*
   (list `(,*ws-assign* = relation)))
 (defun ws-macrorepl (p)
@@ -1414,8 +1414,8 @@ function addWidget (obj) {
 
 (defparameter *prefixeq* 'tlheq)
 (defstruct datalog extensional intensional components completepreds)
-(defvar *tmp2*)
 (defstruct intcode tp support objs)
+(defvar *tmp2*)
 
 ; wrap complex code with run-time
 (defun construct-websheet-intcode-safe (struct)
