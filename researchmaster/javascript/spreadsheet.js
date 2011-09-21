@@ -263,7 +263,6 @@ cell.prototype.hasStyle = function (htmlstyle, htmltype) {
 		case 'text': return htmlstyle === 'input' && htmltype === 'text'; }
 	return false; }
 
-
 /***************************************************************/
 /*************************** Utility ***************************/
 /***************************************************************/
@@ -429,7 +428,7 @@ function update_conflicts (cell) {
 	if (!obj.userVal() || !obj.hasVal()) {
 		obj.conflictset = new set();
 		return false; }
-	
+
 	//alert("updating conflicts for " + cell + " +(" + findcell(cell).posimplied + ") -(" + findcell(cell).negimplied + ")");
 	// find all positively implied that are not selected
 	pos = obj.posimplied.difference(obj.value, 
@@ -440,7 +439,7 @@ function update_conflicts (cell) {
 	// find all values both negatively and positively implied
 	both = obj.posimplied.intersection(obj.negimplied,
 		function(x,y) { return x.first().element(0) === y.first().element(0) });
-	// alert("pos set: " + pos + "; neg set: " + neg);
+	//alert("pos set: " + pos + "; neg set: " + neg);
 	// union the sets of support
 	res = new set();
 	res.nunion(pos.mapcar(ds.second).toSet());

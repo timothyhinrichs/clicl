@@ -308,7 +308,7 @@ Input GUI
   (format s "</form>~%")
   (format s "</div>~%"))
 
-(defparameter *ws-avail-options* '(allowconflicts debug casesensitive))
+(defparameter *ws-avail-options* '(allowconflicts debug casesensitive completep))
 (defun output-websheet-editor (s th)
   "(OUTPUT-WEBSHEET-EDITOR S TH) outputs a graphical interface for editing the declarative
    description TH of a web form."
@@ -599,6 +599,7 @@ function addWidget (obj) {
 			 "/docserver/infoserver/examples/researchmaster/javascript/util.js"
 			 "/docserver/infoserver/examples/researchmaster/javascript/spreadsheet.js"
 			 "/docserver/infoserver/examples/researchmaster/javascript/ds.js"
+			 "/docserver/infoserver/examples/researchmaster/javascript/builtins.js"
 			 "/docserver/infoserver/examples/researchmaster/javascript/phpjs.tlh.namespaced.min.js"))  ; http://phpjs.org
 
 
@@ -849,23 +850,31 @@ function addWidget (obj) {
    (make-parameter :symbol 'tobool :arity 1 :type 'function)
    (make-parameter :symbol *ws-assign* :arity 2 :type 'relation)  ; assignment (semantic synonym for =)
    ))
+
+; to recreate list ...
+;egrep -o 'function[[:space:]]*[0-9a-zA-Z$_]*[[:space:]]*\(' /Users/thinrich/Research/code/clicl/researchmaster/javascript/builtins.js |sed -E 's/^function[[:space:]]*([0-9a-zA-Z$_]*)[[:space:]]*\($/"\1"/' | tr '\n' ' '
+(defparameter *ws-custom-builtin-names* '("preg_replace" "preg_match"))
+
+(defparameter *ws-php-namespace* "PHP"
+  "The prefix that is added to PHP functions in our implementation of those functions.")
+; to recreate list....
+;egrep -o ',[[:space:]]*([0-9a-zA-Z$_])*[[:space:]]*:[[:space:]]*function' /Users/thinrich/Research/code/clicl/researchmaster/javascript/phpjs.tlh.namespaced.min.js | sed -E 's/^,[[:space:]]*([0-9a-zA-Z$_]*)[[:space:]]*:[[:space:]]*function$/"\1"/' | tr '\n' ' '
+(defparameter *ws-php-builtin-names* '("abs" "acos" "acosh" "addcslashes" "addslashes" "array_change_key_case" "array_chunk" "array_combine" "array_count_values" "array_diff" "array_diff_assoc" "array_diff_key" "array_diff_uassoc" "array_diff_ukey" "array_fill" "array_fill_keys" "array_filter" "array_flip" "array_intersect" "array_intersect_assoc" "array_intersect_key" "array_intersect_uassoc" "array_intersect_ukey" "array_key_exists" "array_keys" "array_map" "array_merge" "array_merge_recursive" "array_pad" "array_pop" "array_product" "array_push" "array_rand" "array_reduce" "array_reverse" "array_search" "array_shift" "array_slice" "array_splice" "array_sum" "array_udiff" "array_udiff_assoc" "array_udiff_uassoc" "array_uintersect" "array_uintersect_assoc" "array_uintersect_uassoc" "array_unique" "array_unshift" "array_values" "array_walk" "array_walk_recursive" "arsort" "asin" "asinh" "asort" "atan" "atan2" "atanh" "base64_decode" "base64_encode" "base_convert" "bin2hex" "bindec" "ceil" "checkdate" "chop" "chr" "chunk_split" "class_exists" "compact" "convert_cyr_string" "convert_uuencode" "cos" "cosh" "count" "count_chars" "crc32" "date" "D" "j" "l" "N" "S" "w" "z" "W" "F" "m" "M" "n" "t" "L" "o" "Y" "y" "a" "A" "B" "g" "G" "h" "H" "i" "s" "u" "e" "I" "O" "P" "T" "Z" "c" "r" "U" "decbin" "dechex" "decoct" "deg2rad" "doubleval" "echo" "end" "exp" "explode" "expm1" "floatval" "floor" "fmod" "get_class" "get_defined_vars" "get_headers" "get_html_translation_table" "getdate" "getenv" "getrandmax" "gettype" "hexdec" "html_entity_decode" "htmlentities" "htmlspecialchars" "htmlspecialchars_decode" "http_build_query" "hypot" "implode" "in_array" "intval" "ip2long" "is_bool" "is_double" "is_finite" "is_float" "is_infinite" "is_int" "is_integer" "is_long" "is_nan" "is_null" "is_numeric" "is_real" "is_scalar" "is_string" "isset" "join" "json_decode" "json_encode" "krsort" "ksort" "lcfirst" "lcg_value" "levenshtein" "localeconv" "log" "log10" "log1p" "long2ip" "ltrim" "max" "method_exists" "microtime" "min" "mktime" "mt_getrandmax" "mt_rand" "natcasesort" "natsort" "nl2br" "number_format" "octdec" "ord" "parse_str" "parse_url" "pi" "pow" "preg_grep" "preg_quote" "print_r" "printf" "property_exists" "quotemeta" "rad2deg" "rand" "range" "rawurldecode" "rawurlencode" "reset" "round" "rsort" "rtrim" "serialize" "setcookie" "setlocale" "setrawcookie" "settype" "sha1" "shuffle" "sin" "sinh" "sizeof" "sort" "soundex" "split" "sprintf" "sql_regcase" "sqrt" "str_getcsv" "str_ireplace" "str_pad" "str_repeat" "str_replace" "str_rot13" "str_shuffle" "str_split" "str_word_count" "strcasecmp" "strchr" "strcmp" "strcspn" "strip_tags" "stripos" "stripslashes" "stristr" "strlen" "strnatcasecmp" "strnatcmp" "strncasecmp" "strncmp" "strpbrk" "strpos" "strrchr" "strrev" "strripos" "strrpos" "strspn" "strstr" "strtok" "strtolower" "strtotime" "strtoupper" "strtr" "strval" "substr" "substr_compare" "substr_count" "substr_replace" "tan" "tanh" "time" "trim" "uasort" "ucfirst" "ucwords" "uksort" "unserialize" "urldecode" "urlencode" "usort" "utf8_decode" "utf8_encode" "var_dump" "var_export" "vprintf" "vsprintf" "wordwrap"))
+; DANGER: make sure this parameter is created *after* *ws-php-builtin-names* is created
+(defparameter *ws-php-builtin-prefixed-names* 
+  (mapcar #'(lambda (x) (tostring *ws-php-namespace* "." x)) *ws-php-builtin-names*)
+  "The list of all php builtins with the namespace prefixed")
+
 (defun ws-builtins () 
   (nconc (mapcar #'(lambda (x) (make-pred :parameter x 
 					  :kind :builtin)) 
 		 *ws-builtins*)
 	 (mapcar #'(lambda (x) (make-pred :parameter (make-parameter :symbol (tosymbol x) :type 'function) 
 					  :kind :builtin))
-		 *ws-php-builtin-names*)))
-
-(defparameter *ws-php-namespace* "PHP"
-  "The prefix that is added to PHP functions in our implementation of those functions.")
-; to recreate list....
-;egrep -o ',([0-9a-zA-Z])*:function' /Users/thinrich/Research/code/clicl/researchmaster/javascript/phpjs.tlh.namespaced.min.js | sed -e 's/^,\([0-9a-zA-Z]*\):function$/"\1"/' | tr '\n' ' '
-(defparameter *ws-php-builtin-names* '("abs" "acos" "acosh" "addcslashes" "addslashes" "arsort" "asin" "asinh" "asort" "atan" "atan2" "atanh" "bin2hex" "bindec" "ceil" "checkdate" "chop" "chr" "compact" "cos" "cosh" "count" "crc32" "date" "D" "j" "l" "N" "S" "w" "z" "W" "F" "m" "M" "n" "t" "L" "o" "Y" "y" "a" "A" "B" "g" "G" "h" "H" "i" "s" "u" "e" "I" "O" "P" "T" "Z" "c" "r" "U" "decbin" "dechex" "decoct" "deg2rad" "doubleval" "echo" "end" "exp" "explode" "expm1" "floatval" "floor" "fmod" "getdate" "getenv" "getrandmax" "gettype" "hexdec" "htmlentities" "htmlspecialchars" "hypot" "implode" "intval" "ip2long" "isset" "join" "krsort" "ksort" "lcfirst" "levenshtein" "localeconv" "log" "log10" "log1p" "long2ip" "ltrim" "max" "microtime" "min" "mktime" "natcasesort" "natsort" "nl2br" "octdec" "ord" "pi" "pow" "printf" "quotemeta" "rad2deg" "rand" "range" "rawurldecode" "rawurlencode" "reset" "round" "rsort" "rtrim" "serialize" "setcookie" "setlocale" "setrawcookie" "settype" "sha1" "shuffle" "sin" "sinh" "sizeof" "sort" "soundex" "split" "sprintf" "sqrt" "strcasecmp" "strchr" "strcmp" "strcspn" "stripos" "stripslashes" "stristr" "strlen" "strnatcasecmp" "strnatcmp" "strncasecmp" "strncmp" "strpbrk" "strpos" "strrchr" "strrev" "strripos" "strrpos" "strspn" "strstr" "strtok" "strtolower" "strtotime" "strtoupper" "strtr" "strval" "substr" "tan" "tanh" "time" "trim" "uasort" "ucfirst" "ucwords" "uksort" "unserialize" "urldecode" "urlencode" "usort" "vprintf" "vsprintf" "wordwrap"))
-; DANGER: make sure this parameter is created *after* *ws-php-builtin-names* is created
-(defparameter *ws-php-builtin-prefixed-names* 
-  (mapcar #'(lambda (x) (tostring *ws-php-namespace* "." x)) *ws-php-builtin-names*)
-  "The list of all php builtins with the namespace prefixed")
+		 *ws-php-builtin-names*)
+	 (mapcar #'(lambda (x) (make-pred :parameter (make-parameter :symbol (tosymbol x) :type 'function) 
+					  :kind :builtin))
+		 *ws-custom-builtin-names*)))
 
 (defstruct dictionary (index (make-hash-table :test #'equal)))
 (defun dictionary-lookup (n dict) 
@@ -1025,7 +1034,8 @@ function addWidget (obj) {
     (when constraints  ; if constraints empty, true appears which isn't a built-in relation
       (setq vocab (mapcar #'parameter-symbol (delete-if #'isobject (get-vocabulary (maksand constraints)))))
       (setq preds (mapcar #'(lambda (x) (parameter-symbol (pred-parameter x))) (webform-preds w)))
-      (when (set-difference vocab preds) (error 'unknown-symbol :comment vocab)))
+      (setq vocab (set-difference vocab preds))
+      (when vocab (error 'unknown-symbol :comment vocab)))
     w))
 
 (defun ws-fixwidget (w univ types valuecomp)
@@ -1481,17 +1491,17 @@ function addWidget (obj) {
    each widget and query predicate. The incoming constraints are allowed to include built-in 
    functions; the resulting datalog flattens those functions, e.g. instead of the atom 
    p(f(x,y),z), we get p(w,z) ^ w=f(x,y)."
-  (let (constraints lpreds cpreds comp dpreds qpreds wpreds)
+  (let (constraints lpreds cpreds comp dpreds qpreds wpreds upreds)
     (setq constraints (add-uva (webform-constraints struct) struct))
     (multiple-value-setq (wpreds lpreds) 
       (split #'(lambda (x) (eq (pred-kind x) :widget)) (webform-preds struct)))
-    ;(setq mpreds (remove-if #'(lambda (x) (widget-unique (pred-display x))) wpreds))
+    (setq upreds (remove-if-not #'(lambda (x) (widget-unique (pred-display x))) wpreds))
     (multiple-value-setq (qpreds cpreds) 
       (split #'(lambda (x) (eq (pred-kind x) :query)) lpreds))
     (setq dpreds (remove-if #'(lambda (x) (eq (pred-kind x) :builtin)) cpreds))
 
     (setq wpreds (mapcar #'pred-parameter wpreds)) ; widgets
-    ;(setq mpreds (mapcar #'pred-parameter mpreds)) ; non-unique (multi) widgets
+    (setq upreds (mapcar #'pred-parameter upreds)) ; widgets with unique values
     (setq lpreds (mapcar #'pred-parameter lpreds))
     (setq qpreds (mapcar #'pred-parameter qpreds)) ; query-only
     (setq cpreds (mapcar #'pred-parameter cpreds)) ; complete
@@ -1515,7 +1525,7 @@ function addWidget (obj) {
 		(undirected-dependency-graph constraints lpreds :test #'param-equal) 
 		:test #'param-equal))
 
-    (setq constraints (fhlc-webform-multi constraints cpreds qpreds))
+    (setq constraints (fhlc-webform-multi constraints cpreds qpreds upreds (webform-option 'completep struct)))
     (when (member '(or) constraints :test #'equal)
       (error 'inconsistent-constraints))
 
@@ -1572,7 +1582,7 @@ function addWidget (obj) {
     (setq origsize (length th))
     (setq th (delete-if-not #'(lambda (x) (horn-clausep x cpreds)) th))
     (setq hornsize (length th))
-    (setq th (mapcarnot #'(lambda (x) (fully-factor-all x cpreds)) th))
+    (setq th (mapcarnot #'(lambda (x) (fully-factor-all x :ignorepreds cpreds)) th))
     (format t "Resolution closure: ~A, Horn rules: ~A.  Percentage Horn: ~D~%" 
 	    origsize hornsize (* 100 (* 1.0 (/ hornsize origsize))))
  
@@ -1591,45 +1601,68 @@ function addWidget (obj) {
     (setq neg (fhl-webform-uva-negative neg cpreds qpreds))
     (nconc pos neg)))
 
-(defun fhlc-webform-multi (th cpreds qpreds)
+(defun fhlc-webform-multi (th cpreds qpreds upreds completep)
+  "(FHLC-WEBFORM-MULTI TH CPREDS QPREDS COMPLETEP) turns the logical theory TH into 
+   a set of IMPL sentences, where CPREDS is the list of complete predicates,
+   QPREDS is the list of query predicates, and COMPLETEP is true if TH is to
+   be evaluated over a complete set of predicates."
   (let (origsize ressize)
     (assert (eq (get-theory-type th) 'quantifier-free)
 	    nil "FHL-WEBFORM-NO-EQ requires a quantifier-free theory")
 
-    ; compute all prime clausal consequences using resolution and perform some simplification.
-    ; flattening functions so that all built-in functions appear inside = (a built-in relation).
-    (setq th (mapcar #'(lambda (x) (flatten-functions (nnf x))) (contents th)))
-    (setq origsize (length th))
-    (print th)
-    (setq th (funcall *resolution-closure* (clauses (maksand th)) *limit* cpreds))
-    (when (member '(or) th :test #'equal)
-      (return-from fhlc-webform-multi '((or))))
-    (setq th (mapcar #'herbrand-simplify th))
-    (when (member 'false th)
-      (return-from fhlc-webform-multi '((or))))
-    (setq th (remove-if #'(lambda (x) (eq x 'true)) th))
-    (print th)
-    (setq ressize (length th))
-    (when (> ressize 0)
-      (format t "Orig: ~A, Resolution closure: ~A, Axiomatization percentage: ~D~%" 
-	      origsize ressize (* 100 (* 1.0 (/ origsize ressize)))))
+    (setq th (clauses (maksand (contents th))))
+    ; if have a complete webform, don't need to run resolution
+    (unless completep
+      ; compute all prime clausal consequences using resolution and perform some simplification.
+      ; flattening functions so that all built-in functions appear inside = (a built-in relation).
+      (setq th (mapcar #'(lambda (x) (flatten-functions (nnf x))) th))
+      (setq origsize (length th))
+      (print th)
+      (setq th (funcall *resolution-closure* (clauses (maksand th)) *limit* cpreds))
+      (when (member '(or) th :test #'equal)
+	(return-from fhlc-webform-multi '((or))))
+      (setq th (mapcar #'herbrand-simplify th))
+      (when (member 'false th)
+	(return-from fhlc-webform-multi '((or))))
+      (setq th (remove-if #'(lambda (x) (eq x 'true)) th))
+      (print th)
+      (setq ressize (length th))
+      (when (> ressize 0)
+	(format t "Orig: ~A, Resolution closure: ~A, Axiomatization percentage: ~D~%" 
+		origsize ressize (* 100 (* 1.0 (/ origsize ressize))))))
 
-    ; fully factor all clauses and turn into clausesets
-    ;  Removed since it seems unsound for multi-valued widgets
-    ;(setq th (mapcarnot #'(lambda (x) (fully-factor-all x (union cpreds multipreds :test #'param-equal))) th))
+    ; simplify clauses
+    (setq th (remove-duplicates th :test #'samep))
+    (setq th (remove-if #'tautp th))
+    ; simplify further: fully factor all clauses on the uniquely-valued widgets
+    (setq th (mapcarnot #'(lambda (x) (fully-factor-all x :onlypreds upreds)) th))
 
-    ; construct all rules
-    (fhl-webform-uva-impl-queries 
-     (mapcan #'(lambda (x) (contrapositives* x (remove-if #'isfunction cpreds))) th) qpreds)))
+    ; turn all clauses into rules
+    (setq th (mapcan #'(lambda (x) (contrapositives* x (remove-if #'isfunction cpreds))) th))
 
-(defun fully-factor-all (lits &optional (ignorepreds nil))
-  "(FULLY-FACTOR-ALL LITS) takes a list of literals LITS. Suppose p occurs in LITS and is not in IGNOREPREDS. 
-   If there is any predicate p occurring both positively and negatively, returns nil.
-   If there is no most general substitution s that when applied to lits produces a literal set
-   with one occurrence of each predicate, returns nil.  Otherwise, returns lits after applying
-   such a substitution.  "
+
+    ; construct all contrapositives and then convert to IMPL queries
+    (fhl-webform-uva-impl-queries th qpreds)))
+
+(defun fully-factor-all (lits &key (ignorepreds nil) (onlypreds t))
+  "(FULLY-FACTOR-ALL LITS) takes a list of literals LITS. ONLYPREDS includes the list of 
+   predicates to operate on; IGNOREPREDS is the list of preds not to operate on.  IGNOREPREDS
+   overrides ONLYPREDS. 
+   If there is no most general substitution s that when applied to LITS produces a literal set
+   with one occurrence of each predicate operated on, returns nil.  
+   Otherwise, returns lits after applying such a substitution.  "
+  (let ((mgu truth) l)
+    (setq l (group-by lits #'pred :test #'param-equal))
+    (setq l (delete-if #'(lambda (x) (member (car x) ignorepreds :test #'param-equal)) l))
+    (when (listp onlypreds) 
+      (setq l (delete-if-not #'(lambda (x) (member (car x) onlypreds :test #'param-equal)) l)))
+    (dolist (x l)
+      (setq mgu (mgun (cdr x) mgu))
+      (unless mgu (return-from fully-factor-all nil)))
+    (remove-duplicates (plug lits mgu) :test #'equal)))
+#|
   (let ((mgu truth) h)
-    (setq h (split-by-preds lits ignorepreds))
+    (setq h (hash-lits lits ignorepreds onlypreds))
     (when (not h) (return-from fully-factor-all nil))
     (with-hash-table-iterator (my-iterator h)
       (loop
@@ -1640,7 +1673,7 @@ function addWidget (obj) {
 		  (when (not mgu) (return nil)))
 		 (t (return (remove-duplicates (plug lits mgu) :test #'equal)))))))))
 
-(defun split-by-preds (lits ignorepreds)
+(defun split-by-preds (lits ignorepreds onlypreds)
   (let ((h (make-hash-table)) (signs (make-hash-table)) tmp)
     (dolist (l lits h)
       (unless (member (relation l) ignorepreds :key #'parameter-symbol)
@@ -1650,6 +1683,7 @@ function addWidget (obj) {
 	      (t
 	       (setf (gethash (relation l) signs) l)
 	       (setf (gethash (relation l) h) (list l))))))))
+|#
 
 (defun fhl-webform-uva-positive (clausesets &optional (ignorepreds nil) (qpreds nil))
   "(FHL-WEBFORM-UVA-POSITIVE CLAUSESETS) returns a list of sentences of the form
@@ -1690,6 +1724,7 @@ function addWidget (obj) {
       (setq rs (indexps sp rules))
       (setq vars (head-args (length (args (head (first rs))))))
       (setq rs (mapcar #'(lambda (r) (similarize-head r vars)) rs))
+      (setq rs (mapcar #'(lambda (x) (propagate-equality x vars t)) rs))
       (push (list '<=> 
 		  (makimpl (head (first rs)) vars) 
 		  (equantify-except (maksor (mapcar #'(lambda (imp) (maksand (body imp))) rs))
@@ -2312,17 +2347,15 @@ function addWidget (obj) {
 			    (return-from ,(mak-enum pred) (dictionary-get datastore (quote ,pred)))))
 	    (t   ; the below looks seriously broken, but it is only useful if we're using n-ary preds to enum
 	     `(defun ,(mak-enum pred) ,args 
-		(let (m res (allres ,(mak-collection 'tuple)) i (ex ,(maks-collection 'expr args)))
-		  (with-collection-iterator (d (dictionary-get datastore (quote ,pred)))
-		    (setq m (expr-match ex (collection-element d)))
+		(let (m res (allres ,(mak-collection 'set)) (ex ,(maks-collection 'expr args)) (table (dictionary-get datastore (quote ,pred))))
+		  (with-collection-iterator (row table)
+		    (setq m (expr-match ex (collection-element table row)))
 		    (when (not (eq m ,(mak-false))) 
-		      (setq res ,(mak-class 'array))
-		      (setq i 0)
-		      (with-orderedcollection-iterator (e ,(maks-collection 'tuple args))
-       			(if (varp e)
-			    (array-assign res i (get m e))
-			    (array-assign res i e)))		    
-		      (setq allres (append allres (collection-toExpr res)))))
+		      (setq res ,(mak-collection 'tuple))		      
+		      (with-orderedcollection-iterator (e ex)
+       			(when (varp (collection-element ex e)) 
+			  (collection-append res (dictionary-get m (collection-element ex e)))))
+		      (setq allres (collection-adjoin allres (collection-toExpr res)))))
 		  (return-from ,(mak-enum pred) allres))))))))
 
 (defun def-check (predicate)
@@ -2502,9 +2535,11 @@ function addWidget (obj) {
 (defmethod tojavascript (form (type (eql 'with-orderedcollection-iterator)) depth s)
   (format s "for (var ")
   (tojavascript (first (second form)) (signifier (first (second form))) -1 s)
-  (format s "=0; i< ds.data(")
+  (format s "=0; ")
+  (tojavascript (first (second form)) (signifier (first (second form))) -1 s)
+  (format s "< ")
   (tojavascript (second (second form)) (signifier (second (second form))) -1 s)
-  (format s ").length(); ")
+  (format s ".length(); ")
   (tojavascript (first (second form)) (signifier (first (second form))) -1 s)
   (format s "++) ")
   (setq form (maks-block (cddr form)))
@@ -2717,8 +2752,12 @@ function addWidget (obj) {
   (let (fnew)
     (setq f (js-funcname-spec f))
     (cond ((stringp f) f)   ; lookup returned string
-	  ((setq fnew (find (tostring f) *ws-php-builtin-prefixed-names* :test #'equalp)) fnew) ; a php built-in: returning proper spelling.
-	  (t (tolower (substitute #\_ #\? (substitute #\_ #\- (tostring f))))))))  ; a program function: translate from Lisp to JS syntax
+	  ; a php built-in: returning proper spelling.
+	  ((setq fnew (find (tostring f) *ws-php-builtin-prefixed-names* :test #'equalp)) fnew) 
+	  ; a custom built-in: returning proper spelling
+	  ((setq fnew (find (tostring f) *ws-custom-builtin-names* :test #'equalp)) fnew)
+	  ; a program function: translate from Lisp to JS syntax
+	  (t (tolower (substitute #\_ #\? (substitute #\_ #\- (tostring f))))))))  
 #| New
   (let (fnew fs)
     (setq fs (tostring f))
@@ -2744,6 +2783,10 @@ function addWidget (obj) {
     (collection-first "ds.first")
     (collection-second "ds.second")
     (collection-equal "equalp")
+    (collection-append "ds.append")
+    (collection-toExpr "ds.toExpr")
+    (expr-match "ds.match")
+
     (tostr "String")
     (tonum "Number")
     (tobool "Boolean")

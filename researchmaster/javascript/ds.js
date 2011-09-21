@@ -21,7 +21,9 @@ first: function (x) { return x.first(); },
 second: function (x) { return x.second(); },
 data: function (x) { return x.data(); },
 nunion: function (x) { var s = new set(); s.nunion(x); return s; },
-element: function(x,key) { return x.element(key); }
+element: function(x,key) { return x.element(key); },
+append: function(x,y) { return x.append(y); },
+match: function(x,y) { return x.match(y); }
 };
 
 //------------------------------- Iteration Interface -------------------------------
@@ -417,6 +419,8 @@ tuple.prototype.equal = function (t, test) {
 tuple.prototype.append = function(x) { return this.arr.append(x); }
 tuple.prototype.equalp = function(x) { return this.equal(x); }
 tuple.prototype.toSet = function(test) { return this.arr.toSet(test); }
+tuple.prototype.toExpr = function() { return this.arr.toExpr(); }
+
 tuple.prototype.totalcount = function (x,test) {
 	if (test === undefined) test = this.arr.getequal();
 	var cnt = 0;
@@ -453,8 +457,8 @@ function tuple_assoc (x,tup) { return list_assoc(x,tup); }
 function dictionary() { this.d = {}; }
 
 dictionary.prototype.data = function() { return this.d; }
-dictionary.prototype.element = function(v) { return this.d[v].elem; }
-dictionary.prototype.value = function(v) { return this.d[v].val; }
+dictionary.prototype.element = function(v) { return this.d[v]; }
+dictionary.prototype.value = function(v) { return this.d[v]; }
 dictionary.prototype.key = function(elem,test) { 
 	for (var v in this.d)
 		if (test(this.d[v].elem, elem)) return v;

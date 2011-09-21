@@ -364,7 +364,7 @@
 	((eq (car thing) 'quote) t)
 	(t (every #'(lambda (x) (or (atom x) (and (listp x) (eq (car x) 'quote)))) (cdr thing)))))
 
-(defun flatten-functions (p &key (fullflat nil) (universal t))
+(defun flatten-functions (p &key (universal t))
   "(FLATTEN-FUNCTIONS P) takes a NNF formula P and returns a QF sentence 
    equivalent to p except the depth of function nesting is
    always at most 1, e.g. (p (f a (g ?x (h ?y)))) becomes
@@ -374,12 +374,18 @@
 	;((member (car p) '(and or not))   ;  OLD version of code???  Leave in case not
 	; (multiple-value-bind (newps extra) (mapcaraccum #'(lambda (x) (flatten-functions x fullflat)) (cdr p))
 	;   (maksand (cons (cons (car p) newps) extra))))
-	((member (car p) '(or not and)) 
+	((member (car p) '(or and)) 
 	  ; don't include =>, <=, or <=> b/c the new variables need to be existentially quantified.
 	  ;   Can of course rewrite this code, but don't have the time.  Can instead convert to NNF before flattening.
 	 (flatten-operator (cons (car p) (mapcar #'(lambda (q) 
-						     (flatten-functions q :fullflat fullflat :universal universal)) 
+						     (flatten-functions q :universal universal)) 
 						 (cdr p)))))	 
+	((eq (car p) 'not)
+	 (let (newp)
+	   (setq newp (flatten-functions (second p) :universal universal))
+	   (cond ((atom newp) (maknot newp))
+		 ((member (car newp) '(or and)) (list* (first newp) (maknot (second newp)) (cddr newp)))
+		 (t (maknot newp)))))
 	((and (eq (car p) '=) (shallow-term (second p)) (shallow-term (third p))) p)
 	(t
 	 (multiple-value-bind (newargs extra) (mapcaraccum #'flatten-term (cdr p))
@@ -655,31 +661,38 @@
    sentence that says it must equal one of the remaining names."
   (maksor (mapcar #'(lambda (x) `(= ,(car names) ,x)) (cdr names))))
 
-(defun propagate-equality (l vars)
+(defun propagate-equality (l vars &optional (varsonly nil))
   "(PROPAGATE-EQUALITY L VARS) takes a list of literals L and a list of variables VARS.
    It replaces equals for equals in the usual way until a fixed point is reached,
-   while never removing a variable in VARS."
+   while never removing a variable in VARS.  If VARSONLY is true, only removes (= ?x ?y)."
   (assert (and (listp l) (listp vars)) nil "propagate-equality takes two lists")
 
   ; first copy l so we can destructively modify it
-  (propagate-equality-aux (copy-tree l) vars))
+  (propagate-equality-aux (copy-tree l) vars varsonly))
 
-(defun propagate-equality-aux (l vars)
+(defun propagate-equality-aux (l vars varsonly)
   ; find the first substitution: (= x y) means replace x with y (modulo VARS)
   (let (tgt)
-    (setq tgt (first-result #'(lambda (x) (orientedrewrite x vars)) l))
+    (setq tgt (first-result #'(lambda (x) (orientedrewrite x vars varsonly)) l))
     (if tgt
       (propagate-equality-aux (remove-if #'(lambda (x) (and (listp x) (eq (car x) '=) (equal (second x) (third x))))
                                          (nsubst (third tgt) (second tgt) l))
-                              vars)
+                              vars varsonly)
       l)))
 
-(defun orientedrewrite (lit vars)
+(defun orientedrewrite (lit vars varsonly)
   (cond ((atom lit) nil)
         ((not (eq (car lit) '=)) nil)
-        ((and (varp (second lit)) (not (member (second lit) vars))) lit)
-        ((and (varp (third lit)) (not (member (third lit) vars))) `(= ,(third lit) ,(second lit)))
-        (t nil)))
+        (varsonly
+	 (cond ((and (varp (second lit)) (varp (third lit)))
+		(cond ((not (member (second lit) vars)) lit)
+		      ((not (member (third lit) vars)) `(= ,(third lit) ,(second lit)))
+		      (t nil)))
+	       (t nil)))
+	(t
+	 (cond ((and (varp (second lit)) (not (member (second lit) vars))) lit)
+	       ((and (varp (third lit)) (not (member (third lit) vars))) `(= ,(third lit) ,(second lit)))
+	       (t nil)))))
 
 (defun delete= (lits)
   "(DELETE= LITS) takes a list of literals and returns a logically equivalent list of literals

@@ -477,7 +477,7 @@
 						  'relation))))
         ((and (find (car p) '(or and <=> => <=))
               (find (car p) *real-ops*))
-         (mapunion #'get-vocabulary (cdr p) :test #'equalp))
+         (mapunion #'get-vocabulary (cdr p) :test #'param-equal))
         ((and (eq (car p) 'not) (find 'not *real-ops*))
          (get-vocabulary (cadr p)))
 	((and (eq (car p) 'naf) (find 'naf *real-ops*))
@@ -500,7 +500,7 @@
         (t (append (list (make-parameter :symbol (car term) 
 					 :arity (1- (length term))
 					 :type 'function))
-                   (mapunion #'get-functions (cdr term) :test #'equalp)))))
+                   (mapunion #'get-functions (cdr term) :test #'param-equal)))))
 
 (defun sentence-in-vocabp (p vocab)
   "(SENTENCE-IN-VOCABP P RELNS) checks whether the relations in P are a subset of RELNS."
