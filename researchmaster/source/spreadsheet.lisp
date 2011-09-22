@@ -851,9 +851,15 @@ function addWidget (obj) {
    (make-parameter :symbol *ws-assign* :arity 2 :type 'relation)  ; assignment (semantic synonym for =)
    ))
 
+(defparameter *ws-custom-namespace* "TLH"
+  "The prefix that is added to custom functions in our implementation of those functions.")
 ; to recreate list ...
 ;egrep -o 'function[[:space:]]*[0-9a-zA-Z$_]*[[:space:]]*\(' /Users/thinrich/Research/code/clicl/researchmaster/javascript/builtins.js |sed -E 's/^function[[:space:]]*([0-9a-zA-Z$_]*)[[:space:]]*\($/"\1"/' | tr '\n' ' '
 (defparameter *ws-custom-builtin-names* '("preg_replace" "preg_match"))
+; DANGER: make sure this parameter is created *after* *ws-custom-builtin-names* is created
+(defparameter *ws-custom-builtin-prefixed-names* 
+  (mapcar #'(lambda (x) (tostring *ws-custom-namespace* "." x)) *ws-custom-builtin-names*)
+  "The list of all custom builtins with the namespace prefixed")
 
 (defparameter *ws-php-namespace* "PHP"
   "The prefix that is added to PHP functions in our implementation of those functions.")
@@ -1439,8 +1445,10 @@ function addWidget (obj) {
   (let (datalog code falist)
     (setq datalog (construct-websheet-datalog webform))
     ; prepend built-in function names to simulate namespaces
-    (setq falist (mapcar #'(lambda (x y) (cons (tosymbol x) (tosymbol y)))
-			 *ws-php-builtin-names* *ws-php-builtin-prefixed-names*))
+    (setq falist (nconc (mapcar #'(lambda (x y) (cons (tosymbol x) (tosymbol y)))
+				*ws-php-builtin-names* *ws-php-builtin-prefixed-names*)
+			(mapcar #'(lambda (x y) (cons (tosymbol x) (tosymbol y)))
+				*ws-custom-builtin-names* *ws-custom-builtin-prefixed-names*)))
     (setf (datalog-extensional datalog) (mapcar #'(lambda (x) (subfun falist x)) (datalog-extensional datalog)))
     (setf (datalog-intensional datalog) (mapcar #'(lambda (x) (subfun falist x)) (datalog-intensional datalog)))
     ; change objects to their short-values (the values the intermediate code operates on directly for =)
@@ -1467,7 +1475,8 @@ function addWidget (obj) {
 (defun intcode-to-client-extra (code)
   (declare (ignore code))
   (list 
-   (mak-vardecl* `((,*ws-php-namespace* ,(mak-class "PHP_JS"))))))
+   (mak-vardecl* `((,*ws-php-namespace* ,(mak-class "PHP_JS"))
+		   (,*ws-custom-namespace* ,(mak-class "TLH_builtins"))))))
 
 ; The following two functions expect a list of intcode statements
 (defun intcode-to-lisp (code s)
@@ -2755,7 +2764,7 @@ function addWidget (obj) {
 	  ; a php built-in: returning proper spelling.
 	  ((setq fnew (find (tostring f) *ws-php-builtin-prefixed-names* :test #'equalp)) fnew) 
 	  ; a custom built-in: returning proper spelling
-	  ((setq fnew (find (tostring f) *ws-custom-builtin-names* :test #'equalp)) fnew)
+	  ((setq fnew (find (tostring f) *ws-custom-builtin-prefixed-names* :test #'equalp)) fnew)
 	  ; a program function: translate from Lisp to JS syntax
 	  (t (tolower (substitute #\_ #\? (substitute #\_ #\- (tostring f))))))))  
 #| New
