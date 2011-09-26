@@ -25,7 +25,97 @@
 ; :toplevel-function #'ssx
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;  Whitebox NoTamper testing
+;;  Client-side Validation Synthesis (CSVS)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; single quotes -> double quotes
+; \ -> \\ inside strings
+(defparameter csvst 
+'((and (is_scalar (post "user_id")) (preg_match "/^(\+|-)?[0-9]+$/" (post "user_id")))
+  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "firstname"))))
+  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "lastname"))))
+  (and (NOT (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "nickname")))))
+       (not (empty (post "nickname"))))
+  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "idmode"))))
+  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "locale"))))
+  (and (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "icq"))))
+       (or (empty (post "icq"))
+	   (preg_match "^[0-9]+$" (post "icq"))))
+  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "aim"))))
+  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "msn"))))
+  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "yim"))))
+  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "url"))))
+  (and (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "email"))))
+       (and (isset (post "email")) (not (empty (post "email"))))
+       (and (isset (post "email")) (!= (strpos (post "email") "@") false) (!= (strpos (post "email") ".") false)
+	    (tobool (preg_match "~^(([_a-z0-9-]+)(\\.[_a-z0-9-]+)*@([a-z0-9-]+)(\\.[a-z0-9-]+)*(\\.[a-z]{2,}))$~i" 
+				(post "email")))))
+  (and (is_scalar (post "allow_msgform")) (preg_match "/^(\+|-)?[0-9]+$/" (post "allow_msgform")))
+  (and (is_scalar (post "notify")) (preg_match "/^(\+|-)?[0-9]+$/" (post "notify")))
+  (and (is_scalar (post "showonline")) (preg_match "/^(\+|-)?[0-9]+$/" (post "showonline")))
+  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "pass1"))))
+  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "pass2"))))
+))
+
+(defun csvs (fserver)
+  "(CSVS FSERVER) takes an fserver formula (or formulas) and returns a string
+   comprised of JavaScript that computes errors.
+   Assumes always evaluating over a completely filled out form.
+   Additional JS support files available through *corejs*.  Need to replace
+   cellvalue (a function that returns the *set* of values for a given cellname 
+   as a string) if any constraint involves more than one field."
+   (setq fserver (list2p fserver))
+   (setq fserver (csvs-cleanse fserver))
+   (fhlc2js fserver :completep t :unique t))
+
+(defun csvs-cleanse (fserver)
+  (let (*ss-varmapping* *ss-vars*)
+    ; fix php operators
+    (setq fserver (ss-fix-php-ops fserver))
+    ; fix php boolean connectives
+    (setq fserver (ss-fix-boolean-funcs fserver))
+    ; change non-kif boolean connectives into KIF boolean connectives
+    (setq fserver (boolops2kif fserver))
+    ; eliminate duplicates inside boolean ops
+    (setq fserver (mapbool #'(lambda (x) (delete-duplicates x :test #'sentequal)) fserver))
+    ; translate (var "myCaseSensitiveVar") to ?var and record mappings
+    (setq *ss-varmapping* nil)
+    (setq *ss-vars* (vars fserver))
+    (setq fserver (ss-cleanse-varcases-aux fserver))
+    ; tweak regular expressions
+    (setq fserver (ss-fix-innotin fserver))
+    ; miscellaneous hacks
+    (setq fserver (ss-fix-misc fserver))
+    ; Skipping: do type inference and cast objs in constraints to satisfy types.
+    ; (ss-cleanse-typeinference prob)
+    ; Skipping: assumes only WAPTEC internal language simplify where possible
+    ; (setq fserver (ss-simplify fserver))
+    ; turn functional sentences into proper relational sentences
+    (setq fserver (csvs-funcs2relns fserver))
+    ; turn variables into monadics: (p ?x) becomes (=> (x ?x) (p ?x))
+    (setq fserver (csvs-vars2monadics fserver))
+    fserver))
+
+(defun csvs-vars2monadics (p)
+  (maksand (mapcar #'(lambda (x) (append (cons '=> (mapcar #'(lambda (v) (list (devariable v) v)) (vars x))) (list x)))
+		   (clauses p))))
+#|
+  (let (prefix)
+    (setq p (and2list p))
+    (setq prefix )
+    (maksand (mapcar #'(lambda (x) (nconc (cons '=> prefix) (list x))) p))))
+|#
+
+(defun csvs-funcs2relns (p)
+  (let ((builts (ws-builtins)) isfunc)
+    (setq isfunc #'(lambda (x y) (and (eq x (pred-name y)) (isfunction (pred-parameter y)))))
+    (mapatoms #'(lambda (q) (let (b)
+			      (setq b (find (relation q) builts :test isfunc))
+			      (if b `(= true (tobool ,q)) q)))
+	      p)))
+					    
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  Whitebox NoTamper testing (WAPTEC)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; user customizations
@@ -526,7 +616,7 @@ th {background-color: green; color: white;}
     (ss-whitebox-init url)
     ; compute fclient for each form at URL, removing those forms pointing to different URLs
     ;   by making sure fclient URL is included in the original URL (since orig may include extra params)
-    (ss-whitebox-cleanup)  ; so we don't get confused about whether or not stuff was downloaded
+    (ss-whitebox-cleanup)  ; so users don't get confused about whether or not stuff was downloaded
     (exec-commandline "mv" *ss-whitebox-log* (stringappend *ss-whitebox-log* ".bak"))
     (setq fclientprobs nil)
     (when *ss-show-search* (format t "~&Pre-processing ~A~%" url))

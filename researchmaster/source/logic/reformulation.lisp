@@ -184,6 +184,7 @@
 (defun to-orless-list (p) (if (and (listp p) (eq (car p) 'or)) (cdr p) (list p)))
 (defun or2list (p) (to-orless-list p))
 (defun and2list (p) (if (and (listp p) (eq (car p) 'and)) (cdr p) (list p)))
+(defun list2p (p) (if (atom p) p (if (atom (car p)) p (maksand p))))
 
 (defun flatten-operator (p)
   (cond ((atom p) p)
@@ -284,6 +285,7 @@
 	   (setq args (mapcar #'(lambda (x) (mapatomterm func x)) (cdr p)))
 	   (funcall func (cons (car p) args))))))
 
+(defun mapatoms (func p) (mapopands func p))
 (defun mapopands (func p)
   "(MAPOPANDS FUNC P) applies function FUNC to all of the operands of the sentence P and
    returns the result."
