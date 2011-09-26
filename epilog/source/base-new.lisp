@@ -3097,6 +3097,10 @@ indexes D with key X in theory TH."))
         ((null (cdr l)) (car l))
         (t `(<= ,(car l) . ,(mapcar #'maknot (cdr l))))))
 
+(defun maksred (l)
+  (cond ((null l) 'false)
+        ((null (cdr l)) (car l))
+        (t (cons '<= l))))
 
 (defmethod groundp (x)
  "(GROUNDP X)
