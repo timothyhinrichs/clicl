@@ -822,8 +822,10 @@ function addWidget (obj) {
     (htmlform-javascript html)))
     
 (defun fhlc2web-theory (p &key (completep nil) (casesensitive t) (allowconflicts t) (debug nil) (unique t))
-  (let (th preds)
+  (let (th preds builtins)
     (setq preds (preds p))
+    (setq builtins (mapcar #'pred-parameter (ws-builtins)))
+    (setq preds (remove-if #'(lambda (x) (member x builtins :test #'param-equal)) preds))
     (push `(formname anonymous) th)
     (push `(constraints ,(list 'quote (and2list p))) th)
     (push `(definitions 'nil) th)
@@ -2065,7 +2067,7 @@ function addWidget (obj) {
       (push (compile-ext-p-adorn p s preds typehash) res))))
 
 (defun construct-x (pred sign) 
-  (construct-wrap pred sign 'x (mak-collection 'pair (mak-true) 'newval) '(newval)))
+  (construct-wrap-x pred sign 'x (mak-collection 'pair (mak-true) 'newval) '(newval)))
 (defun construct-s (pred sign) 
   (construct-wrap pred sign 's 
 		  (mak-collection 'pair (mak-false) 
@@ -2095,6 +2097,21 @@ function addWidget (obj) {
 							(mak-declare (maks-ignore unusedvars))
 							(mak-return returnform)))
 					 args)))))
+
+; just the body of this one differs from the above
+(defun construct-wrap-x (pred sign suffix returnform returnfromvars)
+  (let ((args (mapcar #'devariable (head-args (parameter-arity (pred-parameter pred))))) unusedvars)
+    (setq unusedvars (set-difference '(newval support sofar) returnfromvars))
+    (mak-function (mak-queryver (pred-name pred) sign suffix) 
+		  args 
+		  (mak-vardecl `((v ,(mak-apply (mak-query (pred-name pred) sign)
+						(mak-anonfunc '(newval support sofar) 
+							      (mak-block 
+							       (mak-declare (maks-ignore unusedvars))
+							       (mak-return returnform)))
+						args)))
+			       (mak-if `(instanceof v expr) (mak-return 'v) (mak-return 'nil))))))
+
 
 (defun construct-query (pred sign)
   (let ((args (mapcar #'devariable (head-args (parameter-arity (pred-parameter pred)))))
@@ -2651,6 +2668,13 @@ function addWidget (obj) {
   (format s ".")
   (tojavascript (third form) (signifier (third form)) depth s))
 
+(defmethod tojavascript (form (type (eql 'instanceof)) depth s) 
+  (format s "(")
+  (tojavascript (second form) (signifier (second form)) depth s)
+  (format s " instanceof ")
+  (tojavascript (third form) (signifier (third form)) depth s)
+  (format s ")"))
+
 (defmethod tojavascript (form (type (eql 'method)) depth s) 
   (tojavascript (second form) (signifier (second form)) depth s)
   (format s ".")
@@ -2844,7 +2868,7 @@ function addWidget (obj) {
   (cond ((not thing) "false")
 	((eq thing 't) "true")
 	((varp thing) (js-thing (devariable thing)))
-	((stringp thing) thing)
+	((stringp thing) (replace-all thing "\\" "\\\\")) ; make sure to escape backslashes
 	(t (tolower (tostring thing)))))
 
 (defun js-rewrite-funcall (form)
