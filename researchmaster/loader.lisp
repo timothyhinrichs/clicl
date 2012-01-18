@@ -3,6 +3,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; assumes infomaster is already loaded
+(resetsystem)
 
 ; infomaster files (global vars used in some functions)
 (defparameter man (loadfn "manager" :dir "state" :type "kif"))
@@ -57,8 +58,6 @@
 (setq *mylog* (namestring (loadfn "log" :type "kif" :dir "state")))
 ;(defparameter *webformlog* (truename (loadfn "webformlog" :type "kif" :dir "state")))
 (defparameter *webformlog* nil)
-
-(resetsystem)
 
 (loaddata man *manager*)
 (mapdir #'(lambda (x) (loaddata x *repository*)) 

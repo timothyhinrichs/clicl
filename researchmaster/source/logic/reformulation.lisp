@@ -273,6 +273,14 @@
 	 (funcall func (list (first p) (second p) (mapbool func (third p)))))
 	(t p)))
 
+(defun someterm (func p)
+  "(SOMETERM FUNC P) walks the sentence P and applies FUNC to each term.  If FUNC
+   is ever true, returns T; else returns NIL."
+  (cond ((atom p) nil)
+	((member (car p) '(or not and => <= <=>)) (some #'(lambda (x) (someterm func x)) (cdr p)))
+	((member (car p) '(forall exists)) (someterm func (third p)))
+	(t (some #'(lambda (x) (funcall func x)) (cdr p)))))
+
 (defun mapatomterm (func p)
   "(MAPOPANDS FUNC P) applies function FUNC to all of the atoms and terms occurring in P 
    (children before parent) and returns the result."
@@ -720,9 +728,14 @@
    TEST determines truth of ground=ground.  Assumes UNA."
   (flet ((plugsimp (ps bl)
 	   (setq ps (nsublis bl ps))
-	   (values ps (nconc bl '((t . t))))))
+	   (values ps (nconc bl '((t . t)))))
+	 (if-violates-una (ps)
+	   (dolist (p ps ps)
+	     (when (and (listp p) (eq (car p) '=) (groundp (second p)) (groundp (third p))
+			(not (funcall test (second p) (third p))))
+	       (return :unsat)))))
     (do ((ls lits (cdr ls)) (prev nil) (newl) (l) (del nil nil) (v) (h (make-hash-table)))
-	((null ls) (plugsimp newl (hash2bl h)))
+	((null ls) (if-violates-una (plugsimp newl (hash2bl h))))
       (setq l (car ls))
       ; accummulate binding list
       (when (and (listp l) (eq (car l) '=))

@@ -695,7 +695,7 @@
 (defun process-displayauthorlatex (s authors maxauthlength)
   (let (ref unref)
     (setq ref (remove-duplicates (mapcan #'find-auth-refereed authors)))
-    (setq unref (find-papers-for-authors authors :requirepub t))
+    (setq unref (find-papers-for-authors authors :requirepub nil))
     (setq unref (remove-duplicates (set-difference unref ref)))
     (format s "<p><h3>Refereed</h3>~%~%")
     (process-displaylatex s ref maxauthlength)
@@ -948,7 +948,7 @@
     (unless minimal
       (when award
 	(dolist (a award)
-	  (format s " ~A. " a))))))
+	  (format s " {\\bfseries ~A}. " a))))))
 
 (defun output-paper-latex-author (author s)
   (output-paper-author author s :initials t :lastfirst t))

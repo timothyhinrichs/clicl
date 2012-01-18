@@ -682,6 +682,24 @@
 	    (when (not (eq ps qs))
 	      (agraph-adjoin-edged (maknot (car ps)) (car qs) nil graph :test #'equal))))))))
 
+(defun merge-dependencies (dep1 dep2)
+  "(MERGE-DEPENDENCIES DEP1 DEP2) Each input is a partitioning of some set of elements.
+   Two elements belong to the same partitioning iff they depend on one another.  The output
+   is a new partitioning of the elements that transitively close the merging of the dependency
+   lists."
+  (let (g)
+    (flet ((insertdep (dep)
+	     (let (f)
+	       (dolist (d dep)
+		 (setq f (first d))
+		 (agraph-adjoin-noded f g)
+		 (dolist (to (cdr d))
+		   (agraph-insert-edged f to nil g))))))
+      (setq g (make-agraph))
+      (insertdep dep1)
+      (insertdep dep2)
+      (agraph-print g)
+      (agraph-connected-components g))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Loop Formulas ;;;;;;;;;;;;;;;;;;;;;;;;;;

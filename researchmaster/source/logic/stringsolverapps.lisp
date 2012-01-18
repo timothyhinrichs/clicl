@@ -7,116 +7,24 @@
   (let (home)
     (setq home (string-trim '(#\Space #\Newline #\Return) (exec-commandline "echo $NOTAMPER_BASE")))
     (setq home (ss-path-endify home))
-    (load (stringappend home "solver/ss/stringsolver.lisp"))
-    (load (stringappend home "solver/ss/stringsolverapps.lisp"))
-    (load (stringappend home "solver/ss/stringsolvertests.lisp"))))
+    (load (stringappend home "solver/clicl/researchmaster/source/logic/stringsolver.lisp"))
+    (load (stringappend home "solver/clicl/researchmaster/source/logic/stringsolverapps.lisp"))
+    (load (stringappend home "solver/clicl/researchmaster/source/logic/stringsolvertests.lisp"))))
 
-
+; save-application call (deprecated)
 (defparameter *app-location* "./ss"
   "location for application--only used when saving application")
-(defparameter *app-init-location* 
-  "./ss-init.lisp"
-  "location for application initialization--used for application")
-
-; save-application call
 (defun savess ()
   ;(ignore-errors (load *app-init-location*))
   (save-application *app-location* :prepend-kernel t))
-; :toplevel-function #'ssx
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;  Client-side Validation Synthesis (CSVS)
+;; Common
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; single quotes -> double quotes
-; \ -> \\ inside strings
-(defparameter csvst 
-'((and (is_scalar (post "user_id")) (preg_match "/^(\+|-)?[0-9]+$/" (post "user_id")))
-  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "firstname"))))
-  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "lastname"))))
-  (and (NOT (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "nickname")))))
-       (not (empty (post "nickname"))))
-  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "idmode"))))
-  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "locale"))))
-  (and (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "icq"))))
-       (or (empty (post "icq"))
-	   (preg_match "^[0-9]+$" (post "icq"))))
-  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "aim"))))
-  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "msn"))))
-  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "yim"))))
-  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "url"))))
-  (and (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "email"))))
-       (and (isset (post "email")) (not (empty (post "email"))))
-       (and (isset (post "email")) (!= (strpos (post "email") "@") false) (!= (strpos (post "email") ".") false)
-	    (tobool (preg_match "~^(([_a-z0-9-]+)(\\.[_a-z0-9-]+)*@([a-z0-9-]+)(\\.[a-z0-9-]+)*(\\.[a-z]{2,}))$~i" 
-				(post "email")))))
-  (and (is_scalar (post "allow_msgform")) (preg_match "/^(\+|-)?[0-9]+$/" (post "allow_msgform")))
-  (and (is_scalar (post "notify")) (preg_match "/^(\+|-)?[0-9]+$/" (post "notify")))
-  (and (is_scalar (post "showonline")) (preg_match "/^(\+|-)?[0-9]+$/" (post "showonline")))
-  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "pass1"))))
-  (PREG_REPLACE "\\r|\\n" "" (TRIM (STRIP_TAGS (post "pass2"))))
-))
 
-(defun csvs (fserver)
-  "(CSVS FSERVER) takes an fserver formula (or formulas) and returns a string
-   comprised of JavaScript that computes errors.
-   Assumes always evaluating over a completely filled out form.
-   Additional JS support files available through *corejs*.  Need to replace
-   cellvalue (a function that returns the *set* of values for a given cellname 
-   as a string) if any constraint involves more than one field."
-   (setq fserver (list2p fserver))
-   (setq fserver (csvs-cleanse fserver))
-   (fhlc2js fserver :completep t :unique t))
-
-(defun csvs-cleanse (fserver)
-  (let (*ss-varmapping* *ss-vars*)
-    ; fix php operators
-    (setq fserver (ss-fix-php-ops fserver))
-    ; fix php boolean connectives
-    (setq fserver (ss-fix-boolean-funcs fserver))
-    ; change non-kif boolean connectives into KIF boolean connectives
-    (setq fserver (boolops2kif fserver))
-    ; eliminate duplicates inside boolean ops
-    (setq fserver (mapbool #'(lambda (x) (delete-duplicates x :test #'sentequal)) fserver))
-    ; translate (var "myCaseSensitiveVar") to ?var and record mappings
-    (setq *ss-varmapping* nil)
-    (setq *ss-vars* (vars fserver))
-    (setq fserver (ss-cleanse-varcases-aux fserver))
-    ; tweak regular expressions
-    (setq fserver (ss-fix-innotin fserver))
-    ; miscellaneous hacks
-    (setq fserver (ss-fix-misc fserver))
-    ; Skipping: do type inference and cast objs in constraints to satisfy types.
-    ; (ss-cleanse-typeinference prob)
-    ; Skipping: assumes only WAPTEC internal language simplify where possible
-    ; (setq fserver (ss-simplify fserver))
-    ; turn functional sentences into proper relational sentences
-    (setq fserver (csvs-funcs2relns fserver))
-    ; turn variables into monadics: (p ?x) becomes (=> (x ?x) (p ?x))
-    (setq fserver (csvs-vars2monadics fserver))
-    fserver))
-
-(defun csvs-vars2monadics (p)
-  (maksand (mapcar #'(lambda (x) (append (cons '=> (mapcar #'(lambda (v) (list (devariable v) v)) (vars x))) (list x)))
-		   (clauses p))))
-#|
-  (let (prefix)
-    (setq p (and2list p))
-    (setq prefix )
-    (maksand (mapcar #'(lambda (x) (nconc (cons '=> prefix) (list x))) p))))
-|#
-
-(defun csvs-funcs2relns (p)
-  (let ((builts (ws-builtins)) isfunc)
-    (setq isfunc #'(lambda (x y) (and (eq x (pred-name y)) (isfunction (pred-parameter y)))))
-    (mapatoms #'(lambda (q) (let (b)
-			      (setq b (find (relation q) builts :test isfunc))
-			      (if b `(= true (tobool ,q)) q)))
-	      p)))
-					    
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;  Whitebox NoTamper testing (WAPTEC)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defparameter *app-init-location* 
+  "./ss-init.lisp"
+  "location for application initialization--used for application")
 
 ; user customizations
 (defparameter *ss-node-limit* nil
@@ -128,6 +36,8 @@
 (defparameter *ss-reset-limits-per-disjunct* nil
   "boolean controlling whether or not the above limits are per disjunct or are global")
 
+(defparameter *ss-obey-unique* nil
+  "whether to enforce the uniqueness constraints---problematic b/c of Kaluza bug.")
 (defparameter *ss-aggressive-pruning* nil
   "whether or not to prune search space aggressively")
 (defparameter *ss-interactive-trace-success* nil 
@@ -166,9 +76,12 @@
 			       (:respgen . "response-generator")
 			       (:serverformula . "server-formula-wpk")
 			       (:rankgen . "rank-generator")
-			       (:traceanalysis . "trace-dep-analysis")))
+			       (:traceanalysis . "trace-dep-analysis")
+			       (:jsintegrator . "jsintegrator")))
 (defparameter *ss-db-queries* '(mysql_query))
 
+(defparameter *ss-wavs-final* '("wavsvalidation.js" "scripts"))
+ 
 ; internal global vars
 (defvar *ss-benign-history* nil "a list of benigns we already found--no need to re-check")
 (defparameter *ss-node-count* 0 "global counter for nodes searched")
@@ -183,179 +96,6 @@
 (defvar *ss-prob* nil)
 
 
-; vars holding fclients for testing
-(defparameter *ss-dcpportal-fclient*
-  '(AND (AND (GTE 64 (LEN ?NAME))
-          (GTE 64 (LEN ?SURNAME))
-          (GTE 128 (LEN ?EMAIL))
-          (GTE 255 (LEN ?ADDRESS))
-          (GTE 9 (LEN ?ZIP))
-          (GTE 32 (LEN ?CITY))
-          (GTE 64 (LEN ?COUNTRY))
-          (GTE 64 (LEN ?JOB))
-          (GTE 32 (LEN ?TEL))
-          (GTE 255 (LEN ?SIGNATURE))
-          (GTE 32 (LEN ?USERNAME))
-          (GTE 32 (LEN ?PASSWORD))
-          (GTE 32 (LEN ?PASSWORD2))
-          (= ?ACTION "send")
-          (REQUIRE ?SUBMIT)
-          (OR (= ?B_MONTH "0")
-              (= ?B_MONTH "1")
-              (= ?B_MONTH "2")
-              (= ?B_MONTH "3")
-              (= ?B_MONTH "4")
-              (= ?B_MONTH "5")
-              (= ?B_MONTH "6")
-              (= ?B_MONTH "7")
-              (= ?B_MONTH "8")
-              (= ?B_MONTH "9")
-              (= ?B_MONTH "10")
-              (= ?B_MONTH "11")
-              (= ?B_MONTH "12"))
-          (OR (= ?B_DAY "0")
-              (= ?B_DAY "1")
-              (= ?B_DAY "2")
-              (= ?B_DAY "3")
-              (= ?B_DAY "4")
-              (= ?B_DAY "5")
-              (= ?B_DAY "6")
-              (= ?B_DAY "7")
-              (= ?B_DAY "8")
-              (= ?B_DAY "9")
-              (= ?B_DAY "10")
-              (= ?B_DAY "11")
-              (= ?B_DAY "12")
-              (= ?B_DAY "13")
-              (= ?B_DAY "14")
-              (= ?B_DAY "15")
-              (= ?B_DAY "16")
-              (= ?B_DAY "17")
-              (= ?B_DAY "18")
-              (= ?B_DAY "19")
-              (= ?B_DAY "20")
-              (= ?B_DAY "21")
-              (= ?B_DAY "22")
-              (= ?B_DAY "23")
-              (= ?B_DAY "24")
-              (= ?B_DAY "25")
-              (= ?B_DAY "26")
-              (= ?B_DAY "27")
-              (= ?B_DAY "28")
-              (= ?B_DAY "29")
-              (= ?B_DAY "30")
-              (= ?B_DAY "31"))
-           (OR (= ?B_YEAR "0")
-              (= ?B_YEAR "1911")
-              (= ?B_YEAR "1912")
-              (= ?B_YEAR "1913")
-              (= ?B_YEAR "1914")
-              (= ?B_YEAR "1915")
-              (= ?B_YEAR "1916")
-              (= ?B_YEAR "1917")
-              (= ?B_YEAR "1918")
-              (= ?B_YEAR "1919")
-              (= ?B_YEAR "1920")
-              (= ?B_YEAR "1921")
-              (= ?B_YEAR "1922")
-              (= ?B_YEAR "1923")
-              (= ?B_YEAR "1924")
-              (= ?B_YEAR "1925")
-              (= ?B_YEAR "1926")
-              (= ?B_YEAR "1927")
-              (= ?B_YEAR "1928")
-              (= ?B_YEAR "1929")
-              (= ?B_YEAR "1930")
-              (= ?B_YEAR "1931")
-              (= ?B_YEAR "1932")
-              (= ?B_YEAR "1933")
-              (= ?B_YEAR "1934")
-              (= ?B_YEAR "1935")
-              (= ?B_YEAR "1936")
-              (= ?B_YEAR "1937")
-              (= ?B_YEAR "1938")
-              (= ?B_YEAR "1939")
-              (= ?B_YEAR "1940")
-              (= ?B_YEAR "1941")
-              (= ?B_YEAR "1942")
-              (= ?B_YEAR "1943")
-              (= ?B_YEAR "1944")
-              (= ?B_YEAR "1945")
-              (= ?B_YEAR "1946")
-              (= ?B_YEAR "1947")
-              (= ?B_YEAR "1948")
-              (= ?B_YEAR "1949")
-              (= ?B_YEAR "1950")
-              (= ?B_YEAR "1951")
-              (= ?B_YEAR "1952")
-              (= ?B_YEAR "1953")
-              (= ?B_YEAR "1954")
-              (= ?B_YEAR "1955")
-              (= ?B_YEAR "1956")
-              (= ?B_YEAR "1957")
-              (= ?B_YEAR "1958")
-              (= ?B_YEAR "1959")
-              (= ?B_YEAR "1960")
-              (= ?B_YEAR "1961")
-              (= ?B_YEAR "1962")
-              (= ?B_YEAR "1963")
-              (= ?B_YEAR "1964")
-              (= ?B_YEAR "1965")
-              (= ?B_YEAR "1966")
-              (= ?B_YEAR "1967")
-              (= ?B_YEAR "1968")
-              (= ?B_YEAR "1969")
-              (= ?B_YEAR "1970")
-              (= ?B_YEAR "1971")
-              (= ?B_YEAR "1972")
-              (= ?B_YEAR "1973")
-              (= ?B_YEAR "1974")
-              (= ?B_YEAR "1975")
-              (= ?B_YEAR "1976")
-              (= ?B_YEAR "1977")
-              (= ?B_YEAR "1978")
-              (= ?B_YEAR "1979")
-              (= ?B_YEAR "1980")
-              (= ?B_YEAR "1981")
-              (= ?B_YEAR "1982")
-              (= ?B_YEAR "1983")
-              (= ?B_YEAR "1984")
-              (= ?B_YEAR "1985")
-              (= ?B_YEAR "1986")
-              (= ?B_YEAR "1987")
-              (= ?B_YEAR "1988")
-              (= ?B_YEAR "1989")
-              (= ?B_YEAR "1990")
-              (= ?B_YEAR "1991")
-              (= ?B_YEAR "1992")
-              (= ?B_YEAR "1993")
-              (= ?B_YEAR "1994")
-              (= ?B_YEAR "1995")
-              (= ?B_YEAR "1996")
-              (= ?B_YEAR "1997")
-              (= ?B_YEAR "1998"))
-          (OR (= ?SEX "1") (= ?SEX "2")))
-        (AND (AND (AND (AND (AND (NOT
-                               (OR
-                                (= ?PASSWORD "")
-                                (= ?PASSWORD2 "")))
-                              (NOT
-                               (OR
-                                (OR
-                                 (OR
-                                  (OR
-                                   (OR
-                                    (OR (= ?SEX "") (= ?NAME ""))
-                                    (= ?SURNAME ""))
-                                   (= ?ADDRESS ""))
-                                  (= ?CITY ""))
-                                 (= ?COUNTRY ""))
-                                (= ?USERNAME ""))))
-                         (NOT (!= ?PASSWORD ?PASSWORD2)))
-                    (NOT (IN ?USERNAME "[^0-9a-zA-Z]")))
-               (NOT (IN ?PASSWORD "[^0-9a-zA-Z]")))
-          (IN ?EMAIL
-           "^([a-zA-Z0-9]*)@([a-zA-Z0-9]*).(com|net|org|edu|int|mil|gov|arpa|biz|aero|name|coop|info|pro|museum)$"))))
 
 
 (defstruct ss-prob 
@@ -363,12 +103,443 @@
   (name nil) phi (space 'true) (types nil)  (unique t) (required t) (init nil)
   (status :contingent) (metafields nil) 
   ; internal
-  (varnames nil) (variantstatus nil) (dbfile nil))
+  (varnames nil) (variantstatus nil) (dbfile nil) (stuburl nil) (indep nil))
 
-(defstruct ss-sink id phi vars status constraints dbconstraints)
+; constraints should be the union of staticconstraints and dynamicconstraints
+(defstruct ss-sink id phi vars status constraints dbconstraints dynamicconstraints staticconstraints)
 (defun ss-sink-success (x) (eq (ss-sink-status x) 'success))
 (defun ss-sink-failure (x) (eq (ss-sink-status x) 'failure))
 (defun ss-sink-unknown (x) (eq (ss-sink-status x) 'unknown))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  Web Application Validation Synthesis (WAVS)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; client validation from whitebox server analysis
+;  govwa, cvwsa .... wavs  (whitebox analysis validation synthesis)
+
+(defun wt (name)
+  (dolist (e (wavs-tests))
+    (when (eq (wavstest-name e) name)
+      (wavs (wavstest-url e) (wavstest-bl e) (wavstest-stuburl e) :unique (wavstest-unique e) 
+	    :required (wavstest-required e) :multipart (wavstest-multipart e) :forms (list (wavstest-formid e))
+	    :indep (wavstest-indep e)))))
+
+(defun wavs (url bl stuburl &key (unique 'unknown) (required 'unknown) (multipart nil) (forms nil) (indep nil))
+  (ss-synth url bl :stuburl stuburl :unique unique :required required :multipart multipart :forms forms :indep indep))
+
+(defun ss-output-wavs (results prob &key (time 0) (stream t) (count 0))
+  "(SS-OUTPUT-WAVS RESULTS PROB TIME STREAM COUNT) outputs the results to STREAM."
+  (declare (ignore count))
+  (format stream "~A" results)
+  (when *ss-debug* 
+    (format stream "~&***** Processing for ~A complete in ~A seconds. *****~%"
+	    (ss-prob-name prob) time)
+    (format stream "~&***** Logfile available in ~A *****~%" *ss-whitebox-log*)
+    (format stream "~&***** Final JS files found in ~A: ~A *****~%" *ss-working-prefix* *ss-wavs-final*) 
+    (format stream "~&***** ")))
+  
+;  (if results
+;      (format stream "ALERT: hostiles recorded in ~A ." *ss-whitebox-log*)
+;      (format stream "No hostiles found. Logfile: ~A" *ss-whitebox-log*)))
+
+(defun ss-synth (url bl &key space (unique 'unknown) (required 'unknown) (stream t) (forms nil) (dbfile "harness.db")
+		    (stuburl nil) (multipart nil) (indep nil) (outputfun #'ss-output-wavs))
+  "(SS-SYNTH URL INIT) takes a url and an initial variable assignment.  Returns JavaScript
+   code and PHP code.  When JavaScript is added to the client, it detects user errors without
+   hitting the server, except when required by AJAX."
+  (let (fclientprobs url2 start results (*ss-white-downloads* 0) (*ss-ignore-variable-source* nil))
+    (load *app-init-location*)
+    (ss-assert (stringp url) nil (format nil "SS-WHITEBOX expects a string; found ~A" url))
+    (ss-whitebox-init url)
+    (ss-whitebox-cleanup)  ; so users don't get confused about whether or not stuff was downloaded
+    (exec-commandline "mv" *ss-whitebox-log* (stringappend *ss-whitebox-log* ".bak"))
+    ; grab one fclient for each form
+    (setq fclientprobs nil)
+    (ss-log `(wavs url ,url))
+    (ss-log `(wavs bl ,bl))
+    (when *ss-show-search* (format t "~&Pre-processing ~A~%" url))
+    (dolist (p (ss-compute-fclients url :space space))
+      (setf (ss-prob-dbfile p) dbfile)
+      (setf (ss-prob-stuburl p) stuburl)
+      (when multipart (setf (ss-prob-metafields p) (cons `(multipart t) (ss-prob-metafields p))))
+      (setq url2 (second (assoc 'url (ss-prob-metafields p))))
+      (if (equalp (ss-base-url url2) (ss-base-url url))
+	  (push p fclientprobs)
+	  (when *ss-debug* (ss-trace (format nil "** Ignoring form with URL ~A **" url2) 0))))
+    (when *ss-pause-after-download* (format t "~&Enter anything to proceed:") (read))
+   
+    ; analyze each (local) fclients
+    (do ((fclients (nreverse fclientprobs) (cdr fclients)) (fclient))
+	((null fclients))
+      (setq fclient (car fclients))
+      (when *ss-stop-now* (return))
+      (setq url2 (second (assoc 'url (ss-prob-metafields fclient))))
+      (when (or (null forms) (member (ss-prob-name fclient) forms) (member url2 forms :test #'equalp))
+	(setq *ss-solve-count* 0)
+	(setq start (get-universal-time))
+	(when *ss-debug* 
+	  (ss-trace (format nil "** Client validation synthesis for form ~A commencing **" (ss-prob-name fclient)) 0)
+	  (unless *quiet* (pprint (ss-prob-phi fclient))))
+	(setq bl (ss-cleanse-more* bl fclient t))
+	(setq unique (ss-cleanse-more* unique fclient t))
+	(setq required (ss-cleanse-more* required fclient t))
+	(setf (ss-prob-indep fclient) (ss-cleanse-more* indep fclient t))
+	(setq results (ss-synth-process-fclient bl fclient :unique unique :required required :depth 1))
+	(funcall outputfun results fclient :time (- (get-universal-time) start) :stream stream :count *ss-solve-count*)
+	(when (and (cdr fclients) *ss-interactive-form-control*)
+	  (format t "~&Proceed?  (No = nil) ") (let ((v (read))) (unless v (return))))))
+    ;(ss-whitebox-cleanup)
+    nil))
+
+; Assume routines that
+; (i) take a trace and extract formulas and identify sinks (each formula: KIF), as in NoTamper/WAPTEC
+; (ii) take a trace and split static and dynamic constraints.  Static: KIF, dynamic <KIF, line number>
+; (iii) given a line number for a constraint and a trace, generate a stub.
+
+; nazari's script will accept n+1 filenames: file1 is the output of plato; the reamining files are info about the dynamic constraints for each trace.  
+; Nazari needs (i) Plato's output (in a file) (ii) stuburl (iii) formid (iv) list of fields with static constraints
+;    (v) list of fields with dynamic constraints.  Note (iv) and (v) are a partition of the fields.
+; prithvi will make each sink include an additional field: the list of dynamic constraints. 
+
+(defun ss-synth-process-fclient (benignbl prob &key (required nil) (unique nil) (depth 0)) 
+  "(SS-SYNTH-PROCESS-FCLIENT) returns a client filename and a list of server stub file names."
+  (let (sinks tracefile constraints fstatic fdynamic code safe newstatic newdynamic allvars)
+    (labels ((quick-clean (constraints)
+	       (setq constraints (and2list (flatten-operator (nnf (maksand constraints)))))
+	       (setq constraints (ss-drop-nonmethod constraints prob))
+	       (setq constraints (ss-cleanse-more* constraints prob t))
+	       constraints)
+	     (add-constraints-to-safe (constraints)
+	       (setq constraints (quick-clean constraints))
+	       (setq safe (union (ss-synth-partition constraints) safe :test #'ss-sentequal)))
+	     (add-sink-to-safe (sink)
+	       (when (ss-sink-success sink)
+		 (let ((old safe))
+		   (add-constraints-to-safe (ss-sink-staticconstraints sink))
+		   (add-constraints-to-safe (ss-sink-dynamicconstraints sink))
+		   (when *ss-debug*
+		     (let ((new (set-difference safe old :test #'ss-sentequal))) 
+		       (when new
+			 (ss-trace (format nil "** Found new safe constraints **") depth)
+			 (unless *quiet* (pprint new))))))))
+	     (simplify-failure (constraints)
+	       (setq constraints (quick-clean constraints))
+	       ; partition depending on indep info (yielding a list of sentences, some of which are conjunctions)
+	       (if (ss-prob-indep prob)
+		   (setq constraints (ss-synth-partition constraints :indep (ss-prob-indep prob)))
+		   (setq constraints (list (maksand constraints))))
+	       ; then remove those partitions that are safe.
+	       (remove-if #'(lambda (x) (member x safe :test #'ss-intersectsp)) constraints)))
+    (setq *ss-tmp* prob)
+    (ss-log `(prob name ,(ss-prob-name prob)))
+    (ss-log `(prob phi ,(ss-prob-phi prob)))
+    (ss-log `(prob space ,(ss-prob-space prob)))
+    (ss-log `(prob types ,(hash2bl (ss-prob-types prob))))
+    (ss-log `(prob unique ,(ss-prob-unique prob)))
+    (ss-log `(prob required ,(ss-prob-required prob)))
+    (ss-log `(prob metafields ,(ss-prob-metafields prob)))
+    (ss-log `(prob varnames ,(ss-prob-varnames prob)))
+    (ss-log `(prob indep ,(ss-prob-indep prob)))
+    (ss-log `(prob starttime ,(get-universal-time)))
+
+    ; Use BL to take us to a success sink
+    (setq tracefile (ss-wavs-server-trace prob benignbl :depth depth))
+    ;(setq sinks (ss-whitebox-trace-analysis tracefile prob :depth depth))
+    (setq sinks (ss-trace-analysis-extract tracefile prob :depth depth))
+    (mapc #'add-sink-to-safe sinks)  ; safe uses uncleansed constraints, since errors use uncleansed constraints
+    (setq sinks (mapcar #'(lambda (x) (ss-clean-sink x prob :depth depth :drop-nonmethod t)) sinks))
+    (setq sinks (delete-if #'ss-sink-unknown sinks))
+    ; union (static) constraints if multiple sinks and cross fingers
+    (setq constraints (mapcan #'ss-sink-staticconstraints sinks)) 
+    (setq constraints (remove-duplicates constraints :test #'ss-sentequal))
+    (ss-log `(benign constraints ,constraints))
+    (when *ss-debug*
+      (ss-trace (format nil "** Found constraints with complexity ~A **" (complexity (maksand constraints))) depth)
+      (unless *quiet* (pprint (maksand constraints))))
+
+    (cond ((null constraints) "/dev/null")
+	  (t
+           ; find failure sinks (by negating one constraint at a time)
+	   (setq allvars (apply #'append (ss-prob-indep prob)))
+	   (do ((cs constraints (cdr cs))
+		(hostilebl) (depconstraints) (depvars))
+	       ((null cs))
+	     (when (subsetp (vars (car cs)) allvars)   ; drop any constraint including non allvars
+	       (restart-case 
+		   (progn
+		     (setq depconstraints (list (maknot (car cs))))
+		     (setq depvars (vars (car cs)))
+		     (when *ss-debug*
+		       (ss-trace (format nil "** Looking for hostile trace using constraints ~S **" depconstraints)
+				 depth))
+	             ; build hostile bl out of (i) depconstraints solution and 
+		     ;    (ii) assignments in benignbl that are indep
+		     (setq hostilebl (ss-whitebox-solve (maksand depconstraints) prob 
+							:required required :unique unique :depth depth))
+		     (cond ((eq hostilebl :unsat)
+			    (when *ss-debug* (ss-trace "** Hostile input construction failed **" depth)))
+			   (t
+			    (setq hostilebl (append hostilebl (remove-if #'(lambda (x) (member (first x) depvars)) benignbl)))
+			    (when *ss-debug*
+			      (ss-trace (format nil "** Found hostile binding list ~S **" hostilebl) depth))
+			    (setq tracefile (ss-wavs-server-trace prob hostilebl :depth depth))
+			    (setq sinks (ss-trace-analysis-extract tracefile prob :depth depth))
+			    (setq sinks (delete-if #'ss-sink-unknown sinks))
+			    (dolist (s sinks)
+			      (cond ((ss-sink-failure s)
+				     (setq newstatic (maksand (simplify-failure (ss-sink-staticconstraints s))))
+				     (when (subsetp (vars newstatic) allvars)
+				       (setq fstatic (adjoin newstatic fstatic :test #'ss-sentequal))
+				       (when *ss-debug*
+					 (when (not (eq newstatic 'true))
+					   (ss-trace "** Found static error conditions **")
+					   (unless *quiet* (pprint newstatic)))))
+				     (setq newdynamic (maksand (simplify-failure (ss-sink-dynamicconstraints s))))
+				     (when (subsetp (vars newdynamic) allvars)
+				       (setq fdynamic (adjoin newdynamic fdynamic :test #'ss-sentequal))
+				       (when *ss-debug*
+					 (when (not (eq newdynamic 'true))
+					   (ss-trace "** Found dynamic error conditions **")
+					   (unless *quiet* (pprint newdynamic))))))
+				    ((ss-sink-success s) (add-sink-to-safe s)))))))
+		 (skip-constraint () 
+		   (when *ss-debug* 
+		     (ss-trace (format nil "Continuing after error when negating ~A " (car cs))))))))
+      
+	   ; generate actual code
+	   (setq fstatic (maknot (maksor (remove-duplicates fstatic :test #'ss-sentequal))))
+	   (setq fdynamic (maknot (maksor (remove-duplicates fdynamic :test #'ss-sentequal))))
+	   (setq fstatic (ss-uncleanse fstatic prob))
+	   (setq fdynamic (ss-uncleanse fdynamic prob))
+	   (ss-log `(fstatic constraints ,fstatic))
+	   (ss-log `(fstatic complexity ,(complexity fstatic)))
+	   (ss-log `(fdynamic constraints ,fdynamic))
+	   (ss-log `(fdynamic complexity ,(complexity fdynamic)))
+	   (setq code (ss-synth-code fstatic fdynamic prob :depth depth))
+	   (ss-log `(prob endtime ,(get-universal-time)))
+	   code)))))
+
+; grab the trace the normal way, but then roll back the database
+(defun ss-wavs-server-trace (prob bl &key (depth 0))
+  (let (res)
+    (setq res (ss-whitebox-server-trace prob bl :depth depth))
+    (exec-commandline "rollbackwavs")
+    res))
+
+(defun ss-intersectsp (p q)
+  "(SS-INTERSECTSP P Q) returns T if P and Q share at least one variable and E*.P^Q is satisfiable,
+   assuming that both P and Q are satisfiable.  Only approximate, but fast."
+  (flet ((reduce (r)
+	   (cond ((atom r) (list r))
+		 ((eq (car r) 'and) (drop-ands r))
+		 (t (list r)))))
+    (setq p (reduce p))
+    (setq q (reduce q))
+    (or (subsetp p q :test #'ss-sentequal)
+	(subsetp q p :test #'ss-sentequal))))
+
+(defun ss-synth-constraints-influencing (vars ps)
+  "(SS-SYNTH-CONSTRAINTS-INFLUENCING VARS PS) takes a list of variables VARS and 
+   a list of constraints PS and returns two values: the subset of PS influencing VARS, assuming
+   PS is consistent, and the set of variables occurring in that subset."
+  ; expand VARS to include all those dependent on VARS
+  (let (vs)
+    (setq vs (mapcar #'vars ps))
+    (do ((changed t nil))
+	((not changed))
+      (dolist (v vs)
+	(when (intersectionp v vars)
+	  (setq vars (union v vars))
+	  (setq vs (delete v vs))
+	  (setq changed t))))
+    ; grab all constraints with VARS
+    (values (remove-if-not #'(lambda (x) (intersectionp vars (vars x))) ps)
+	    vars)))
+
+(defun ss-synth-partition (ps &key (indep nil) (test #'eq))
+  "(SS-SYNTH-PARTITION PS INDEP) partitions PS so that only those constraints in each partition
+   influence one another, using the partitioning of variables INDEP into dependency classes if available.
+   Returns that partitioning but where each partition is maksanded, i.e. returns a list of sentences."
+  (let (parts h part g f vs)
+    ; hash constraints on individual variables.
+    (setq h (make-hash-table :test test))
+    (dolist (p ps)
+      (dolist (v (vars p))
+	(setf (gethash v h) (cons p (gethash v h)))))
+
+    ; build dependency graph
+    ; add edges from PS
+    (setq g (make-agraph))
+    (dolist (p ps)
+      (setq vs (vars p))
+      (setq f (first vs))
+      (agraph-adjoin-noded f g :test test)
+      (dolist (v (cdr vs))
+	(agraph-adjoin-edged f v nil g :test test)))
+    ; add edges from indep
+    (dolist (vs indep)
+      (setq f (first vs))
+      (agraph-adjoin-noded f g :test test)
+      (dolist (v (cdr vs))
+	(agraph-adjoin-edged f v nil g :test test)))
+    ; grab dependency info
+    (setq indep (agraph-connected-components g :test test))
+
+    ; walk over new dependencies and union all constraints
+    (setq parts nil)
+    (dolist (d indep)
+      (setq part nil)
+      (dolist (v d)
+	(setq part (union part (gethash v h) :test #'ss-sentequal)))
+      (push part parts))
+    (mapcar #'maksand parts)))
+
+
+    
+
+(defun ss-synth-code (static dynamic prob &key (depth 0))
+  (let (platofile extrafile staticvars dynamicvars cpcmd)
+    (setq platofile (stringappend *ss-working-prefix* "wavs-platofile.js"))
+    (setq extrafile (stringappend *ss-working-prefix* "wavs-extra.txt"))
+
+    (setq staticvars (vars (ss-cleanse-more* static prob t)))
+    (setq dynamicvars (vars (ss-cleanse-more* dynamic prob t)))
+    ;(setq staticvars (set-difference staticvars dynamicvars))
+    (setq staticvars (ss-uncleanse staticvars prob))
+    (setq dynamicvars (ss-uncleanse dynamicvars prob))
+
+    (write-any-file platofile (ss-synth-javascript static depth))
+    (with-open-file (e extrafile :direction :output :if-does-not-exist :create :if-exists :supersede)
+      (format e "~A~%~A~%" (ss-prob-stuburl prob) (ss-prob-name prob))
+      (dolist (v staticvars)
+	(format e "~A " (if (atom v) v (second v))))
+      (format e "~%")
+      (dolist (v dynamicvars)
+	(format e "~A " (if (atom v) v (second v))))
+      (format e "~%"))
+    (setq cpcmd (mapcar #'(lambda (x) (format nil "; cp ~A ~A" x *ss-working-prefix*)) *ss-wavs-final*))
+    (setq cpcmd (apply #'stringappend cpcmd))
+    (exec-commandline "cd" (ss-abspath :jsintegrator "bin") "; java JSIntegrator" platofile extrafile cpcmd)))
+
+#|
+(defun ss-synth-split-constraints (tracefile prob)
+  "(SS-SYNTH-PROCESS-FAILURESINK TRACEFILE PROB) analyzes the trace and splits into static and dynamic
+   constraints.  Returns 2 values: the KIF static constraints and a list of (KIF linenumber) for each
+   dynamic constraint."
+  (declare (ignore prob))
+  (let (result static dynamic)
+    ; given a tracefile, the script returns staticfile dynfile1 linenum1 dynfile2 linenum2  ...
+    ; The contents of staticfile is the KIF formulas for the static constraints
+    ; The contents of dynfilej are the KIF formulas for the ith dynamic constraint
+    ; linenumj dictates the line number in the tracefile where dynamic constraint i was located 
+    (setq result (exec-commandline "cd" (ss-abspath :traceanalysis "") "; ./wavs-split-constraints.pl" tracefile))
+    (setq result (split-string result '(#\Newline #\Space)))
+    (handler-case (setq static (read-file (first result)))
+      (condition () 
+	(setq static 'false)
+	(when *ss-debug* (ss-trace (format nil "Cannot read static constraint file ~A" (first result))))))
+    (do ((rs (cdr result) (cddr rs)) (d))
+	((null rs))
+      (handler-case (setq d (read-file (first rs)))
+	(condition () 
+	  (setq d 'false)
+	  (when *ss-debug* (ss-trace (format nil "Cannot read dynamic constraint file ~A " (car rs))))))
+      (push (list d (second rs)) dynamic))
+    (values static dynamic)))
+
+(defun ss-synth-ajax-calls (x) x)
+
+(defun ss-synth-serverstub (linenum tracefile)
+  ; result is a single filename that includes the stub
+  (exec-commandline "cd" (ss-abspath :traceanalysis "") "; ./wavs-server-stub.pl" linenum tracefile))
+|#
+
+; JavaScript code generation
+(defun ss-synth-javascript (fserver depth)
+  "(SS-SYNTH-JAVASCRIPT FSERVER) takes an fserver formula (or formulas) and returns a string
+   comprised of JavaScript that computes errors.
+   Assumes always evaluating over a completely filled out form.
+   Additional JS support files available through *corejs*.  Need to replace
+   cellvalue (a function that returns the *set* of values for a given cellname 
+   as a string) if any constraint involves more than one field."
+  (cond ((eq fserver 'true) "")
+	((eq fserver 'false) "// Error: Constraints were contradictory.")
+	(t
+	 (let (th html)
+	   (setq fserver (list2p fserver))
+	   (setq fserver (csvs-cleanse fserver))
+	   (setq th (fhlc2web-theory fserver :completep t :casesensitive t :allowconflicts t :debug nil :unique t))
+	   (setq html (compile-websheet th))
+	   (when (htmlform-errors html) 
+	     (ss-log `(platoerrors ,(htmlform-errors html)))
+	     (when *ss-debug*
+	       (ss-trace (format nil "Errors discovered by Plato: ~A" (htmlform-errors html)) depth)))
+	   (htmlform-javascript html)))))
+
+(defun csvs-cleanse (fserver)
+  (let (*ss-varmapping* *ss-vars*)
+    ; fix php operators
+    (setq fserver (ss-fix-php-ops fserver))
+    ; fix php boolean connectives
+    (setq fserver (ss-fix-boolean-funcs fserver))
+    ; change non-kif boolean connectives into KIF boolean connectives
+    (setq fserver (boolops2kif fserver))
+    ; eliminate duplicates inside boolean ops
+    (setq fserver (mapbool #'(lambda (x) (delete-duplicates x :test #'sentequal)) fserver))
+    ; translate (var "myCaseSensitiveVar") to ?var and record mappings
+    (setq *ss-varmapping* nil)
+    (setq *ss-vars* (vars fserver))
+    (setq fserver (ss-cleanse-varcases-aux fserver))
+    ; tweak regular expressions
+    (setq fserver (ss-fix-innotin fserver))
+    ; miscellaneous hacks
+    (setq fserver (ss-fix-misc fserver))
+    ; Skipping: do type inference and cast objs in constraints to satisfy types.
+    ; (ss-cleanse-typeinference prob)
+    ; Skipping: assumes only WAPTEC internal language simplify where possible
+    ; (setq fserver (ss-simplify fserver))
+    ; turn functional sentences into proper relational sentences
+    (setq fserver (csvs-funcs2relns fserver))
+    ; translate a few relations
+    (setq fserver (csvs-drop-sugar fserver))
+    ; turn variables into monadics: (p ?x) becomes (=> (x ?x) (p ?x))
+    (setq fserver (csvs-vars2monadics fserver))
+    fserver))
+
+(defun csvs-vars2monadics (p)
+  (maksand (mapcar #'(lambda (x) (append (cons '=> (mapcar #'(lambda (v) (list (devariable v) v)) (vars x))) (list x)))
+		   (clauses p))))
+
+;  (let (prefix)
+;    (setq p (and2list p))
+;    (setq prefix )
+;    (maksand (mapcar #'(lambda (x) (nconc (cons '=> prefix) (list x))) p))))
+
+(defun csvs-drop-sugar (p)
+  (mapatoms #'(lambda (x) 
+		(cond ((atom x) x)
+		      ((eq (car x) '<) (cons 'lt (cdr x)))
+		      ((eq (car x) '>) (cons 'gt (cdr x)))
+		      ((member (car x) '(=== ==)) (cons '= (cdr x)))
+		      ((eq (car x) '<=) (cons 'lte (cdr x)))
+		      ((eq (car x) '>=) (cons 'gte (cdr x)))
+		      (t x)))
+	    p))
+
+(defun csvs-funcs2relns (p)
+  (let ((builts (ws-builtins)) isfunc)
+    (setq isfunc #'(lambda (x y) (and (eq x (pred-name y)) (isfunction (pred-parameter y)))))
+    (mapatoms #'(lambda (q) (let (b)
+			      (setq b (find (relation q) builts :test isfunc))
+			      (if b `(= true (tobool ,q)) q)))
+	      p)))
+					    
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  Whitebox NoTamper testing (WAPTEC)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 (defun ss-whitebox-summarize (logfile outdir)
   "(SS-WHITEBOX-SUMMARIZE LOGFILE HTMLFILE) takes a logfile (the input) and an html file name.
@@ -378,15 +549,15 @@
   (with-open-file (h (stringappend outdir "index.html") :direction :output :if-exists :supersede :if-does-not-exist :create)
     (format h "<html><head><title>WAPTEC Analysis Summary</title>~%")
     (format h "<style type='text/css'>
-table, th, td {border: 2px solid green; padding: 5px; }
-table {border-collapse: collapse; }
-th {background-color: green; color: white;}
-.formtitle {font-size: 45px; width: 100%; text-align: center;}
-.subtitle {font-size: 35px; width: 100%; text-align: center;}
-.tabletitle {font-size: 30px; text-align: left;}
-.tamperedvar {color: red; } 
+     table, th, td {border: 2px solid green; padding: 5px; }
+     table {border-collapse: collapse; }
+     th {background-color: green; color: white;}
+     .formtitle {font-size: 45px; width: 100%; text-align: center;}
+     .subtitle {font-size: 35px; width: 100%; text-align: center;}
+     .tabletitle {font-size: 30px; text-align: left;}
+     .tamperedvar {color: red; } 
 
-</style>")
+     </style>")
     (format h "</head><body>~%")
     (let (cum)
       (dolist (g (read-file logfile))
@@ -587,7 +758,6 @@ th {background-color: green; color: white;}
     (setf (cdr (last bl)) '((t . t)))
     (ss-sat *ss-dcpportal-fclient* bl)))
 
-; (defun white (&optional name &rest forms) (apply #'whitet name forms))
 (defun white (&optional name &rest forms )
   (let (thehint thedbfile theunique)
     (dolist (v (white-tests))
@@ -756,7 +926,7 @@ th {background-color: green; color: white;}
 	   (let (htmlfile tracefile sinks)
 	     (multiple-value-setq (htmlfile tracefile) (ss-whitebox-server-html-trace prob bl :depth depth))
 	     (when *ss-blackbox-analyze-sinks*
-	       (setq sinks (ss-whitebox-trace-analysis tracefile prob :depth depth))
+	       (setq sinks (ss-whitebox-trace-analysis-log tracefile prob :depth depth))
 	       (setq sinks (delete-if #'ss-sink-unknown sinks))
 	       (when *ss-debug* 
 		 (ss-trace (format nil "** Found ~A sinks **" (length sinks)) depth)))
@@ -944,27 +1114,27 @@ th {background-color: green; color: white;}
    Destructively modifies UNSATS, a list containing a single element, which is a list of unsatisfiable
    sentences."
   ;(when *ss-debug* (ss-trace "Looking for benign." depth) (pprint p))
-  (let (benign tracefile htmlfile sinks)
+  (let (bl tracefile htmlfile sinks)
     (when *ss-debug* (ss-trace (format nil "** Attempting benign **~%~S" p) depth))
-    (setq benign (ss-whitebox-solve p prob :required required :unique unique :depth depth))
-    (cond (benign
-	   (when *ss-debug* (ss-trace (format nil "** Found solution **~%~S" benign) depth))
-	   (when *ss-show-search* (format t "~S~%~%" benign))
-	   (multiple-value-setq (htmlfile tracefile) (ss-whitebox-server-html-trace prob benign :depth depth))
-	   (setq sinks (ss-whitebox-trace-analysis tracefile prob :depth depth))
+    (setq bl (ss-whitebox-solve p prob :required required :unique unique :depth depth))
+    (cond ((not (eq bl :unsat))
+	   (when *ss-debug* (ss-trace (format nil "** Found solution **~%~S" bl) depth))
+	   (when *ss-show-search* (format t "~S~%~%" bl))
+	   (multiple-value-setq (htmlfile tracefile) (ss-whitebox-server-html-trace prob bl :depth depth))
+	   (setq sinks (ss-whitebox-trace-analysis-log tracefile prob :depth depth))
 	   (setq sinks (delete-if #'ss-sink-unknown sinks))
 	   (setq sinks (ss-whitebox-server-benign-process-history sinks))  ; eliminates some of the sinks, adds remainder to history
 	   (when *ss-debug* 
 	     (ss-trace (format nil "** Found ~A success and ~A failure sinks **" 
 			       (count-if #'ss-sink-success sinks) (count-if #'ss-sink-failure sinks)) depth)
 	     (ss-trace (format nil "~A" sinks) depth))
-	   (when (some #'ss-sink-success sinks) (ss-log `(success-sinks ,benign ,tracefile ,p)))
+	   (when (some #'ss-sink-success sinks) (ss-log `(success-sinks ,bl ,tracefile ,p)))
 	   (dolist (s sinks)
 	     (when (ss-sink-success s)
 	       (setq *ss-benign-count* (1+ *ss-benign-count*))
 	       (push s *ss-benign-history*)
 	       (ss-log `(success-sink ,(ss-sink-id s) ,(ss-sink-constraints s) ,(ss-sink-phi s) ,(ss-sink-vars s)))))
-	   (values sinks benign htmlfile))
+	   (values sinks bl htmlfile))
 	  (t
 	   (when unsats
 	     (setf (first unsats) (cons p (first unsats))))
@@ -1030,9 +1200,9 @@ th {background-color: green; color: white;}
   (let (hostile tracefile sinks succsink)
     (setq hostile (ss-whitebox-solve (makand d (maksand constraints)) prob 
 				     :required required :unique unique :depth (1+ depth)))
-    (cond (hostile
+    (cond ((not (eq hostile :unsat))
 	   (setq tracefile (ss-whitebox-testserver prob hostile :depth (1+ depth)))
-	   (setq sinks (ss-whitebox-trace-analysis tracefile prob :depth (1+ depth)))
+	   (setq sinks (ss-whitebox-trace-analysis-log tracefile prob :depth (1+ depth)))
 	   (setq succsink (ss-whitebox-hostile-success-sinkp sinks d sink hiddenvaronly))
 	   (cond (succsink 
 		  (when *ss-show-search* (format t "~&Hostile attempt succeeded:~%~S~%~A~%~S~%~%" d tracefile hostile))
@@ -1293,25 +1463,56 @@ th {background-color: green; color: white;}
    PS are assumed to be given in the order they appear in the trace."
   (reverse ps))
 
-(defun ss-whitebox-trace-analysis (tracefile prob &key (depth 0))
+(defun ss-whitebox-trace-analysis-log (tracefile prob &key (depth 0))
+  (mapc #'ss-log-sink (ss-whitebox-trace-analysis tracefile prob :depth depth)))
+
+(defun ss-whitebox-trace-analysis (tracefile prob &key (depth 0) (drop-nonmethod nil) (save-prettyname t))
   "(SS-WHITEBOX-TRACE-ANALYSIS TRACEFILE PROB) extracts sinks from tracefile and cleans them.  Ignores
    sinks with status 'unknown'."
   ;(declare (ignore depth))
+  (mapcar #'(lambda (x) (ss-clean-sink x prob :depth depth :drop-nonmethod drop-nonmethod 
+						:save-prettyname save-prettyname))
+	  (ss-trace-analysis-extract tracefile prob :depth depth)))
+
+(defun ss-log-sink (sink)
+  (ss-log `(fserver ,(maksand (ss-sink-constraints sink))))
+  (ss-log `(fserver-complexity ,(complexity (ss-sink-constraints sink))))
+  (ss-log `(fdb ,(ss-sink-dbconstraints sink)))
+  (ss-log `(fdb-complexity ,(complexity (ss-sink-dbconstraints sink))))
+  (ss-log `(fstatic ,(ss-sink-staticconstraints sink)))
+  (ss-log `(fstatic-complexity ,(complexity (ss-sink-staticconstraints sink))))
+  (ss-log `(fdynamic ,(ss-sink-dynamicconstraints sink)))
+  (ss-log `(fdynamic-complexity ,(complexity (ss-sink-dynamicconstraints sink))))
+  sink)
+
+(defun ss-drop-nonmethod (constraints prob)
+  "(SS-DROP-NONMETHOD CONSTRAINTS PROB) returns the subset of the raw PHP CONSTRAINTS
+   where all variables are of the form (method \"blah\") where METHOD is the 
+   form's method according to PROB."
+  (flet ((nonmethodvar (x types method) (and (listp x) (member (car x) types) (not (eq (car x) method))))) 
+    (let (method vartypes)
+      (setq method (tosymbol (second (assoc 'method (ss-prob-metafields prob)))))
+      (setq vartypes *ss-vartypes*)
+      (remove-if #'(lambda (x) (someterm #'(lambda (y) (nonmethodvar y vartypes method)) x))
+		 constraints))))
+
+(defun ss-clean-sink (sink prob &key (depth 0) (drop-nonmethod nil) (save-prettyname nil))
+  (declare (ignore depth))
   (labels ((clean (x)
 	   (let ((newx (ss-cleanse-more* x prob)))
 	     (cond ((ss-istrue newx) 'true)
-		   (t (ss-set-prettyname x newx) newx))))
+		   (t (when save-prettyname (ss-set-prettyname x newx)) newx))))
 	 (handleerr (e c)
 	   (when *ss-debug* (ss-trace (format nil "~A; dropping constraint: ~S" (text e) c))))
 	 (cleanc (raw)
 	   (let (constraints final)
 	     (setq raw (delete-duplicates raw :test #'equal))
+	     (when drop-nonmethod (setq raw (ss-drop-nonmethod raw prob)))
 	     (setq constraints (delete 'true (mapcar #'clean raw)))
-	     (setq raw (mapcar #'ss-get-prettyname constraints))
 	     (setq final nil)
 	     (dolist (c constraints (nreverse final))
-	  ; go ahead and cleanse to make sure we can, but then return the semi-cleansed version.  
-	  ;   String-solver will then recleanse.  Necessary to avoid search space with fake variables.
+	       ; go ahead and cleanse to make sure we can, but then return the semi-cleansed version.  
+	       ;   String-solver will then recleanse.  Necessary to avoid search space with fake variables.
 	       (handler-case 
 		   (progn 
 		     (ss-validate-vocab-internal (list (ss-cleanse-more (ss-drop-syntactic-sugar c) prob))) 
@@ -1321,8 +1522,22 @@ th {background-color: green; color: white;}
 		 (ss-boolean-error (e) (handleerr e c))
 		 (ss-syntax-error (e) (handleerr e c))
 		 (condition () (when *ss-debug* (ss-trace (format nil "Unknown error; dropping constraint ~S" c)))))))))
-    (let (dbconstraints constraints tracefilec sinkid status sink sinkvars sinks result lines)
-      ; invoke trace analyzer, which produces sinkid, succfailunk, constraints, sink, sinkvars for each sink
+    	(unless (eq (ss-sink-status sink)  'unknown)  ; cleanse unless we're going to ignore anyway
+          ; cleanse sinkvars (note we call ss-cleanse-more* individually so that ((post "x")) does not become ?x)
+	  (setf (ss-sink-vars sink) (mapcar #'(lambda (x) (ss-cleanse-more* x prob t)) (ss-sink-vars sink)))
+          ; cleanse sink
+	  (setf (ss-sink-phi sink)  (ss-cleanse-more* (ss-sink-phi sink) prob)) 
+          ; cleanse constraints
+	  (setf (ss-sink-constraints sink) (cleanc (ss-sink-constraints sink)))
+	  (setf (ss-sink-dbconstraints sink) (cleanc (ss-sink-dbconstraints sink)))
+	  (setf (ss-sink-dynamicconstraints sink) (cleanc (ss-sink-dynamicconstraints sink)))
+	  (setf (ss-sink-staticconstraints sink) (cleanc (ss-sink-staticconstraints sink))))
+	sink))
+
+(defun ss-trace-analysis-extract (tracefile prob &key (depth 0))
+  (flet ((grabconstraints (v)
+	   (if (atom v) v (if (atom (first v)) (and2list (nnf v)) v))))
+    (let (tracefilec sinks result lines)
       (when *ss-debug* (ss-trace (format nil "** Analyzing trace: ~A **" tracefile) depth))
       (setq tracefilec (stringappend tracefile ".constraints"))
       (exec-commandline "touch" tracefilec)
@@ -1332,30 +1547,17 @@ th {background-color: green; color: white;}
       (handler-case (setq lines (read-lines* result))
 	(condition () (when *ss-debug* (ss-trace (format nil "ERROR reading trace analysis: ~%~S~%" result)))))
       (dolist (s lines)
-	(setq sinkid (first s))
-	(setq status (second s))
-	(setq constraints (if (atom (third s)) (third s) (if (atom (first (third s))) (and2list (nnf (third s))) (third s))))
-	(setq sink (fourth s))
-	(setq sinkvars (fifth s))
-	(setq dbconstraints (if (atom (sixth s)) (sixth s) (if (atom (first (sixth s))) (and2list (nnf (sixth s))) (sixth s))))
-	(unless (eq status 'unknown)  ; cleanse unless we're going to ignore anyway
-          ; cleanse sinkvars (note call ss-cleanse-more* individually so that ((post "x")) does not become ?x)
-	  (setq sinkvars (mapcar #'(lambda (x) (ss-cleanse-more* x prob t)) sinkvars))
-          ; cleanse sink
-	  (setq sink (ss-cleanse-more* sink prob)) 
-          ; cleanse constraints
-	  (setq constraints (cleanc constraints))
-	  (setq dbconstraints (cleanc dbconstraints))
-	  (ss-log `(fserver ,(maksand constraints)))
-	  (ss-log `(fserver-complexity ,(complexity (maksand constraints))))
-	  (ss-log `(fdb ,(maksand dbconstraints)))
-	  (ss-log `(fdb-complexity ,(complexity (maksand dbconstraints))))
-	  (push (make-ss-sink :id sinkid :status status :constraints constraints 
-			      :phi sink :vars sinkvars :dbconstraints dbconstraints)
-		sinks)))
+	(handler-case (push (eval s) sinks)
+	  (condition () (when *ss-debug* (ss-trace (format nil "Error evaluating sink: ~A;" s) depth)))))
+
+;	(push (make-ss-sink :id (first s) :status (second s) :constraints (grabconstraints (third s)) 
+;			    :phi (fourth s) :vars (fifth s) :dbconstraints (grabconstraints (sixth s)) 
+;			    :staticconstraints (grabconstraints (seventh s))
+;			    :dynamicconstraints (grabconstraints (eighth s)))
+;	      sinks))
       sinks)))
 
-
+#|
 (defun ss-whitebox-trace-extract-formulas (tracefile prob &key (depth 0))
   (declare (ignore depth))
   (flet ((clean (x)
@@ -1418,6 +1620,8 @@ th {background-color: green; color: white;}
 ;				"; java ServerFormula " tracefile " -check"))
 ;      t nil))
 
+|#
+
 (defun ss-whitebox-trace-wpk (tracefile p &key (depth 0))
   (declare (ignore tracefile p depth))
   'true)
@@ -1459,15 +1663,20 @@ th {background-color: green; color: white;}
   "(SS-WHITEBOX-GET-RESPONSE XMLFILE) invokes the response generator on the given XMLFILE 
    and returns the file storing the result.  Not using wget b/c response generator 
    handles weird javascript redirects.  Also, response generator allows for cookies."
-  (setq dest (stringappend dest "." *ss-white-downloads*))
-  (setq *ss-white-downloads* (1+ *ss-white-downloads*))
-  (when *ss-debug* (if url
-		       (ss-trace (format nil "** Downloading ~A to ~A **" url dest) depth)))
-		       ;(ss-trace (format nil "Downloading server response to ~A" dest) depth)))
-  (exec-commandline "cd" (ss-abspath :respgen "") 
-		     ;"; rm -Rf responses results diffsizes.txt; mkdir responses; mkdir results;"
-		    ";" *ss-java-invoke* "-jar HTTPReqGen.jar" xmlfile "-d" dest)
-  dest)
+  (let (start)
+    (setq dest (stringappend dest "." *ss-white-downloads*))
+    (setq *ss-white-downloads* (1+ *ss-white-downloads*))
+    (setq start (get-universal-time))
+    (when (and *ss-debug* url)
+      (ss-trace (format nil "** Downloading ~A to ~A at time ~A**" url dest start) depth))
+    ; note that the -d flag will only send the first CASE of inputs in the XML file.
+    ; to submit multiple CASEs, but skip the rank generator, use the -s flag
+    (exec-commandline "cd" (ss-abspath :respgen "") 
+		      ;"; rm -Rf responses results diffsizes.txt; mkdir responses; mkdir results;"
+		      ";" *ss-java-invoke* "-jar HTTPReqGen.jar" xmlfile "-d" dest)
+    (when (and *ss-debug* url)
+      (ss-trace (format nil "** Downloading finished in ~A seconds **" (- (get-universal-time) start))))
+    dest))
 
 (defun ss-get-html (url &key (dest (stringappend *ss-working-prefix* "homepage.htm")) (depth 0))
   (let ((xmlfile (stringappend *ss-working-prefix* "get_html.xml")))
@@ -1484,7 +1693,7 @@ th {background-color: green; color: white;}
   "(SS-WHITEBOX-PROCESS-SERVER FILE) processes the server response contained in FILE to extract the
    appropriate trace and store it in a new file, whose name is returned."
   (let (newfile openstr)
-    (setq openstr "<NOTAMPER_TRACE_START>")
+    (setq openstr "<WAPTEC_TRACE_START>")
     (setq newfile (stringappend file ".notrace"))
     (exec-commandline (format nil "awk '{if (match($0,\"~A\")) exit; print}' ~A > ~A" openstr file newfile))
     newfile))
@@ -1494,21 +1703,22 @@ th {background-color: green; color: white;}
    appropriate trace and store it in a new file, whose name is returned."
   (let (newfile)
     (setq newfile (stringappend file ".trace"))
-    (exec-commandline "awk '/NOTAMPER_TRACE_START/,/NOTAMPER_TRACE_END/'" file "| sed '1d;$d'" ">" newfile)
+    (exec-commandline "awk '/WAPTEC_TRACE_START/,/WAPTEC_TRACE_END/'" file "| sed '1d;$d'" ">" newfile)
     newfile))
   
 (defun ss-whitebox-solve (p prob &key (required nil) (unique nil) (depth 0))
   "(SS-WHITEBOX-SOLVE P ...) runs stringsolver on P and returns result"
   (let (val u (*ss-whitebox-log* *ss-whitebox-log*) blokay)
     ; make sure to reduce to internal vocab
-    (setq p (car (ss-validate-vocab-internal (list (ss-cleanse-more (ss-drop-syntactic-sugar p) prob)))))
+    ;(setq p (car (ss-validate-vocab-internal (list (ss-cleanse-more (ss-drop-syntactic-sugar p) prob)))))
 
     ; create unique constraints
     (setq unique (union unique *ss-global-unique*))
-    ; removed b/c of bug in Kaluza
-    ;(setq u (remove-if-not #'(lambda (x) (member (car x) unique)) *ss-history-unique*))
-    ;(setq u (mapcar #'(lambda (x) `(!= ,(car x) ,(cdr x))) u))  
     (setq u nil)
+    ; may not work b/c of bug in Kaluza
+    (when *ss-obey-unique*
+      (setq u (remove-if-not #'(lambda (x) (member (car x) unique)) *ss-history-unique*))
+      (setq u (mapcar #'(lambda (x) `(!= ,(car x) ,(cdr x))) u)))
 
     ; create sentence
     (setq p (maksand (list* p (ss-prob-space prob) u)))
@@ -1519,19 +1729,19 @@ th {background-color: green; color: white;}
 
     ;(setq p (ss-drop-syntactic-sugar p))
     (setq val (ss-solve p :required required :types (ss-prob-types prob)))
-    (cond (val
-	   (setq val (hash2bl val))
-	   (when *ss-debug* 
+    (unless (eq val :unsat)
+      (setq val (hash2bl val))
+      (when *ss-debug* 
 	     ;(ss-trace (format nil "Found string solution.") depth)
 	     ;(unless *quiet* (ss-trace (format nil "~S" val) depth))
-	     (setq blokay (ss-checksat p (ss-prob-types prob) (append val truth)))
-	     (unless blokay
-	       (if *break-on-external-solver-error*
-		   (ss-error (format nil "ss-solve failed on ~%~S~%producing ~%~S~%with types~%~S~%" 
-				     p val (hash2bl (ss-prob-types prob)))) 
-		   (format t "ss-solve failed on ~%~S~%producing ~%~S~%with types~%~S~%" 
-				     p val (hash2bl (ss-prob-types prob)))))))
-	  (t ));(when *ss-debug* (ss-trace "No string solution." depth))))
+	(setq p (car (ss-validate-vocab-internal (list (ss-cleanse-more (ss-drop-syntactic-sugar p) prob)))))
+	(setq blokay (ss-checksat p (ss-prob-types prob) (append val truth)))
+	(unless blokay
+	  (if *break-on-external-solver-error*
+	      (ss-error (format nil "ss-solve failed on ~%~S~%producing ~%~S~%with types~%~S~%" 
+				p val (hash2bl (ss-prob-types prob)))) 
+	      (format t "ss-solve failed on ~%~S~%producing ~%~S~%with types~%~S~%" 
+		      p val (hash2bl (ss-prob-types prob)))))))
     val))
     
 (defun ss-whitebox-init (url)
@@ -1774,6 +1984,7 @@ th {background-color: green; color: white;}
     (if required
 	(setq bl (ss-whitebox-solve p prob :required required))
 	(setq bl (ss-whitebox-solve p prob)))
+    (when (eq bl :unsat) (setq bl nil))
     (when bl
       (unless *quiet*
 	(unless (ss-checksat p (ss-prob-types prob) (append (hash2bl bl) '((t . t))))
@@ -1792,6 +2003,7 @@ th {background-color: green; color: white;}
     (setq vs (union (vars p) (vars (ss-prob-space prob))))   ; if space is disjunctive, may be problematic
     (setq p2 (notamper-addhist p history vs))
     (setq bl (ss-whitebox-solve p2 prob)) ; :required vs)) ; required are just those in p
+    (when (eq bl :unsat) (setq bl nil))
     (when bl
       (unless *quiet* 
 	(unless (ss-checksat p2 (ss-prob-types prob) (append (hash2bl bl) truth)) 
@@ -1958,9 +2170,7 @@ th {background-color: green; color: white;}
     (printspaces 2 stream) (format stream "</bad>~%")
     (format stream "</form>~%")))
 
-(defun ss-xml-esc (x) 
-  (setq x (tostring x)) 
-  (replace-all x "&" "&amp;"))
+(defun ss-xml-esc (x) (xmlify x))
 
 (defun ss-bl2xml (bl prob &key (stream t))
   (flet ((f (x) (ss-xml-esc x)))
@@ -2007,8 +2217,8 @@ th {background-color: green; color: white;}
 	  (format s "<bl><var tamper=\"~A\"~A>~A</var><val>~A</val></bl>~%" 
 		  (if (member var tamperedvars) "true" "false")
 		  (if loc (format nil " location=\"~A\"" loc) "")
-		  (f (urlify (notamper2web-varspelling (first x))))
-		  (f (urlify (second x)))))))))
+		  (f (xmlify (notamper2web-varspelling (first x))))
+		  (f (xmlify (second x)))))))))
 #|
 (defun notamper2web (notamperout prob &key (stream t) (time nil) (count nil)) 
   "(NOTAMPER2WEB NOTAMPEROUT PROB &KEY STREAM TIME) takes the output of notamper and prints to stream 
@@ -2094,6 +2304,17 @@ th {background-color: green; color: white;}
         (cond ((alphanumericp c) (write-char c o))
               ((find c '(#\$ #\- #\_ #\. #\+) :test #'char=) (write-char c o))
               (t (format o "%~:@(~2,'0x~)" (char-code c)))))))
+
+(defun xmlify (s)
+  "(XMLIFY S) HTML escapes the characters #\" #\& #\' #\< #\>"
+  (unless (stringp s) (setq s (princ-to-string s)))
+  (with-output-to-string (o)
+    (do ((i 0 (1+ i)) (c) (n (length s)))
+        ((= i n) o)
+      (setq c (elt s i))
+      (if (find c '(#\" #\& #\' #\< #\>) :test #'char=)
+	  (format o "%~:@(~2,'0x~)" (char-code c))
+	  (write-char c o)))))
 
 ;(notamper-build-negative-variations '(and (eq ?email1 ?email2) (eq ?pwd1 ?pwd2) (not (eq ?userid ""))))
 (defun notamper-build-negative-variations (p)

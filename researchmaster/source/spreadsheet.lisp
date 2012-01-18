@@ -891,7 +891,7 @@ function addWidget (obj) {
   "The prefix that is added to custom functions in our implementation of those functions.")
 ; to recreate list ...
 ;egrep -o 'function[[:space:]]*[0-9a-zA-Z$_]*[[:space:]]*\(' /Users/thinrich/Research/code/clicl/researchmaster/javascript/builtins.js |sed -E 's/^function[[:space:]]*([0-9a-zA-Z$_]*)[[:space:]]*\($/"\1"/' | tr '\n' ' '
-(defparameter *ws-custom-builtin-names* '("preg_replace" "preg_match"))
+(defparameter *ws-custom-builtin-names* '("preg_replace" "preg_match" "ereg" "eregi"))
 ; DANGER: make sure this parameter is created *after* *ws-custom-builtin-names* is created
 (defparameter *ws-custom-builtin-prefixed-names* 
   (mapcar #'(lambda (x) (tostring *ws-custom-namespace* "." x)) *ws-custom-builtin-names*)
@@ -1073,12 +1073,19 @@ function addWidget (obj) {
     ; check that functions that appear in constraints are part of our pred list.
     ;   (All relations are accounted for, by the definitions of :query.)
     ;  Note that we don't have arities recorded for all builtins, so we're just comparing names.
+    ;  Remove any constraint with an unknown symbol.
+    (setq vocab nil)
     (when constraints  ; if constraints empty, true appears which isn't a built-in relation
       (setq vocab (mapcar #'parameter-symbol (delete-if #'isobject (get-vocabulary (maksand constraints)))))
       (setq preds (mapcar #'(lambda (x) (parameter-symbol (pred-parameter x))) (webform-preds w)))
       (setq vocab (set-difference vocab preds))
-      (when vocab (error 'unknown-symbol :comment vocab)))
-    w))
+      (setf (webform-constraints w) 
+	    (remove-if #'(lambda (x) 
+			   (let ((v (mapcar #'parameter-symbol (delete-if #'isobject (get-vocabulary x)))))
+			     (intersectionp v vocab :test #'param-equal)))
+		       (webform-constraints w))))
+      ;(when vocab (error 'unknown-symbol :comment vocab)))
+    (values w (mapcar #'(lambda (x) (format nil "Unknown symbol: ~A" x)) vocab))))
   
 (defun ws-fixwidget (w univ types valuecomp)
   "(WS-FIXWIDGET W) adjusts the given widget W to meet assumptions of compiler."
@@ -1189,13 +1196,15 @@ function addWidget (obj) {
 (defun compile-websheet (th)
   "(COMPILE-WEBSHEET TH) given a declarative description of a web form, return an HTMLFORM."
   (setq *tmp* nil *tmp2* nil *tmp3* nil *tmp4* nil)  ; for commandline debugging
-  (let (struct code buf result)
+  (let (struct code buf result errs)
     (setq result (make-htmlform))
     (when *webformlog* (logmessage (contents th) *webformlog*))
-    (handler-case (setq struct (load-formstructure th))
-      (unknown-symbol (msg) 
-	(setf (htmlform-errors result) (list (format nil "Unknown symbol(s): ~A" (comment msg))))
-	(return-from compile-websheet result)))
+    (multiple-value-setq (struct errs) (load-formstructure th))
+    (setf (htmlform-errors result) errs)
+;    (handler-case (setq struct (load-formstructure th))
+;      (unknown-symbol (msg) 
+;	(setf (htmlform-errors result) (list (format nil "Unknown symbol(s): ~A" (comment msg))))
+;	(return-from compile-websheet result)))
     (setq *tmp* struct)
 
     ; compile websheet to code
