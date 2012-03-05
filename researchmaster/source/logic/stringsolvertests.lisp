@@ -15,7 +15,7 @@ http://herge.sisl.rites.uic.edu/notamper/instrumented/websubrev/webtree/submit/s
 (defstruct wavstest name url formid stuburl bl indep (method "post") (multipart nil) unique required)
 (defun wavs-tests ()
 (list  
- (make-wavstest 
+ (make-wavstest   ; username: admin  pwd: vb4sadfA
    :name 'b2 
    :url "http://herge.sisl.rites.uic.edu/notamper/instrumented/b2evolution-0.8.6/blog_a.php?disp=profile"  ; url
    :formid "http://herge.sisl.rites.uic.edu/notamper/instrumented/b2evolution-0.8.6/htsrv/profile_update.php" ; identify form

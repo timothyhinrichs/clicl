@@ -659,3 +659,610 @@ leading to their automatic, in-design certification.
 (POS (PAPER.YEAR ELMAS2010GOLDILOCKS 2010))
 (POS (PAPER.TOPIC ELMAS2010GOLDILOCKS TOPIC.35167953572))
 (POS (PAPER.DESCRIPTION ELMAS2010GOLDILOCKS "The authors present a Java environment that automatically detects race conditions and throws an error when discovered.  Runtime overheads are factors of 2 (with significant static analysis) to 15 (with no static analysis)."))
+(NEG (PAPER.INSTANCE VIKRAM2009RIPLEY))
+(NEG (PAPER.BIBTEX VIKRAM2009RIPLEY INPROCEEDINGS))
+(NEG (PAPER.AUTHOR VIKRAM2009RIPLEY K.VIKRAM))
+(NEG (PAPER.AUTHOR VIKRAM2009RIPLEY PERSON.34795751805))
+(NEG (PAPER.AUTHOR VIKRAM2009RIPLEY PERSON.34795751804))
+(NEG (PAPER.TITLE VIKRAM2009RIPLEY "Ripley: Automatically Securing Distributed Web Applications Through Replicated Execution"))
+(NEG (PAPER.PUBLICATION VIKRAM2009RIPLEY CCS))
+(NEG (PAPER.STARTPAGE VIKRAM2009RIPLEY "173"))
+(NEG (PAPER.ENDPAGE VIKRAM2009RIPLEY "186"))
+(NEG (PAPER.URL VIKRAM2009RIPLEY "http://portal.acm.org/citation.cfm?id=1653685"))
+(NEG (PAPER.YEAR VIKRAM2009RIPLEY 2009))
+(NEG (PAPER.TOPIC VIKRAM2009RIPLEY WWWTOPIC))
+(NEG (PAPER.TOPIC VIKRAM2009RIPLEY PROGRAMMING))
+(NEG (PAPER.TOPIC VIKRAM2009RIPLEY SECURITY))
+(NEG (PAPER.TOPIC VIKRAM2009RIPLEY TOPIC.34795730213))
+(NEG (PAPER.DESCRIPTION VIKRAM2009RIPLEY "Ripley is a web application development framework that requires code and declarative description of which functionality is to be implemented on the client and which functionality is to be implemented on the server.  It then generates client and server-side code implementing that application.  The code generated on the server replicates all client-side computation to ensure the client has not been compromised."))
+(POS (PAPER.INSTANCE VIKRAM2009RIPLEY))
+(POS (PAPER.BIBTEX VIKRAM2009RIPLEY INPROCEEDINGS))
+(POS (PAPER.AUTHOR VIKRAM2009RIPLEY K.VIKRAM))
+(POS (PAPER.AUTHOR VIKRAM2009RIPLEY PERSON.34795751805))
+(POS (PAPER.AUTHOR VIKRAM2009RIPLEY PERSON.34795751804))
+(POS (PAPER.TITLE VIKRAM2009RIPLEY "Ripley: Automatically Securing Distributed Web Applications Through Replicated Execution"))
+(POS (PAPER.PUBLICATION VIKRAM2009RIPLEY CCS))
+(POS (PAPER.STARTPAGE VIKRAM2009RIPLEY "173"))
+(POS (PAPER.ENDPAGE VIKRAM2009RIPLEY "186"))
+(POS (PAPER.URL VIKRAM2009RIPLEY "http://research.microsoft.com/apps/pubs/default.aspx?id=101931"))
+(POS (PAPER.YEAR VIKRAM2009RIPLEY 2009))
+(POS (PAPER.TOPIC VIKRAM2009RIPLEY WWWTOPIC))
+(POS (PAPER.TOPIC VIKRAM2009RIPLEY PROGRAMMING))
+(POS (PAPER.TOPIC VIKRAM2009RIPLEY SECURITY))
+(POS (PAPER.TOPIC VIKRAM2009RIPLEY TOPIC.34795730213))
+(POS (PAPER.DESCRIPTION VIKRAM2009RIPLEY "Ripley is a web application development framework that requires code and declarative description of which functionality is to be implemented on the client and which functionality is to be implemented on the server.  It then generates client and server-side code implementing that application.  The code generated on the server replicates all client-side computation to ensure the client has not been compromised."))
+(NEG (PAPER.INSTANCE FERNANDEZ2000DECLARATIVE))
+(NEG (PAPER.BIBTEX FERNANDEZ2000DECLARATIVE ARTICLE))
+(NEG (PAPER.AUTHOR FERNANDEZ2000DECLARATIVE PERSON.34795733335))
+(NEG (PAPER.AUTHOR FERNANDEZ2000DECLARATIVE PERSON.34795733336))
+(NEG (PAPER.AUTHOR FERNANDEZ2000DECLARATIVE ALONLEVY))
+(NEG (PAPER.AUTHOR FERNANDEZ2000DECLARATIVE PERSON.34795733337))
+(NEG (PAPER.TITLE FERNANDEZ2000DECLARATIVE "Declarative specification of web sites with strudel"))
+(NEG (PAPER.PUBLICATION FERNANDEZ2000DECLARATIVE JOURNAL.34795734076))
+(NEG (PAPER.STARTPAGE FERNANDEZ2000DECLARATIVE "38"))
+(NEG (PAPER.ENDPAGE FERNANDEZ2000DECLARATIVE "55"))
+(NEG (PAPER.URL FERNANDEZ2000DECLARATIVE "http://www.springerlink.com/content/yrabda70gfx8kud1/"))
+(NEG (PAPER.YEAR FERNANDEZ2000DECLARATIVE 2000))
+(NEG (PAPER.TOPIC FERNANDEZ2000DECLARATIVE WWWTOPIC))
+(NEG (PAPER.TOPIC FERNANDEZ2000DECLARATIVE TOPIC.34795730213))
+(NEG (PAPER.TOPIC FERNANDEZ2000DECLARATIVE PROGRAMMING))
+(NEG (PAPER.TOPIC FERNANDEZ2000DECLARATIVE DATABASE))
+(NEG (PAPER.TOPIC FERNANDEZ2000DECLARATIVE TOPIC.34795740790))
+(NEG (PAPER.DESCRIPTION FERNANDEZ2000DECLARATIVE "Strudel is a language for declarative describing web applications.  Entered when looking for declarative web form work, so not read but cited."))
+(POS (PAPER.INSTANCE FERNANDEZ2000DECLARATIVE))
+(POS (PAPER.BIBTEX FERNANDEZ2000DECLARATIVE ARTICLE))
+(POS (PAPER.AUTHOR FERNANDEZ2000DECLARATIVE PERSON.34795733335))
+(POS (PAPER.AUTHOR FERNANDEZ2000DECLARATIVE PERSON.34795733336))
+(POS (PAPER.AUTHOR FERNANDEZ2000DECLARATIVE ALONLEVY))
+(POS (PAPER.AUTHOR FERNANDEZ2000DECLARATIVE PERSON.34795733337))
+(POS (PAPER.TITLE FERNANDEZ2000DECLARATIVE "Declarative specification of web sites with strudel"))
+(POS (PAPER.PUBLICATION FERNANDEZ2000DECLARATIVE JOURNAL.34795734076))
+(POS (PAPER.STARTPAGE FERNANDEZ2000DECLARATIVE "38"))
+(POS (PAPER.ENDPAGE FERNANDEZ2000DECLARATIVE "55"))
+(POS (PAPER.URL FERNANDEZ2000DECLARATIVE "http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.33.1159"))
+(POS (PAPER.YEAR FERNANDEZ2000DECLARATIVE 2000))
+(POS (PAPER.TOPIC FERNANDEZ2000DECLARATIVE WWWTOPIC))
+(POS (PAPER.TOPIC FERNANDEZ2000DECLARATIVE TOPIC.34795730213))
+(POS (PAPER.TOPIC FERNANDEZ2000DECLARATIVE PROGRAMMING))
+(POS (PAPER.TOPIC FERNANDEZ2000DECLARATIVE DATABASE))
+(POS (PAPER.TOPIC FERNANDEZ2000DECLARATIVE TOPIC.34795740790))
+(POS (PAPER.DESCRIPTION FERNANDEZ2000DECLARATIVE "Strudel is a language for declarative describing web applications.  Entered when looking for declarative web form work, so not read but cited."))
+(NEG (PAPER.INSTANCE HINRICHS2012APPLICATION))
+(NEG (PAPER.BIBTEX HINRICHS2012APPLICATION MISC))
+(NEG (PAPER.AUTHOR HINRICHS2012APPLICATION TIMOTHYLHINRICHS))
+(NEG (PAPER.AUTHOR HINRICHS2012APPLICATION PERSON.35226101344))
+(NEG (PAPER.AUTHOR HINRICHS2012APPLICATION ADAM.J.LEE))
+(NEG (PAPER.AUTHOR HINRICHS2012APPLICATION JOHN.C.MITCHELL))
+(NEG (PAPER.TITLE HINRICHS2012APPLICATION "Application-Sensitive Access Control Evaluation: Logical Foundations"))
+(NEG (PAPER.TOPIC HINRICHS2012APPLICATION AUTHORIZATION))
+(NEG (PAPER.DESCRIPTION HINRICHS2012APPLICATION "  Although the security community recommends that applications be
+  designed for security from day one, today there is no formal
+  technique for choosing the access control system that is best-suited
+  for a particular application.  In this paper, we present a formal
+  framework and logic for comparing access control systems with
+  respect to a particular application.  The analyst&#39;s main task is to
+  determine whether a given workload---a formalism that we develop to
+  represent an application&#39;s access control demands---can be 
+  implemented correctly by each of several candidate access control systems.  
+  And because correctness by itself allows for implementations that few application
+  developers would seriously consider, we develop several additional 
+  classifications for implementations that offer guarantees beyond correctness:
+  homomorphic, non-interfering, safe, and succinct.
+  The system that admits the implementation with the strongest
+  guarantees is deemed the best fit for the application.  We demonstrate the
+  use of our framework by analyzing a workload that is
+  anecdotally troublesome for the U.S. government&#39;s access control
+  solution and present results for ten different access control models.
+"))
+(POS (PAPER.INSTANCE HINRICHS2012APPLICATION))
+(POS (PAPER.BIBTEX HINRICHS2012APPLICATION TECHREPORT))
+(POS (PAPER.AUTHOR HINRICHS2012APPLICATION TIMOTHYLHINRICHS))
+(POS (PAPER.AUTHOR HINRICHS2012APPLICATION PERSON.35226101344))
+(POS (PAPER.AUTHOR HINRICHS2012APPLICATION ADAM.J.LEE))
+(POS (PAPER.AUTHOR HINRICHS2012APPLICATION JOHN.C.MITCHELL))
+(POS (PAPER.TITLE HINRICHS2012APPLICATION "Application-Sensitive Access Control Evaluation: Logical Foundations (Extended Version)"))
+(POS (PAPER.NUMBER HINRICHS2012APPLICATION "TR-12-185"))
+(POS (PAPER.TOPIC HINRICHS2012APPLICATION AUTHORIZATION))
+(POS (PAPER.DESCRIPTION HINRICHS2012APPLICATION "  Although the security community recommends that applications be
+  designed for security from day one, today there is no formal
+  technique for choosing the access control system that is best-suited
+  for a particular application.  In this paper, we present a formal
+  framework and logic for comparing access control systems with
+  respect to a particular application.  The analyst&amp;#39;s main task is to
+  determine whether a given workload---a formalism that we develop to
+  represent an application&amp;#39;s access control demands---can be 
+  implemented correctly by each of several candidate access control systems.  
+  And because correctness by itself allows for implementations that few application
+  developers would seriously consider, we develop several additional 
+  classifications for implementations that offer guarantees beyond correctness:
+  homomorphic, non-interfering, safe, and succinct.
+  The system that admits the implementation with the strongest
+  guarantees is deemed the best fit for the application.  We demonstrate the
+  use of our framework by analyzing a workload that is
+  anecdotally troublesome for the U.S. government&amp;#39;s access control
+  solution and present results for ten different access control models.
+"))
+(POS (PUBLISHER.INSTANCE PUBLISHER.35364044021))
+(POS (PRETTYNAME PUBLISHER.35364044021 "Pittsburgh University"))
+(NEG (PAPER.INSTANCE HINRICHS2012APPLICATION))
+(NEG (PAPER.BIBTEX HINRICHS2012APPLICATION TECHREPORT))
+(NEG (PAPER.AUTHOR HINRICHS2012APPLICATION TIMOTHYLHINRICHS))
+(NEG (PAPER.AUTHOR HINRICHS2012APPLICATION PERSON.35226101344))
+(NEG (PAPER.AUTHOR HINRICHS2012APPLICATION ADAM.J.LEE))
+(NEG (PAPER.AUTHOR HINRICHS2012APPLICATION JOHN.C.MITCHELL))
+(NEG (PAPER.TITLE HINRICHS2012APPLICATION "Application-Sensitive Access Control Evaluation: Logical Foundations (Extended Version)"))
+(NEG (PAPER.NUMBER HINRICHS2012APPLICATION "TR-12-185"))
+(NEG (PAPER.TOPIC HINRICHS2012APPLICATION AUTHORIZATION))
+(NEG (PAPER.DESCRIPTION HINRICHS2012APPLICATION "  Although the security community recommends that applications be
+  designed for security from day one, today there is no formal
+  technique for choosing the access control system that is best-suited
+  for a particular application.  In this paper, we present a formal
+  framework and logic for comparing access control systems with
+  respect to a particular application.  The analyst&amp;#39;s main task is to
+  determine whether a given workload---a formalism that we develop to
+  represent an application&amp;#39;s access control demands---can be 
+  implemented correctly by each of several candidate access control systems.  
+  And because correctness by itself allows for implementations that few application
+  developers would seriously consider, we develop several additional 
+  classifications for implementations that offer guarantees beyond correctness:
+  homomorphic, non-interfering, safe, and succinct.
+  The system that admits the implementation with the strongest
+  guarantees is deemed the best fit for the application.  We demonstrate the
+  use of our framework by analyzing a workload that is
+  anecdotally troublesome for the U.S. government&amp;#39;s access control
+  solution and present results for ten different access control models.
+"))
+(POS (PAPER.INSTANCE HINRICHS2012APPLICATION))
+(POS (PAPER.BIBTEX HINRICHS2012APPLICATION TECHREPORT))
+(POS (PAPER.AUTHOR HINRICHS2012APPLICATION TIMOTHYLHINRICHS))
+(POS (PAPER.AUTHOR HINRICHS2012APPLICATION PERSON.35226101344))
+(POS (PAPER.AUTHOR HINRICHS2012APPLICATION ADAM.J.LEE))
+(POS (PAPER.AUTHOR HINRICHS2012APPLICATION JOHN.C.MITCHELL))
+(POS (PAPER.TITLE HINRICHS2012APPLICATION "Application-Sensitive Access Control Evaluation: Logical Foundations (Extended Version)"))
+(POS (PAPER.PUBLISHER HINRICHS2012APPLICATION PUBLISHER.35364044021))
+(POS (PAPER.NUMBER HINRICHS2012APPLICATION "TR-12-185"))
+(POS (PAPER.TOPIC HINRICHS2012APPLICATION AUTHORIZATION))
+(POS (PAPER.DESCRIPTION HINRICHS2012APPLICATION "  Although the security community recommends that applications be
+  designed for security from day one, today there is no formal
+  technique for choosing the access control system that is best-suited
+  for a particular application.  In this paper, we present a formal
+  framework and logic for comparing access control systems with
+  respect to a particular application.  The analyst&amp;amp;#39;s main task is to
+  determine whether a given workload---a formalism that we develop to
+  represent an application&amp;amp;#39;s access control demands---can be 
+  implemented correctly by each of several candidate access control systems.  
+  And because correctness by itself allows for implementations that few application
+  developers would seriously consider, we develop several additional 
+  classifications for implementations that offer guarantees beyond correctness:
+  homomorphic, non-interfering, safe, and succinct.
+  The system that admits the implementation with the strongest
+  guarantees is deemed the best fit for the application.  We demonstrate the
+  use of our framework by analyzing a workload that is
+  anecdotally troublesome for the U.S. government&amp;amp;#39;s access control
+  solution and present results for ten different access control models.
+"))
+(NEG (PAPER.INSTANCE GARRISON2012APPLICATION))
+(NEG (PAPER.BIBTEX GARRISON2012APPLICATION MISC))
+(NEG (PAPER.AUTHOR GARRISON2012APPLICATION PERSON.35226101344))
+(NEG (PAPER.AUTHOR GARRISON2012APPLICATION ADAM.J.LEE))
+(NEG (PAPER.AUTHOR GARRISON2012APPLICATION TIMOTHYLHINRICHS))
+(NEG (PAPER.TITLE GARRISON2012APPLICATION "Application-Sensitive Access Control Evaluation: Suitability and Cost Analysis"))
+(NEG (PAPER.TOPIC GARRISON2012APPLICATION AUTHORIZATION))
+(NEG (PAPER.DESCRIPTION GARRISON2012APPLICATION "  To date, most work regarding the formal analysis of access control schemes
+  has focused on quantifying and comparing the expressive power of a set of
+  schemes. Although expressive power is important, it is a property
+  that exists in an absolute sense, detached from the
+  application-specific context within which an access control scheme will
+  ultimately be deployed. In this paper, we depart from the practice of
+  absolute evaluation and introduce a mathematical framework aimed at assessing
+  the suitability of existing access control schemes for a specific
+  application. In our framework, an analyst first formally defines a workload
+  representing the operational demands of the application and specifies 
+  metrics representing the pertinent costs. Reductions demonstrate how
+  each candidate scheme---or some augmentation of it---can be
+  used to safely implement the workload. Our framework assigns each
+  such implementation a score based on the chosen cost metric and deems that
+  the access control scheme with the highest scoring implementation is the one
+  best suited for the application. We demonstrate our framework by
+  presenting an example workload based on the requirements of a modern
+  military, and exploring the suitability of a series of popular access control
+  schemes for this workload.
+"))
+(POS (PAPER.INSTANCE GARRISON2012APPLICATION))
+(POS (PAPER.BIBTEX GARRISON2012APPLICATION TECHREPORT))
+(POS (PAPER.AUTHOR GARRISON2012APPLICATION PERSON.35226101344))
+(POS (PAPER.AUTHOR GARRISON2012APPLICATION ADAM.J.LEE))
+(POS (PAPER.AUTHOR GARRISON2012APPLICATION TIMOTHYLHINRICHS))
+(POS (PAPER.TITLE GARRISON2012APPLICATION "Application-Sensitive Access Control Evaluation: Suitability and Cost Analysis"))
+(POS (PAPER.PUBLISHER GARRISON2012APPLICATION PUBLISHER.35364044021))
+(POS (PAPER.NUMBER GARRISON2012APPLICATION "TR-12-186"))
+(POS (PAPER.YEAR GARRISON2012APPLICATION 2012))
+(POS (PAPER.TOPIC GARRISON2012APPLICATION AUTHORIZATION))
+(POS (PAPER.DESCRIPTION GARRISON2012APPLICATION "  To date, most work regarding the formal analysis of access control schemes
+  has focused on quantifying and comparing the expressive power of a set of
+  schemes. Although expressive power is important, it is a property
+  that exists in an absolute sense, detached from the
+  application-specific context within which an access control scheme will
+  ultimately be deployed. In this paper, we depart from the practice of
+  absolute evaluation and introduce a mathematical framework aimed at assessing
+  the suitability of existing access control schemes for a specific
+  application. In our framework, an analyst first formally defines a workload
+  representing the operational demands of the application and specifies 
+  metrics representing the pertinent costs. Reductions demonstrate how
+  each candidate scheme---or some augmentation of it---can be
+  used to safely implement the workload. Our framework assigns each
+  such implementation a score based on the chosen cost metric and deems that
+  the access control scheme with the highest scoring implementation is the one
+  best suited for the application. We demonstrate our framework by
+  presenting an example workload based on the requirements of a modern
+  military, and exploring the suitability of a series of popular access control
+  schemes for this workload.
+"))
+(NEG (PAPER.INSTANCE HINRICHS2012APPLICATION))
+(NEG (PAPER.BIBTEX HINRICHS2012APPLICATION TECHREPORT))
+(NEG (PAPER.AUTHOR HINRICHS2012APPLICATION TIMOTHYLHINRICHS))
+(NEG (PAPER.AUTHOR HINRICHS2012APPLICATION PERSON.35226101344))
+(NEG (PAPER.AUTHOR HINRICHS2012APPLICATION ADAM.J.LEE))
+(NEG (PAPER.AUTHOR HINRICHS2012APPLICATION JOHN.C.MITCHELL))
+(NEG (PAPER.TITLE HINRICHS2012APPLICATION "Application-Sensitive Access Control Evaluation: Logical Foundations (Extended Version)"))
+(NEG (PAPER.PUBLISHER HINRICHS2012APPLICATION PUBLISHER.35364044021))
+(NEG (PAPER.NUMBER HINRICHS2012APPLICATION "TR-12-185"))
+(NEG (PAPER.TOPIC HINRICHS2012APPLICATION AUTHORIZATION))
+(NEG (PAPER.DESCRIPTION HINRICHS2012APPLICATION "  Although the security community recommends that applications be
+  designed for security from day one, today there is no formal
+  technique for choosing the access control system that is best-suited
+  for a particular application.  In this paper, we present a formal
+  framework and logic for comparing access control systems with
+  respect to a particular application.  The analyst&amp;amp;#39;s main task is to
+  determine whether a given workload---a formalism that we develop to
+  represent an application&amp;amp;#39;s access control demands---can be 
+  implemented correctly by each of several candidate access control systems.  
+  And because correctness by itself allows for implementations that few application
+  developers would seriously consider, we develop several additional 
+  classifications for implementations that offer guarantees beyond correctness:
+  homomorphic, non-interfering, safe, and succinct.
+  The system that admits the implementation with the strongest
+  guarantees is deemed the best fit for the application.  We demonstrate the
+  use of our framework by analyzing a workload that is
+  anecdotally troublesome for the U.S. government&amp;amp;#39;s access control
+  solution and present results for ten different access control models.
+"))
+(POS (PAPER.INSTANCE HINRICHS2012APPLICATION))
+(POS (PAPER.BIBTEX HINRICHS2012APPLICATION TECHREPORT))
+(POS (PAPER.AUTHOR HINRICHS2012APPLICATION TIMOTHYLHINRICHS))
+(POS (PAPER.AUTHOR HINRICHS2012APPLICATION PERSON.35226101344))
+(POS (PAPER.AUTHOR HINRICHS2012APPLICATION ADAM.J.LEE))
+(POS (PAPER.AUTHOR HINRICHS2012APPLICATION JOHN.C.MITCHELL))
+(POS (PAPER.TITLE HINRICHS2012APPLICATION "Application-Sensitive Access Control Evaluation: Logical Foundations (Extended Version)"))
+(POS (PAPER.PUBLISHER HINRICHS2012APPLICATION PUBLISHER.35364044021))
+(POS (PAPER.NUMBER HINRICHS2012APPLICATION "TR-12-185"))
+(POS (PAPER.YEAR HINRICHS2012APPLICATION 2012))
+(POS (PAPER.TOPIC HINRICHS2012APPLICATION AUTHORIZATION))
+(POS (PAPER.DESCRIPTION HINRICHS2012APPLICATION "  Although the security community recommends that applications be
+  designed for security from day one, today there is no formal
+  technique for choosing the access control system that is best-suited
+  for a particular application.  In this paper, we present a formal
+  framework and logic for comparing access control systems with
+  respect to a particular application.  The analyst&amp;amp;amp;#39;s main task is to
+  determine whether a given workload---a formalism that we develop to
+  represent an application&amp;amp;amp;#39;s access control demands---can be 
+  implemented correctly by each of several candidate access control systems.  
+  And because correctness by itself allows for implementations that few application
+  developers would seriously consider, we develop several additional 
+  classifications for implementations that offer guarantees beyond correctness:
+  homomorphic, non-interfering, safe, and succinct.
+  The system that admits the implementation with the strongest
+  guarantees is deemed the best fit for the application.  We demonstrate the
+  use of our framework by analyzing a workload that is
+  anecdotally troublesome for the U.S. government&amp;amp;amp;#39;s access control
+  solution and present results for ten different access control models.
+"))
+(NEG (PAPER.INSTANCE GARRISON2012APPLICATION))
+(NEG (PAPER.BIBTEX GARRISON2012APPLICATION TECHREPORT))
+(NEG (PAPER.AUTHOR GARRISON2012APPLICATION PERSON.35226101344))
+(NEG (PAPER.AUTHOR GARRISON2012APPLICATION ADAM.J.LEE))
+(NEG (PAPER.AUTHOR GARRISON2012APPLICATION TIMOTHYLHINRICHS))
+(NEG (PAPER.TITLE GARRISON2012APPLICATION "Application-Sensitive Access Control Evaluation: Suitability and Cost Analysis"))
+(NEG (PAPER.PUBLISHER GARRISON2012APPLICATION PUBLISHER.35364044021))
+(NEG (PAPER.NUMBER GARRISON2012APPLICATION "TR-12-186"))
+(NEG (PAPER.YEAR GARRISON2012APPLICATION 2012))
+(NEG (PAPER.TOPIC GARRISON2012APPLICATION AUTHORIZATION))
+(NEG (PAPER.DESCRIPTION GARRISON2012APPLICATION "  To date, most work regarding the formal analysis of access control schemes
+  has focused on quantifying and comparing the expressive power of a set of
+  schemes. Although expressive power is important, it is a property
+  that exists in an absolute sense, detached from the
+  application-specific context within which an access control scheme will
+  ultimately be deployed. In this paper, we depart from the practice of
+  absolute evaluation and introduce a mathematical framework aimed at assessing
+  the suitability of existing access control schemes for a specific
+  application. In our framework, an analyst first formally defines a workload
+  representing the operational demands of the application and specifies 
+  metrics representing the pertinent costs. Reductions demonstrate how
+  each candidate scheme---or some augmentation of it---can be
+  used to safely implement the workload. Our framework assigns each
+  such implementation a score based on the chosen cost metric and deems that
+  the access control scheme with the highest scoring implementation is the one
+  best suited for the application. We demonstrate our framework by
+  presenting an example workload based on the requirements of a modern
+  military, and exploring the suitability of a series of popular access control
+  schemes for this workload.
+"))
+(POS (PAPER.INSTANCE GARRISON2012APPLICATION))
+(POS (PAPER.BIBTEX GARRISON2012APPLICATION TECHREPORT))
+(POS (PAPER.AUTHOR GARRISON2012APPLICATION PERSON.35226101344))
+(POS (PAPER.AUTHOR GARRISON2012APPLICATION ADAM.J.LEE))
+(POS (PAPER.AUTHOR GARRISON2012APPLICATION TIMOTHYLHINRICHS))
+(POS (PAPER.TITLE GARRISON2012APPLICATION "Application-Sensitive Access Control Evaluation: Suitability and Cost Analysis (Extended Version)"))
+(POS (PAPER.PUBLISHER GARRISON2012APPLICATION PUBLISHER.35364044021))
+(POS (PAPER.NUMBER GARRISON2012APPLICATION "TR-12-186"))
+(POS (PAPER.YEAR GARRISON2012APPLICATION 2012))
+(POS (PAPER.TOPIC GARRISON2012APPLICATION AUTHORIZATION))
+(POS (PAPER.DESCRIPTION GARRISON2012APPLICATION "  To date, most work regarding the formal analysis of access control schemes
+  has focused on quantifying and comparing the expressive power of a set of
+  schemes. Although expressive power is important, it is a property
+  that exists in an absolute sense, detached from the
+  application-specific context within which an access control scheme will
+  ultimately be deployed. In this paper, we depart from the practice of
+  absolute evaluation and introduce a mathematical framework aimed at assessing
+  the suitability of existing access control schemes for a specific
+  application. In our framework, an analyst first formally defines a workload
+  representing the operational demands of the application and specifies 
+  metrics representing the pertinent costs. Reductions demonstrate how
+  each candidate scheme---or some augmentation of it---can be
+  used to safely implement the workload. Our framework assigns each
+  such implementation a score based on the chosen cost metric and deems that
+  the access control scheme with the highest scoring implementation is the one
+  best suited for the application. We demonstrate our framework by
+  presenting an example workload based on the requirements of a modern
+  military, and exploring the suitability of a series of popular access control
+  schemes for this workload.
+"))
+(NEG (PUBLISHER.INSTANCE PUBLISHER.35364044021))
+(NEG (PRETTYNAME PUBLISHER.35364044021 "Pittsburgh University"))
+(POS (PUBLISHER.INSTANCE PUBLISHER.35364044021))
+(POS (PRETTYNAME PUBLISHER.35364044021 "University of Pittsburgh"))
+(POS (PERSON.INSTANCE PERSON.35369459452))
+(POS (PERSON.FIRSTNAME PERSON.35369459452 "Michael"))
+(POS (PERSON.LASTNAME PERSON.35369459452 "Martin"))
+(POS (PERSON.INSTANCE PERSON.35369459834))
+(POS (PERSON.FIRSTNAME PERSON.35369459834 "Monica"))
+(POS (PERSON.LASTNAME PERSON.35369459834 "Lam"))
+(POS (PAPER.INSTANCE MARTIN2008AUTOMATIC))
+(POS (PAPER.BIBTEX MARTIN2008AUTOMATIC INPROCEEDINGS))
+(POS (PAPER.AUTHOR MARTIN2008AUTOMATIC PERSON.35369459452))
+(POS (PAPER.AUTHOR MARTIN2008AUTOMATIC PERSON.35369459834))
+(POS (PAPER.TITLE MARTIN2008AUTOMATIC "Automatic Generation of XSS and SQL Injection Attacks with Goal-Directed Model Checking"))
+(POS (PAPER.PUBLICATION MARTIN2008AUTOMATIC USENIX))
+(POS (PAPER.YEAR MARTIN2008AUTOMATIC 2008))
+(POS (PAPER.TOPIC MARTIN2008AUTOMATIC PROGRAM-ANALYSIS))
+(POS (PAPER.TOPIC MARTIN2008AUTOMATIC MODELCHECKING))
+(POS (PAPER.TOPIC MARTIN2008AUTOMATIC WWWTOPIC))
+(POS (PAPER.DESCRIPTION MARTIN2008AUTOMATIC "QED accepts a declarative specification of a taint-based security vulnerability in web applications (Java in particular) and automatically finds inputs that exercise that vulnerability.  Exploits can be multi-request attacks.  A space of requests is given, and QED tries all of them after some pruning."))
+(POS (PERSON.INSTANCE PERSON.35369468716))
+(POS (PERSON.FIRSTNAME PERSON.35369468716 "John"))
+(POS (PERSON.LASTNAME PERSON.35369468716 "Whaley"))
+(POS (PERSON.INSTANCE PERSON.35369468717))
+(POS (PERSON.FIRSTNAME PERSON.35369468717 "Dzintars"))
+(POS (PERSON.LASTNAME PERSON.35369468717 "Avots"))
+(POS (PERSON.INSTANCE PERSON.35369468718))
+(POS (PERSON.FIRSTNAME PERSON.35369468718 "Michael"))
+(POS (PERSON.LASTNAME PERSON.35369468718 "Carbin"))
+(POS (PERSON.INSTANCE PERSON.35369468719))
+(POS (PERSON.FIRSTNAME PERSON.35369468719 "Christopher"))
+(POS (PERSON.LASTNAME PERSON.35369468719 "Unkel"))
+(POS (PAPER.INSTANCE LAM2005CONTEXT))
+(POS (PAPER.BIBTEX LAM2005CONTEXT INPROCEEDINGS))
+(POS (PAPER.AUTHOR LAM2005CONTEXT PERSON.35369459834))
+(POS (PAPER.AUTHOR LAM2005CONTEXT PERSON.35369468716))
+(POS (PAPER.AUTHOR LAM2005CONTEXT PERSON.34795751804))
+(POS (PAPER.AUTHOR LAM2005CONTEXT PERSON.35369459452))
+(POS (PAPER.AUTHOR LAM2005CONTEXT PERSON.35369468717))
+(POS (PAPER.AUTHOR LAM2005CONTEXT PERSON.35369468718))
+(POS (PAPER.AUTHOR LAM2005CONTEXT PERSON.35369468719))
+(POS (PAPER.TITLE LAM2005CONTEXT "Context-sensitive Program Analysis as Database Queries"))
+(POS (PAPER.PUBLICATION LAM2005CONTEXT PODS))
+(POS (PAPER.YEAR LAM2005CONTEXT 2005))
+(POS (PAPER.TOPIC LAM2005CONTEXT PROGRAM-ANALYSIS))
+(POS (PAPER.TOPIC LAM2005CONTEXT DATABASE))
+(POS (PAPER.DESCRIPTION LAM2005CONTEXT "Using Datalog as a specification language for analyzing programs.  BDDBDDB."))
+(POS (PERSON.INSTANCE PERSON.35372746028))
+(POS (PERSON.FIRSTNAME PERSON.35372746028 "Marco"))
+(POS (PERSON.LASTNAME PERSON.35372746028 "Cova"))
+(POS (PERSON.INSTANCE PERSON.35372746029))
+(POS (PERSON.FIRSTNAME PERSON.35372746029 "Viktoria"))
+(POS (PERSON.MIDDLENAME PERSON.35372746029 "V."))
+(POS (PERSON.LASTNAME PERSON.35372746029 "Felmetsger"))
+(POS (PAPER.INSTANCE BALZAROTTI2007MIMOSA))
+(POS (PAPER.BIBTEX BALZAROTTI2007MIMOSA INPROCEEDINGS))
+(POS (PAPER.AUTHOR BALZAROTTI2007MIMOSA PERSON.35010048254))
+(POS (PAPER.AUTHOR BALZAROTTI2007MIMOSA PERSON.35372746028))
+(POS (PAPER.AUTHOR BALZAROTTI2007MIMOSA PERSON.35372746029))
+(POS (PAPER.AUTHOR BALZAROTTI2007MIMOSA PERSON.35280269025))
+(POS (PAPER.TITLE BALZAROTTI2007MIMOSA "Multi-Module Vulnerability Analysis of Web-based Applications"))
+(POS (PAPER.PUBLICATION BALZAROTTI2007MIMOSA CCS))
+(POS (PAPER.URL BALZAROTTI2007MIMOSA "http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.131.8221"))
+(POS (PAPER.YEAR BALZAROTTI2007MIMOSA 2007))
+(POS (PAPER.TOPIC BALZAROTTI2007MIMOSA WWWTOPIC))
+(POS (PAPER.TOPIC BALZAROTTI2007MIMOSA PROGRAM-ANALYSIS))
+(POS (PAPER.DESCRIPTION BALZAROTTI2007MIMOSA "To find vulnerabilities in web apps, the authors consider two problems: an attacker finds a path through the application's web pages that the developer did not intend and there is a data-flow vulnerability that crosses server module boundaries.  Both involve crossing module boundaries on the server.  The intended path problem is interesting in that both the possible paths and the intended paths are extracted from the server automatically in this paper.  The data-flow stuff seems pretty standard, but for the fact that they are considering multi-step (multi-URL) attacks.  Use a mix of static and dynamic analysis together with model checking. "))
+(POS (PERSON.INSTANCE PERSON.35376316761))
+(POS (PERSON.FIRSTNAME PERSON.35376316761 "Brian"))
+(POS (PERSON.MIDDLENAME PERSON.35376316761 "J."))
+(POS (PERSON.LASTNAME PERSON.35376316761 "Corcoran"))
+(POS (PAPER.INSTANCE CORCORAN2009CROSSTIER))
+(POS (PAPER.BIBTEX CORCORAN2009CROSSTIER INPROCEEDINGS))
+(POS (PAPER.AUTHOR CORCORAN2009CROSSTIER PERSON.35376316761))
+(POS (PAPER.AUTHOR CORCORAN2009CROSSTIER NIKHILSWAMY))
+(POS (PAPER.AUTHOR CORCORAN2009CROSSTIER PERSON.35169648415))
+(POS (PAPER.TITLE CORCORAN2009CROSSTIER "Cross-tier, Label-based Security Enforcement for Web Applications"))
+(POS (PAPER.PUBLICATION CORCORAN2009CROSSTIER SIGMOD))
+(POS (PAPER.YEAR CORCORAN2009CROSSTIER 2009))
+(POS (PAPER.TOPIC CORCORAN2009CROSSTIER WWWTOPIC))
+(POS (PAPER.TOPIC CORCORAN2009CROSSTIER TOPIC.35169205252))
+(POS (PAPER.DESCRIPTION CORCORAN2009CROSSTIER "SELinks is a web development platform that enforces security policies expressed using a type system directly.  Automatically implements across the usual 3 tiers: DB, server, client."))
+(POS (PERSON.INSTANCE PERSON.35377930543))
+(POS (PERSON.FIRSTNAME PERSON.35377930543 "Xiaowei"))
+(POS (PERSON.LASTNAME PERSON.35377930543 "Li"))
+(POS (PERSON.INSTANCE PERSON.35377930994))
+(POS (PERSON.FIRSTNAME PERSON.35377930994 "Yuan"))
+(POS (PERSON.LASTNAME PERSON.35377930994 "Xue"))
+(POS (PUBLISHER.INSTANCE PUBLISHER.35377931475))
+(POS (PRETTYNAME PUBLISHER.35377931475 "Vanderbilt University"))
+(POS (PAPER.INSTANCE PAPER.35377931586))
+(POS (PAPER.BIBTEX PAPER.35377931586 TECHREPORT))
+(POS (PAPER.AUTHOR PAPER.35377931586 PERSON.35377930543))
+(POS (PAPER.AUTHOR PAPER.35377931586 PERSON.35377930994))
+(POS (PAPER.TITLE PAPER.35377931586 "A Survey on Web Application Security"))
+(POS (PAPER.PUBLISHER PAPER.35377931586 PUBLISHER.35377931475))
+(POS (PAPER.NUMBER PAPER.35377931586 "ISIS-11-108"))
+(POS (PAPER.URL PAPER.35377931586 "http://www.isis.vanderbilt.edu/node/4478"))
+(POS (PAPER.YEAR PAPER.35377931586 2011))
+(POS (PAPER.TOPIC PAPER.35377931586 SECURITY))
+(POS (PAPER.TOPIC PAPER.35377931586 WWWTOPIC))
+(POS (PAPER.DESCRIPTION PAPER.35377931586 "A survey of web security.  Categorize problems into 3 areas: input validation, state integrity, and logic integrity.  Categorize techniques into 3 areas: by construction, by verification, by protection (which I assume is monitoring)."))
+(POS (PERSON.INSTANCE PERSON.35390028567))
+(POS (PERSON.FIRSTNAME PERSON.35390028567 "Patrice"))
+(POS (PERSON.LASTNAME PERSON.35390028567 "Godefroid"))
+(POS (PERSON.INSTANCE PERSON.35390028568))
+(POS (PERSON.FIRSTNAME PERSON.35390028568 "Radha"))
+(POS (PERSON.LASTNAME PERSON.35390028568 "Jagadeesan"))
+(POS (CONFERENCE.INSTANCE CONFERENCE.35390029228))
+(POS (PRETTYNAME CONFERENCE.35390029228 "Computer Aided Verification"))
+(POS (SHORTNAME CONFERENCE.35390029228 "CAV"))
+(POS (PAPER.INSTANCE GODEFROID2002AUTOMATIC))
+(POS (PAPER.BIBTEX GODEFROID2002AUTOMATIC INPROCEEDINGS))
+(POS (PAPER.AUTHOR GODEFROID2002AUTOMATIC PERSON.35390028567))
+(POS (PAPER.AUTHOR GODEFROID2002AUTOMATIC PERSON.35390028568))
+(POS (PAPER.TITLE GODEFROID2002AUTOMATIC "Automatic Abstraction Using Generalized Model Checking"))
+(POS (PAPER.PUBLICATION GODEFROID2002AUTOMATIC CONFERENCE.35390029228))
+(POS (PAPER.YEAR GODEFROID2002AUTOMATIC 2002))
+(POS (PAPER.TOPIC GODEFROID2002AUTOMATIC MODELCHECKING))
+(POS (PAPER.TOPIC GODEFROID2002AUTOMATIC ABSTRACTION))
+(POS (PAPER.DESCRIPTION GODEFROID2002AUTOMATIC "Discusses model checking for systems that are only specified, i.e. a 3-valued form of model checking.    This paper describes 3-valued model checking and how it can be applied to construct abstractions of a partial system."))
+(POS (PERSON.INSTANCE PERSON.35390965930))
+(POS (PERSON.FIRSTNAME PERSON.35390965930 "Chia"))
+(POS (PERSON.MIDDLENAME PERSON.35390965930 "Yuan"))
+(POS (PERSON.LASTNAME PERSON.35390965930 "Cho"))
+(POS (PERSON.INSTANCE PERSON.35390965931))
+(POS (PERSON.FIRSTNAME PERSON.35390965931 "Domagoj"))
+(POS (PERSON.LASTNAME PERSON.35390965931 "Babic"))
+(POS (PERSON.INSTANCE PERSON.35390965932))
+(POS (PERSON.FIRSTNAME PERSON.35390965932 "Kevin"))
+(POS (PERSON.MIDDLENAME PERSON.35390965932 "Zhijie"))
+(POS (PERSON.LASTNAME PERSON.35390965932 "Chen"))
+(POS (PERSON.INSTANCE PERSON.35390965933))
+(POS (PERSON.FIRSTNAME PERSON.35390965933 "Edward"))
+(POS (PERSON.MIDDLENAME PERSON.35390965933 "XueJun"))
+(POS (PERSON.LASTNAME PERSON.35390965933 "Wu"))
+(POS (PAPER.INSTANCE CHO2011MACE))
+(POS (PAPER.BIBTEX CHO2011MACE INPROCEEDINGS))
+(POS (PAPER.AUTHOR CHO2011MACE PERSON.35390965930))
+(POS (PAPER.AUTHOR CHO2011MACE PERSON.35390965931))
+(POS (PAPER.AUTHOR CHO2011MACE PERSON.34807759152))
+(POS (PAPER.AUTHOR CHO2011MACE PERSON.35390965932))
+(POS (PAPER.AUTHOR CHO2011MACE PERSON.35390965933))
+(POS (PAPER.AUTHOR CHO2011MACE DAWN.SONG))
+(POS (PAPER.TITLE CHO2011MACE "{MACE}: Model-inference-Assisted Concolic Exploration for Protocol and Vulnerability Discovery"))
+(POS (PAPER.PUBLICATION CHO2011MACE USENIX))
+(POS (PAPER.YEAR CHO2011MACE 2011))
+(POS (PAPER.TOPIC CHO2011MACE PROGRAM-ANALYSIS))
+(POS (PAPER.TOPIC CHO2011MACE SECURITY))
+(POS (PAPER.DESCRIPTION CHO2011MACE "Combine model generation and concolic execution to improve (relevant) coverage of testing and to infer a model of the system.  Focused on inferring a model of a protocol for which the system being analyzed plays only one part."))
+(POS (PERSON.INSTANCE PERSON.35390975832))
+(POS (PERSON.FIRSTNAME PERSON.35390975832 "Bhargav"))
+(POS (PERSON.MIDDLENAME PERSON.35390975832 "S."))
+(POS (PERSON.LASTNAME PERSON.35390975832 "Gulavani"))
+(POS (PERSON.INSTANCE PERSON.35390975833))
+(POS (PERSON.FIRSTNAME PERSON.35390975833 "Thomas"))
+(POS (PERSON.MIDDLENAME PERSON.35390975833 "A."))
+(POS (PERSON.LASTNAME PERSON.35390975833 "Henzinger"))
+(POS (PERSON.INSTANCE PERSON.35390975834))
+(POS (PERSON.FIRSTNAME PERSON.35390975834 "Yamini"))
+(POS (PERSON.LASTNAME PERSON.35390975834 "Kannan"))
+(POS (PERSON.INSTANCE PERSON.35390975835))
+(POS (PERSON.FIRSTNAME PERSON.35390975835 "Aditya"))
+(POS (PERSON.MIDDLENAME PERSON.35390975835 "V."))
+(POS (PERSON.LASTNAME PERSON.35390975835 "Nori"))
+(POS (PERSON.INSTANCE PERSON.35390975836))
+(POS (PERSON.FIRSTNAME PERSON.35390975836 "Sriram"))
+(POS (PERSON.MIDDLENAME PERSON.35390975836 "K."))
+(POS (PERSON.LASTNAME PERSON.35390975836 "Rajamani"))
+(POS (PAPER.INSTANCE GULAVANI2006SYNERGY))
+(POS (PAPER.BIBTEX GULAVANI2006SYNERGY INPROCEEDINGS))
+(POS (PAPER.AUTHOR GULAVANI2006SYNERGY PERSON.35390975832))
+(POS (PAPER.AUTHOR GULAVANI2006SYNERGY PERSON.35390975833))
+(POS (PAPER.AUTHOR GULAVANI2006SYNERGY PERSON.35390975834))
+(POS (PAPER.AUTHOR GULAVANI2006SYNERGY PERSON.35390975835))
+(POS (PAPER.AUTHOR GULAVANI2006SYNERGY PERSON.35390975836))
+(POS (PAPER.TITLE GULAVANI2006SYNERGY "{SYNERGY}: A New Algorithm for Property Checking"))
+(POS (PAPER.PUBLICATION GULAVANI2006SYNERGY JOURNAL.35169205041))
+(POS (PAPER.YEAR GULAVANI2006SYNERGY 2006))
+(POS (PAPER.TOPIC GULAVANI2006SYNERGY MODELCHECKING))
+(POS (PAPER.TOPIC GULAVANI2006SYNERGY PROGRAM-ANALYSIS))
+(POS (PAPER.DESCRIPTION GULAVANI2006SYNERGY "SYNERGY is an algorithm that combines the benefits of model checking and testing.  It simultaneously looks for bugs and for proofs, using the information of each search to help improve the other."))
+(POS (PERSON.INSTANCE PERSON.35391045554))
+(POS (PERSON.FIRSTNAME PERSON.35391045554 "Nels"))
+(POS (PERSON.MIDDLENAME PERSON.35391045554 "E."))
+(POS (PERSON.LASTNAME PERSON.35391045554 "Beckman"))
+(POS (PERSON.INSTANCE PERSON.35391045555))
+(POS (PERSON.FIRSTNAME PERSON.35391045555 "Robert"))
+(POS (PERSON.MIDDLENAME PERSON.35391045555 "J."))
+(POS (PERSON.LASTNAME PERSON.35391045555 "Simmons"))
+(POS (PAPER.INSTANCE BECKMAN2008PROOFS))
+(POS (PAPER.BIBTEX BECKMAN2008PROOFS INPROCEEDINGS))
+(POS (PAPER.AUTHOR BECKMAN2008PROOFS PERSON.35391045554))
+(POS (PAPER.AUTHOR BECKMAN2008PROOFS PERSON.35390975835))
+(POS (PAPER.AUTHOR BECKMAN2008PROOFS PERSON.35390975836))
+(POS (PAPER.AUTHOR BECKMAN2008PROOFS PERSON.35391045555))
+(POS (PAPER.TITLE BECKMAN2008PROOFS "Proofs from Tests"))
+(POS (PAPER.STARTPAGE BECKMAN2008PROOFS "3"))
+(POS (PAPER.ENDPAGE BECKMAN2008PROOFS "14"))
+(POS (PAPER.URL BECKMAN2008PROOFS "http://research.microsoft.com/apps/pubs/default.aspx?id=70541"))
+(POS (PAPER.YEAR BECKMAN2008PROOFS 2008))
+(POS (PAPER.TOPIC BECKMAN2008PROOFS PROGRAM-ANALYSIS))
+(POS (PAPER.TOPIC BECKMAN2008PROOFS MODELCHECKING))
+(POS (PAPER.DESCRIPTION BECKMAN2008PROOFS "DASH, described in this paper, is an improvement over SYNERGY, a tool that combines model checking and testing."))
+(NEG (PAPER.INSTANCE BECKMAN2008PROOFS))
+(NEG (PAPER.BIBTEX BECKMAN2008PROOFS INPROCEEDINGS))
+(NEG (PAPER.AUTHOR BECKMAN2008PROOFS PERSON.35391045554))
+(NEG (PAPER.AUTHOR BECKMAN2008PROOFS PERSON.35390975835))
+(NEG (PAPER.AUTHOR BECKMAN2008PROOFS PERSON.35390975836))
+(NEG (PAPER.AUTHOR BECKMAN2008PROOFS PERSON.35391045555))
+(NEG (PAPER.TITLE BECKMAN2008PROOFS "Proofs from Tests"))
+(NEG (PAPER.STARTPAGE BECKMAN2008PROOFS "3"))
+(NEG (PAPER.ENDPAGE BECKMAN2008PROOFS "14"))
+(NEG (PAPER.URL BECKMAN2008PROOFS "http://research.microsoft.com/apps/pubs/default.aspx?id=70541"))
+(NEG (PAPER.YEAR BECKMAN2008PROOFS 2008))
+(NEG (PAPER.TOPIC BECKMAN2008PROOFS PROGRAM-ANALYSIS))
+(NEG (PAPER.TOPIC BECKMAN2008PROOFS MODELCHECKING))
+(NEG (PAPER.DESCRIPTION BECKMAN2008PROOFS "DASH, described in this paper, is an improvement over SYNERGY, a tool that combines model checking and testing."))
+(POS (PAPER.INSTANCE BECKMAN2008PROOFS))
+(POS (PAPER.BIBTEX BECKMAN2008PROOFS INPROCEEDINGS))
+(POS (PAPER.AUTHOR BECKMAN2008PROOFS PERSON.35391045554))
+(POS (PAPER.AUTHOR BECKMAN2008PROOFS PERSON.35390975835))
+(POS (PAPER.AUTHOR BECKMAN2008PROOFS PERSON.35390975836))
+(POS (PAPER.AUTHOR BECKMAN2008PROOFS PERSON.35391045555))
+(POS (PAPER.TITLE BECKMAN2008PROOFS "Proofs from Tests"))
+(POS (PAPER.PUBLICATION BECKMAN2008PROOFS SIGSOFT))
+(POS (PAPER.STARTPAGE BECKMAN2008PROOFS "3"))
+(POS (PAPER.ENDPAGE BECKMAN2008PROOFS "14"))
+(POS (PAPER.URL BECKMAN2008PROOFS "http://research.microsoft.com/apps/pubs/default.aspx?id=70541"))
+(POS (PAPER.YEAR BECKMAN2008PROOFS 2008))
+(POS (PAPER.TOPIC BECKMAN2008PROOFS PROGRAM-ANALYSIS))
+(POS (PAPER.TOPIC BECKMAN2008PROOFS MODELCHECKING))
+(POS (PAPER.DESCRIPTION BECKMAN2008PROOFS "DASH, described in this paper, is an improvement over SYNERGY, a tool that combines model checking and testing."))
+(POS (PERSON.INSTANCE PERSON.35395157086))
+(POS (PERSON.FIRSTNAME PERSON.35395157086 "Donald"))
+(POS (PERSON.LASTNAME PERSON.35395157086 "Ray"))
+(POS (PAPER.INSTANCE RAY2012DEFINING))
+(POS (PAPER.BIBTEX RAY2012DEFINING INPROCEEDINGS))
+(POS (PAPER.AUTHOR RAY2012DEFINING PERSON.35395157086))
+(POS (PAPER.AUTHOR RAY2012DEFINING PERSON.35167953011))
+(POS (PAPER.TITLE RAY2012DEFINING "Defining Code-injection Attacks"))
+(POS (PAPER.PUBLICATION RAY2012DEFINING POPL))
+(POS (PAPER.URL RAY2012DEFINING "http://www.cse.usf.edu/~ligatti/papers/code-inj.pdf"))
+(POS (PAPER.YEAR RAY2012DEFINING 2012))
+(POS (PAPER.TOPIC RAY2012DEFINING SECURITY))
+(POS (PAPER.TOPIC RAY2012DEFINING WWWTOPIC))
+(POS (PAPER.TOPIC RAY2012DEFINING TOPIC.35169205252))
+(POS (PAPER.DESCRIPTION RAY2012DEFINING "The authors define a more precise notion of code injection attacks formally.  They basically say that a code injection attack arises anytime something other than a terminal value is inserted into the code generated by a program (e.g. into the SQL query)."))

@@ -2941,8 +2941,9 @@ function addWidget (obj) {
   ; register this form
   (setf (gethash (webformdb-name formdb) *webform-db*) formdb)
   ; install the server-side code
-  (ws-server-install-code (read-file (filify (webformdb-lispfile formdb))) 
-			  (webformdb-package formdb)))
+  (when (webformdb-p formdb)
+    (ws-server-install-code (read-file (filify (webformdb-lispfile formdb))) 
+			    (webformdb-package formdb))))
 
 (defmethod process (s (file (eql 'commitform)) postlines)
   (let (db data checkouttime)

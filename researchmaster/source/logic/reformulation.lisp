@@ -502,7 +502,7 @@
 
 (defun lloyd-topor (p &optional (neg nil))
   "(LLOYD-TOPOR P) translates the FOL sentence P into a set of datalog rules.
-   NEG is true iff the entry is to be used inside a negation.
+   NEG is true iff the entry is to be used inside a negation -- used internally just to simplify output a bit.
    Returns two values: a conjunction of literals (often just an entry point) and the set of rules."
   (cond ((atomicp p) (values p nil))
 	((eq (car p) 'not) (multiple-value-bind (entry defs) (lloyd-topor (second p) t)
