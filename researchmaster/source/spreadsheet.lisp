@@ -819,8 +819,18 @@ function addWidget (obj) {
     (setq th (fhlc2web-theory p :completep completep :casesensitive casesensitive :allowconflicts allowconflicts
 			     :debug debug :unique unique))
     (setq html (compile-websheet th))
+    (when (htmlform-errors html)
+      (warn (htmlform-errors html)))
     (htmlform-javascript html)))
     
+(defun pl-fhl-to-js (p &key (completep t) (casesensitive t) (allowconflicts t) (debug nil) (unique t))
+  "(PLFHLC-to-JS P) takes a sentence in FHL extended with traditional programming language syntactic sugar and
+   returns the JavaScript for checking those constraints."
+  (setq p (pl-fhl-to-fhl p (ws-builtins)))
+  (setq p (vars2monadics p))
+  (fhlc2js p :completep completep :casesensitive casesensitive :allowconflicts allowconflicts
+	   :debug debug :unique unique))
+
 (defun fhlc2web-theory (p &key (completep nil) (casesensitive t) (allowconflicts t) (debug nil) (unique t))
   (let (th preds builtins)
     (setq preds (preds p))
@@ -837,6 +847,12 @@ function addWidget (obj) {
       (push `(widget :name ,(parameter-symbol q) :req t :init nil :desc ,(tostring (parameter-symbol q)) 
 		     :style textbox :incundef nil :unique ,unique :typename string) th))
     (nreverse th)))
+
+
+(defun vars2monadics (p)
+  (maksand (mapcar #'(lambda (x) (append (cons '=> (mapcar #'(lambda (v) (list (devariable v) v)) (vars x))) (list x)))
+		   (clauses p))))
+
 			 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

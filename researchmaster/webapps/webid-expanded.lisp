@@ -36,9 +36,12 @@
 (=> (db.user ?x) (exists (db.newsletter ?x ?y)))
 (=> (db.user ?x) (exists (db.regdate ?x ?y)))
 
-; password lengths (here we'll assume passwords are hashed by another process)
+; password lengths (here we'll assume passwords are hashed by some other means)
+(=> (db.user ?user) (gte (len ?user) 6))
 (=> (db.user.pass ?user ?pass) (gte (len ?pass) 6))
 (=> (db.user.email ?user ?email) (in ?email "[0-9a-zA-Z]@[0-9a-zA-Z\\.]"))
+(=> (db.user.telephone ?user ?telephone) (in ?telephone "\d\d\d\-\d\d\d-\d\d\d\d"))
+
 (=> (db.user.accttype ?user ?acct)
     (or (= ?acct seller)
 	(= ?acct buyer)
@@ -101,16 +104,15 @@
 
 ;;;;;;; Registration-processing form
 (servlet register)
-(servlet.output register status)
+(servlet.outputschema register status)
 
 ; input constraints
-  (=> (profile.pass ?x) (exists ?y (and (profile.pass2 ?y) (= ?x ?y))))
+  (=> (profile.pass2 ?x) (exists ?y (and (profile.pass ?y) (= ?x ?y))))
   (=> (profile.accttype ?id ?accttype) (or (= ?accttype buyer) (= ?accttype buyertoseller)))
   (=> (profile.username ?x) (not (exists (db.user ?x))))
 
 ; input constraint resolution: none -- any errors cause inputs to be rejected
    
-
 ; data constraints 
   (=> (profile.username ?x) (db.user ?x))					
   (=> (and (profile.username ?x) (profile.name ?y)) (db.user.name ?x ?y))
@@ -130,7 +132,6 @@
 ; data constraint resolution
   (malleable db.user*)
 
-
 ; output constraints
   (status "ok")
 
@@ -140,24 +141,10 @@
 
 ;;;;;;; Profile edit form.
 
+; shouldn't the profile servlet ignore pass2 entirely?
 (servlet profile)
-(servlet.output profile profile.name)
-(servlet.output profile profile.accttype)
-(servlet.output profile profile.username)
-(servlet.output profile profile.pass)
-(servlet.output profile profile.pass2)
-(servlet.output profile profile.email)
-(servlet.output profile profile.birthmonth)
-(servlet.output profile profile.birthday)
-(servlet.output profile profile.birthyear)
-(servlet.output profile profile.address)
-(servlet.output profile profile.city)
-(servlet.output profile profile.state)
-(servlet.output profile profile.country)
-(servlet.output profile profile.zip)
-(servlet.output profile profile.telephone)
-(servlet.output profile profile.newsletter)
-(servlet.output profile status)
+(servlet.outputschema profile profile-schema)
+(servlet.outputschema profile status-schema)
 
 ; input constraints
   (=> (profile.pass ?x) (exists ?y (and (profile.pass2 ?y) (= ?x ?y))))
@@ -194,19 +181,7 @@
 ;;;;;;; Search form
 
 (servlet search)
-(servlet.output search search.output)
-(servlet.output search search.output.title)
-(servlet.output search search.output.description)
-(servlet.output search search.output.closingdate)
-(servlet.output search search.output.category)
-(servlet.output search search.output.price)
-(servlet.output search search.output.buyitnow)
-(servlet.output search search.output.payments)
-(servlet.output search search.output.seller)
-(servlet.output search search.output.country)
-(servlet.output search search.output.zip)
-(servlet.output search search.output.ending)
-(servlet.output search search.output.auctiontype)
+(servlet.outschema search auction-schema)
 
 ; input constraints
   (=> (search.category ?x) (db.category ?x))
@@ -307,10 +282,59 @@
   (malleable category)
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;; Schemas ;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;; Forms and Pages ;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(schema auction-schema)
+(schema.element auction-schema auction.title)
+(schema.element auction-schema auction.description)
+(schema.element auction-schema auction.closingdate)
+(schema.element auction-schema auction.category)
+(schema.element auction-schema auction.price)
+(schema.element auction-schema auction.buyitnow)
+(schema.element auction-schema auction.payments)
+(schema.element auction-schema auction.seller)
+(schema.element auction-schema auction.country)
+(schema.element auction-schema auction.zip)
+(schema.element auction-schema auction.ending)
+(schema.element auction-schema auction.auctiontype)
+
+; (schema.element <schemaname> <relationname> <field1type> ... <fieldntype>)
+(schema profile-schema)
+(schema.element profile-schema profile.name string)
+(schema.element profile-schema profile.accttype sellerbuyer)
+(schema.element profile-schema profile.username string)
+(schema.element profile-schema profile.pass string)
+(schema.element profile-schema profile.pass2 string)
+(schema.element profile-schema profile.email string)
+(schema.element profile-schema profile.birthmonth string)
+(schema.element profile-schema profile.birthday string)
+(schema.element profile-schema profile.birthyear string)
+(schema.element profile-schema profile.address string)
+(schema.element profile-schema profile.city string)
+(schema.element profile-schema profile.state string)
+(schema.element profile-schema profile.country string)
+(schema.element profile-schema profile.zip string)
+(schema.element profile-schema profile.telephone string)
+(schema.element profile-schema profile.newsletter boolean)
+
+(sellerbuyer seller) 
+(sellerbuyer buyer)
+
+(schema search-schema)
+(schema.element search-schema query string)
+
+(schema categoryid-schema)
+(schema.element categoryid-schema category.id category)
+(<= (category ?x) (db.category ?y ?x))
+
+(schema status-schema)
+(schema.element status-schema status string)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;; Forms ;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Below just written as data, but more generally each form (page) is built with a rectifier.
 ;   The constraints are between form.element, database entries, and potentially inputs 
@@ -318,74 +342,73 @@
 ;   This allows us to build forms whose elements are conditioned on the database/inputs
 ;   We want to use the rectifier to ensure that we do the right thing for parameter tampering
 
-; need to write servlets to handle search queries
 (form search)
-(form.element search query)
-(malleable form.element)
+(form.schema search search-schema)
 
-; need to write servlets/pages to handle browse queries
 (form gobrowse)
-(form.element search category.id)
-(malleable form.element)
+(form.schema gobrowse categoryid-schema)
 
 (form registration)
-(form.element registration profile.name)
-(form.element registration profile.accttype)
-(form.element registration profile.username)
-(form.element registration profile.pass)
-(form.element registration profile.pass2)
-(form.element registration profile.email)
-(form.element registration profile.birthmonth)
-(form.element registration profile.birthday)
-(form.element registration profile.birthyear)
-(form.element registration profile.address)
-(form.element registration profile.city)
-(form.element registration profile.state)
-(form.element registration profile.country)
-(form.element registration profile.zip)
-(form.element registration profile.telephone)
-(form.element registration profile.newsletter)
-(malleable form.element)
+(form.schema registration profile-schema)
+(form.constraint registration `(<=> (profile.pass ?x) (profile.pass2 ?x)))
 
-; (link <sourcepage> <form> <servlet> <page> <linktext>)
-(link ?x registration register displaystatus "Register")
+(form profile)
+(form.schema profile profile-schema)    
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;; Pages ;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(form category)
-(form.element category category.id)
-(malleable form.element)
+;;;;;;;; Header subpage
+(subpage header)
+(subpage.form header search find-auction auctions.php)
+(subpage.subpage header browse-category)
+
+(subpage browse-category)
+(subpage.form browse-category gobrowse find-subcategories categories.php)
+
 
 ;;;;;;;; Registration page
 (page register.php)
-; (page.servlet <pagename> <servletname> <list of relations/atoms> <presoname>)
-(page.form register.php search)
-(page.form register.php gobrowse)
-(page.form register.php registration)
-(malleable page.*)
+; (page.form <pagename> <formname> <servletname> <displaypagename>)
+(page.form register.php registration register status.php)
+(page.subpage register.php header)
 
 ;;;;;;;; Status page
-(page displaystatus)
-(page.element displaystatus status)
-(page.element displaystatus register)
-(malleable page.*)
+(page status.php)
+; (page.text <pagename> <schemaname>)
+(page.text status.php status-schema)
+(page.subpage status.php header)
 
-(link ?x register empty register.php "Registration")  ; a normal link to the registration page from a page element
+;;;;;;;; Profile editing page
+(page profile.php)
+(page.form profile.php profile profile status.php)
+(page.subpage profile.php header)
+
+;;;;;;;; Display page for set of auctions
+(page auctions.php)
+(page.text auctions.php auction-schema)
+(page.subpage auctions.php header)
+
+;;;;;;;; Display page for a set of categories
+(page categories.php)
+(page.text categories.php categoryid-schema)
+(page.subpage categories.php header)
 
 
 ;;;;;;;;; Home page
+; For the home page, there are 2 copies of the categories form. One displays the choices
+;    as a drop down, and the other displays all the choices as links.  
+; Demonstrates that we may need to tie the renderer object to the the same chunk in different ways.
 (page index.php)
-(page.form index.php search)
-(page.form index.php gobrowse)
+(page.subpage index.php header)
+(page.subpage index.php browse-category)
+(page.form index.php login)
+(page.form index.php language)
+(page.form index.php help)
+(page.text index.php news)
 
-; For the home page, the number of forms depends on the database.  
-; And the content for those forms needs to be filled in before displaying the form.  Or perhaps we can do
-;  this with basic page elements and links.  Maybe we need a special link that allows us to write down
-;  the data explicitly.  
 
-(=> (db.category ?x) (not (exists ?y (db.category.parent ?x ?y))) (prettyname ?x ?pretty) 
-    (and (page.element index.php (category ?x))
-	 (link index.php `((category.id ,x)) category.php ?pretty)))
-(malleable page.element)
-(malleable link)
+
 
 

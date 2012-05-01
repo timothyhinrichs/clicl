@@ -159,28 +159,6 @@
 	 (mapcan #'(lambda (x) (drop-things x thing :test test)) (cdr p)))
 	(t (list p))))
 
-
-(defun boolops2kif (p)
-  "(BOOLOPS2KIF P) translate non-kif boolean operators to KIF operators."
-  (labels ((rec (p)
-	     (mapopands #'(lambda (x)
-			    (cond ((atom x) x)
-				  ((eq (car x) 'xor) (rec (xor2kif x)))
-				  ((eq (car x) 'ifelse) (rec (ifelse2kif x)))
-				  (t x)))
-			p)))
-    (rec p)))
-
-(defun xor2kif (p)
-  (let (res)
-    (setq p (cdr p))
-    (dolist (thing p (maksor (nreverse res)))
-      (push (maksand (cons thing (mapcar #'maknot (remove thing p)))) res))))
-      
-(defun ifelse2kif (p)
-  `(and (=> ,(second p) ,(third p))
-	(=> ,(maknot (second p)) ,(fourth p))))
-
 (defun to-orless-list (p) (if (and (listp p) (eq (car p) 'or)) (cdr p) (list p)))
 (defun or2list (p) (to-orless-list p))
 (defun and2list (p) (if (and (listp p) (eq (car p) 'and)) (cdr p) (list p)))
@@ -528,6 +506,77 @@
 	((member (car p) '(<= => <=>)) (lloyd-topor (nnf p) neg))
 	(t (assert nil nil (format nil "Lloyd-Topor expects a KIF formula but received ~A" p)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Eliminating syntactic sugar from superset of FHL in KIF (called PL-FHL)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun pl-fhl-to-fhl (p builtins)
+  "(PL-FHL-TO-FHL P BUILTINS) takes a sentence P in an extended KIF language
+   together with the builtins (a list of parameters) and converts into regular KIF."
+    ; AND/OR/NOT/... have many synonyms --- canonicalize into KIF
+    (setq p (pl-ops-to-kif p))
+    ; AND/OR can be treated as boolean functions -- turn them back into traditional operators
+    (setq p (boolean-funcs-to-ops p))
+    ; change non-kif boolean connectives (e.g. XOR) into KIF boolean connectives
+    (setq p (boolops2kif p))
+    ; eliminate duplicates inside boolean ops
+    (setq p (mapbool #'(lambda (x) (delete-duplicates x :test #'sentequal)) p))
+    ; turn functional terms appearing as atoms into proper relational sentences
+    (setq p (improper-funcs-to-relns p builtins))
+    p)
+
+(defun pl-ops-to-kif (p)
+  (setq p (sublis '((&& . and)
+		    (! . not)
+		    (== . =)
+		    (=== . =))
+		  p)))
+
+(defun improper-funcs-to-relns (p vocab)
+  "(IMPROPER-FUNCS-TO-RELNS P) translates all functions that appear as atoms (implicitly casted to bool) into relations"
+  (let (isfunc)
+    (setq isfunc #'(lambda (x y) (and (eq x (pred-name y)) (isfunction (pred-parameter y)))))
+    (mapatoms #'(lambda (q) (let (b)
+			      (setq b (find (relation q) vocab :test isfunc))
+			      (if b `(= true (tobool ,q)) q)))
+	      p)))
+
+(defun boolean-funcs-to-ops (p)
+  "(BOOLEAN-FUNCS-TO-OPS P) tries to simplify P so that all the boolean ops AND/OR/NOT appear
+   at the top-level of the sentences, as prescribed in FOL.  When this cannot be accomplished,
+   throws ss-boolean-error.  Assumes semantics for TOBOOL BOOL and BOOLEAN are type-casts to boolean." 
+  (cond ((atom p) p)
+	((member (car p) '(and or not => <= <=>)) (cons (car p) (mapcar #'ss-fix-boolean-funcs (cdr p))))
+	((member (car p) '(forall exists)) (list (first p) (second p) (ss-fix-boolean-funcs (third p))))
+	((member (car p) '(tobool bool boolean)) (ss-fix-boolean-funcs (second p)))
+	(t (if (intersectionp (get-vocabulary p)
+			      (list (make-parameter :symbol 'not)
+				    (make-parameter :symbol 'and)
+				    (make-parameter :symbol 'or))
+			      :key #'parameter-symbol)
+	       (error 'ss-boolean-error)
+	       p))))
+
+(defun boolops2kif (p)
+  "(BOOLOPS2KIF P) translate non-kif boolean operators to KIF operators."
+  (labels ((rec (p)
+	     (mapopands #'(lambda (x)
+			    (cond ((atom x) x)
+				  ((eq (car x) 'xor) (rec (xor2kif x)))
+				  ((eq (car x) 'ifelse) (rec (ifelse2kif x)))
+				  (t x)))
+			p)))
+    (rec p)))
+
+(defun xor2kif (p)
+  (let (res)
+    (setq p (cdr p))
+    (dolist (thing p (maksor (nreverse res)))
+      (push (maksand (cons thing (mapcar #'maknot (remove thing p)))) res))))
+      
+(defun ifelse2kif (p)
+  `(and (=> ,(second p) ,(third p))
+	(=> ,(maknot (second p)) ,(fourth p))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Equality

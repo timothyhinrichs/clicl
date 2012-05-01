@@ -95,22 +95,6 @@
     (setf (htmlform-action h) "/plato/scwa?")
     (output-htmlform s h)))
 
-(defun fhlc2web-theory (p &key (completep nil) (casesensitive t) (allowconflicts t) (debug nil) (unique t))
-  (let (th preds builtins)
-    (setq preds (preds p))
-    (setq builtins (mapcar #'pred-parameter (ws-builtins)))
-    (setq preds (remove-if #'(lambda (x) (member x builtins :test #'param-equal)) preds))
-    (push `(formname anonymous) th)
-    (push `(constraints ,(list 'quote (and2list p))) th)
-    (push `(definitions 'nil) th)
-    (push `(option completep ,completep) th)
-    (push `(option casesensitive ,casesensitive) th)
-    (push `(option allowconflicts ,allowconflicts) th)
-    (push `(option debug ,debug) th)
-    (dolist (q preds)
-      (push `(widget :name ,(parameter-symbol q) :req t :init nil :desc ,(tostring (parameter-symbol q)) 
-		     :style textbox :incundef nil :unique ,unique :typename string) th))
-    (nreverse th)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Server
