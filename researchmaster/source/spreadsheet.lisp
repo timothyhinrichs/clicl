@@ -34,7 +34,9 @@
 (defvar *tmp*)
 (defparameter *webformlog* nil)
 ; note: ought to make this a per-form option.  Just need to add it as an option and replace the global var with the form far.
-;   On second thought, maybe not.  It's an implementation detail, not a behavioral detail.
+;   On second thought, maybe not. It's a compiler option, not a form option.  Useful only when someone has access to the compiler under the hood.
+; With the procedural attachments, we always want this to be NIL.  Only when we have no procedural attachments 
+;   AND we have client support for prettynames could we set this to T. 
 (defparameter *ws-use-value-shortnames* nil)  
 
 
@@ -847,7 +849,6 @@ function addWidget (obj) {
       (push `(widget :name ,(parameter-symbol q) :req t :init nil :desc ,(tostring (parameter-symbol q)) 
 		     :style textbox :incundef nil :unique ,unique :typename string) th))
     (nreverse th)))
-
 
 (defun vars2monadics (p)
   (maksand (mapcar #'(lambda (x) (append (cons '=> (mapcar #'(lambda (v) (list (devariable v) v)) (vars x))) (list x)))
@@ -1965,11 +1966,19 @@ function addWidget (obj) {
     (mak-function 'submitprep nil 
 		  (mak-vardecl (list (list 's (mak-collection 'set))) (maks-block (nreverse body))))))
 
-; returns a single statement intended for global scope
+; returns two statements intended for global scope
 (defun construct-websheet-code-components2 (comps)
-    (mak-vardecl* 
-     (mapcar #'(lambda (x) (list (tosymbol (list "component_" (car x))) 
-				 (construct-component (mapcar #'quotify x)))) comps)))
+  (let ((body nil))
+;    (push (mak-arrayassign 'dependent 'undefined "") body)  ; useful for filling textboxes with undefined value
+    (dolist (p comps)
+      (dolist (c p)
+	(push (mak-arrayassign 'dependent (mak-quote c) (tosymbol (list "component_" (car p))))
+	      body)))
+    (mak-block
+     (mak-vardecl* 
+      (mapcar #'(lambda (x) (list (tosymbol (list "component_" (car x))) 
+				  (construct-component (mapcar #'quotify x)))) comps))
+     (mak-vardecl (list (list 'dependent (mak-class 'hash))) (maks-block (nreverse body))))))
 
 ; returns a single statement intended for global scope
 (defun construct-websheet-code-types2 (struct)
@@ -2028,9 +2037,11 @@ function addWidget (obj) {
     (setq typehash (compile-ext-typehash preds))
     ; compile data and complex sentences differently
     (multiple-value-setq (data th) (split #'atomicp th))
-    (setq code (mapcan #'(lambda (x) (compile-ext-p x preds typehash)) th))
+    (setq code nil)
+    (setq code (nconc (mapcan #'(lambda (x) (compile-ext-p x preds typehash)) th) code))
     (setq code (nconc (mapcar #'def-enum extpreds) code))
     (setq code (nconc (mapcar #'def-check extpreds) code))
+    (setq code (nconc (compile-ext-onsuccess) code))
     (push (def-init data) code)
     (nconc (def-globals) code)))
 
@@ -2091,6 +2102,7 @@ function addWidget (obj) {
     (dolist (s (subsets (args (head p))) (nreverse res))
       (push (compile-ext-p-adorn p s preds typehash) res))))
 
+#|  Old version where we inline the functions x_func, s_func, suppx_func, supps_func 
 (defun construct-x (pred sign) 
   (construct-wrap-x pred sign 'x (mak-collection 'pair (mak-true) 'newval) '(newval)))
 (defun construct-s (pred sign) 
@@ -2123,7 +2135,6 @@ function addWidget (obj) {
 							(mak-return returnform)))
 					 args)))))
 
-; just the body of this one differs from the above
 (defun construct-wrap-x (pred sign suffix returnform returnfromvars)
   (let ((args (mapcar #'devariable (head-args (parameter-arity (pred-parameter pred))))) unusedvars)
     (setq unusedvars (set-difference '(newval support sofar) returnfromvars))
@@ -2134,6 +2145,57 @@ function addWidget (obj) {
 							      (mak-block 
 							       (mak-declare (maks-ignore unusedvars))
 							       (mak-return returnform)))
+						args)))
+			       (mak-if `(instanceof v expr) (mak-return 'v) (mak-return 'nil))))))
+
+|#
+
+
+(defun compile-ext-onsuccess ()
+  "(COMPILE-EXT-ONSUCCESS) returns function definitions for differentiating the 4 versions of our
+   compiled datalog implementation." 
+  (list
+   (mak-vardecl* `((x_func ,(compile-ext-onsuccess1 (mak-collection 'pair (mak-true) 'newval) '(newval)))))
+   (mak-vardecl* `((s_func ,(compile-ext-onsuccess1 (mak-collection 'pair (mak-false) 
+								    `(collection-adjoin sofar newval ,(mak-funcref 'collection-equal)))
+				      '(sofar newval)))))
+   (mak-vardecl* `((suppx_func ,(compile-ext-onsuccess1 (mak-collection 'pair (mak-true) (mak-collection 'pair 'newval 'support))
+					  '(newval support)))))
+   (mak-vardecl* `((supps_func ,(compile-ext-onsuccess1 (mak-collection 'pair 
+								       (mak-false) 
+								       `(collection-adjoin sofar ,(mak-collection 'pair 'newval 'support) 
+											   ,(mak-funcref 'collection-equal)))
+						       '(newval support sofar)))))))
+
+(defun compile-ext-onsuccess1 (returnform returnfromvars)
+  (let (unusedvars)
+    (setq unusedvars (set-difference '(newval support sofar) returnfromvars))
+    (mak-anonfunc '(newval support sofar) 
+		  (mak-block 
+		   (mak-declare (maks-ignore unusedvars))
+		   (mak-return returnform)))))
+
+; Construct the four different datalog implementations
+(defun construct-x (pred sign) (construct-wrap-x pred sign 'x 'x_func))
+(defun construct-s (pred sign) (construct-wrap pred sign 's 's_func))
+(defun construct-suppx (pred sign) (construct-wrap pred sign 'suppx 'suppx_func))
+(defun construct-supps (pred sign) (construct-wrap pred sign 'supps 'supps_func))
+
+(defun construct-wrap (pred sign suffix successfunc)
+  (let ((args (mapcar #'devariable (head-args (parameter-arity (pred-parameter pred))))))
+    (mak-function (mak-queryver (pred-name pred) sign suffix) 
+		  args 
+		  (mak-return (mak-apply (mak-query (pred-name pred) sign)
+					 successfunc
+					 args)))))
+
+; just the body of this one differs from the above
+(defun construct-wrap-x (pred sign suffix successfunc)
+  (let ((args (mapcar #'devariable (head-args (parameter-arity (pred-parameter pred))))))
+    (mak-function (mak-queryver (pred-name pred) sign suffix) 
+		  args 
+		  (mak-vardecl `((v ,(mak-apply (mak-query (pred-name pred) sign)
+						successfunc
 						args)))
 			       (mak-if `(instanceof v expr) (mak-return 'v) (mak-return 'nil))))))
 
