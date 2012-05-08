@@ -112,7 +112,104 @@
 (defun ss-sink-unknown (x) (eq (ss-sink-status x) 'unknown))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;  Web Application Validation Synthesis (WAVS)
+;; Proxy patching
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun ss-proxypatch (url &key space)
+  (let (files counter filename fclient)
+    ; initialize environment
+    (load *app-init-location*)
+    (ss-assert (stringp url) nil (format nil "SS-WHITEBOX expects a string; found ~A" url))
+    (ss-whitebox-init url)
+    (ss-whitebox-cleanup)  ; so users don't get confused about whether or not stuff was downloaded
+    (exec-commandline "mv" *ss-whitebox-log* (stringappend *ss-whitebox-log* ".bak"))
+    ; generate patches
+    (setq counter 0)
+    (dolist (prob (ss-compute-fclients url :space space))
+      (setq filename (stringappend *ss-working-prefix* (format nil "proxypatch~A.pl" counter)))
+      (with-open-file (f filename :direction :output :if-exists :supersede :if-does-not-exist :create)
+	(setq fclient (makand (ss-prob-phi prob) (maksand (mapcar #'cdr (hash2bl (ss-prob-types prob))))))
+	(push (list filename (jskifs2perl (drop-ands fclient) f) fclient) files))
+      (setq counter (1+ counter)))
+    (nreverse files)))
+	
+(defun jskifs2perl (ps s)
+  "(JSKIFS2PERL PS S) takes a list of constraints PS and a stream S and writes out Perl
+   to S so that when executed returns 0 if there is an error and 1 otherwise."
+  (let (vars)
+    (format s "#!/usr/bin/perl -w~%")
+    ; grab variables from command line
+    (setq vars (vars ps))
+    (do ((vs vars (cdr vs))
+	 (i 0 (1+ i)))
+	((null vs))
+      (format s "my ")
+      (jskifterm2perl (car vs) s)
+      (format s " = $ARGV[~A];~%" i))
+	; output the test for each formula in fclient; if fails, exit early.
+    (dolist (formula ps)
+      (format s "if (")
+      (jskif2perl (maknot formula) s)
+      (format s ") { print \"constraint violated: \", __LINE__, \"\\n\"; exit 0; }~%"))
+	; footer info
+    (format s "print \"passed ALL tests\\n\";~%")
+    (format s "exit 1;~%")
+    vars))
+ 
+(define-condition unknown-symbol (error) ((comment :initarg :comment :accessor comment)))
+(define-condition syntax (error) ((comment :initarg :comment :accessor comment)))
+(define-condition unimplemented (error) ((comment :initarg :comment :accessor comment)))
+
+(defun jskif2perl (p s)
+  "(JSKIF2PERL P) outputs quantifier-free KIF formula P, assumed to be implicitly existentially quantified, 
+   in Perl syntax.  Good for quickly checking if P is satisfied given values for all variables.  
+   Also assumes that all object constants are strings or numbers."
+  (flet ((printreg (x s) 
+	   (setq x (ss-makreg x))
+	   (format s "/^(~A)$/" x)))
+    (cond ((eq p 'true) (format s "0 == 0"))
+	  ((eq p 'false) (format s "0 == 1"))
+	  ((atom p) (error 'syntax :comment (format nil "~A" p)))
+	  ((eq (car p) 'and) (format s "(") (list2infix (cdr p) "&&" #'jskif2perl s) (format s ")"))
+	  ((eq (car p) 'or) (format s "(") (list2infix (cdr p) "||" #'jskif2perl s) (format s ")"))
+	  ((eq (car p) 'not) (format s "!(") (jskif2perl (second p) s) (format s ")"))
+	  ((eq (car p) 'require) (jskif2perl `(!= (len ,(second p)) 0) s))
+	  ((eq (car p) 'forbid) (jskif2perl `(= (len ,(second p)) 0) s))
+	  (t (case (first p)
+	       (in (jskifterm2perl (second p) s) (format s " =~~ ") (printreg (third p) s))
+	       (notin (jskifterm2perl (second p) s) (format s " !~~ ") (printreg (third p) s))
+	       (nin (jskifterm2perl (second p) s) (format s " !~~ ") (printreg (third p) s))
+	       (lt (jskifterm2perl (second p) s) (format s " < ") (jskifterm2perl (third p) s))
+	       (lte (jskifterm2perl (second p) s) (format s " <= ") (jskifterm2perl (third p) s))
+	       (gt (jskifterm2perl (second p) s) (format s " > ") (jskifterm2perl (third p) s))
+	       (gte (jskifterm2perl (second p) s) (format s " >= ") (jskifterm2perl (third p) s))
+	       (= (jskifterm2perl (second p) s) (format s " eq ") (jskifterm2perl (third p) s))
+	       (!= (jskifterm2perl (second p) s) (format s " ne ") (jskifterm2perl (third p) s))
+	       (type (if (stringp (third p)) (jskif2perl `(in ,(second p) ,(third p)) s) (error 'unimplemented :comment (format nil "~A" p))))
+	       (tobool (error 'unimplemented :comment (format nil "~A" p)))
+	       (tostr (error 'unimplemented :comment (format nil "~A" p)))
+	       (tonum (error 'unimplemented :comment (format nil "~A" p)))
+	       (otherwise (error 'syntax :comment (format nil "~A" p))))))))
+
+(defun jskifterm2perl (e s)
+  (cond ((varp e) (format s "$~(~A~)" (devariable e)))
+	((stringp e) (prin1 e s))
+	((numberp e) (princ e s))
+	((atom e) (error 'syntax :comment (format nil "~A" e)))
+	((eq (car e) '+) (format s "(") (list2infix (cdr e) "+" #'jskifterm2perl s) (format s ")"))
+	((eq (car e) '-) (format s "(") (list2infix (cdr e) "-" #'jskifterm2perl s) (format s ")"))
+	((eq (car e) '*) (format s "(") (list2infix (cdr e) "*" #'jskifterm2perl s) (format s ")"))
+	((eq (car e) '/) (format s "(") (list2infix (cdr e) "/" #'jskifterm2perl s) (format s ")"))
+	((eq (car e) 'len) (format s "length(") (jskifterm2perl (second e) s) (format s ")"))
+ 	((eq (car e) 'concat) (format s "(") (list2infix (cdr e) "." #'jskifterm2perl s) (format s ")"))
+	(t (error 'syntax :comment (format nil "~A" e)))))
+       
+
+
+	     
+ 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  Web Application Validation Extraction and Synthesis (WAVES)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; client validation from whitebox server analysis

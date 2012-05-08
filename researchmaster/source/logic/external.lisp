@@ -89,7 +89,7 @@
 	       (textoutput #'(lambda (x) (declare (ignore x)) "|")))
   (do ((i 1 (1+ i)))
       ((> i depth))
-      (format stream " ~A " (funcall textoutput i))))
+      (format stream " ~A " (funcall textoutput i))))  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; TPTP ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
