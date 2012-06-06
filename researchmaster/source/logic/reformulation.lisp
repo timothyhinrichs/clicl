@@ -475,7 +475,7 @@
 	  (format nil "TO-CANONICAL-DATALOG expects an input where the head is a literal: ~A" (head rule)))
   (cond ((atomicp rule) (list rule))
 	((null (cddr rule)) (list rule))
-	(t (multiple-value-bind (entries defs) (mapcaraccum #'lloyd-topor (cddr rule))
+	(t (multiple-value-bind (entries defs) (mapcaraccum #'lloyd-topor (and2list (nnf (maksand (cddr rule)))))
 	     (cons (list* '<= (head rule) (and2list (flatten-operator (maksand entries)))) defs)))))
 
 (defun lloyd-topor (p &optional (neg nil))

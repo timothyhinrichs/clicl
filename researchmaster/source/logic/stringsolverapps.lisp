@@ -114,7 +114,33 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Proxy patching
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun ss-proxypatch (url &key space)
+
+(defun ss-proxypatch (infile outfile &key space)
+  "(SS-PROXYPATCH INFILE OUTFILE) takes a file with the constraints (the output of the constraint analyzer),
+   a filename at which to create a Perl script for checking those constraints and returns a list of the 
+   variables in the order they must be sent to the Perl script."
+  (let (fclient prob varlist (*ss-use-solver-var-spelling* nil)) ; (*ss-add-non-string-types* nil))  ; make sure not to add NUM and BOOL types when cleansing
+    ; initialize environment
+    (ignore-errors (load *app-init-location*))
+    (ss-whitebox-init nil)
+    (handler-case 
+	(progn
+	  (setq prob (eval (first (read-file infile))))
+	  (setf (ss-prob-space prob) (makand (ss-prob-space prob) space))
+	  ; (setf (ss-prob-types prob) (drop-op (ss-prob-types prob)))
+	  (ss-cleanse prob))
+      (condition () (ss-trace (format nil "Error reading fclient file: ~A; progress made: ~S" infile prob))))
+    (when prob
+      (with-open-file (f outfile :direction :output :if-exists :supersede :if-does-not-exist :create)
+	(setq fclient (makand (ss-prob-phi prob) (maksand (mapcar #'cdr (hash2bl (ss-prob-types prob))))))
+	(setq varlist (jskifs2perl (drop-ands fclient) f)))
+      (exec-commandline "chmod a+x" outfile)
+	;(condition (e) (when *ss-debug* (ss-trace (format nil "Error translating constraints to Perl: ~A" (comment e)))))))
+        ; return variable names (uncleanse turns ?x into something like (var "X"))
+      (mapcar #'(lambda (x) (if (atom x) x (second x))) (ss-uncleanse varlist prob)))))
+
+(defun ss-proxypatch-all (url &key space)
+  "(SS-PROXYPATCH URL) applies ss-proxypatch to all of the forms at URL."
   (let (files counter filename fclient)
     ; initialize environment
     (load *app-init-location*)
@@ -149,7 +175,7 @@
     (dolist (formula ps)
       (format s "if (")
       (jskif2perl (maknot formula) s)
-      (format s ") { print \"constraint violated: \", __LINE__, \"\\n\"; exit 0; }~%"))
+      (format s ") { print \"constraint violated: ~A on line \", __LINE__, \"\\n\"; exit 0; }~%" formula))
 	; footer info
     (format s "print \"passed ALL tests\\n\";~%")
     (format s "exit 1;~%")
@@ -165,10 +191,14 @@
    Also assumes that all object constants are strings or numbers."
   (flet ((printreg (x s) 
 	   (setq x (ss-makreg x))
-	   (format s "/^(~A)$/" x)))
+	   (format s "/^(~A)$/" x))
+	 (toreg (x)
+	   (cond ((eq x 'num) "[0-9]+")
+		 ((eq x 'bool) "true|false")
+		 (t (tostring x)))))
     (cond ((eq p 'true) (format s "0 == 0"))
 	  ((eq p 'false) (format s "0 == 1"))
-	  ((atom p) (error 'syntax :comment (format nil "~A" p)))
+	  ((atom p) (format t "Syntax error: ~A~%" p) (error 'syntax :comment (format nil "~A" p)))
 	  ((eq (car p) 'and) (format s "(") (list2infix (cdr p) "&&" #'jskif2perl s) (format s ")"))
 	  ((eq (car p) 'or) (format s "(") (list2infix (cdr p) "||" #'jskif2perl s) (format s ")"))
 	  ((eq (car p) 'not) (format s "!(") (jskif2perl (second p) s) (format s ")"))
@@ -184,27 +214,32 @@
 	       (gte (jskifterm2perl (second p) s) (format s " >= ") (jskifterm2perl (third p) s))
 	       (= (jskifterm2perl (second p) s) (format s " eq ") (jskifterm2perl (third p) s))
 	       (!= (jskifterm2perl (second p) s) (format s " ne ") (jskifterm2perl (third p) s))
-	       (type (if (stringp (third p)) (jskif2perl `(in ,(second p) ,(third p)) s) (error 'unimplemented :comment (format nil "~A" p))))
-	       (tobool (error 'unimplemented :comment (format nil "~A" p)))
-	       (tostr (error 'unimplemented :comment (format nil "~A" p)))
-	       (tonum (error 'unimplemented :comment (format nil "~A" p)))
-	       (otherwise (error 'syntax :comment (format nil "~A" p))))))))
+	       (type (jskif2perl `(in ,(second p) ,(toreg (third p))) s))
+	       (tobool (format t "Unimplemented: ~A~%" p) (error 'unimplemented :comment (format nil "~A" p)))
+	       (tostr (format t "Unimplemented: ~A~%" p) (error 'unimplemented :comment (format nil "~A" p)))
+	       (tonum (format t "Unimplemented: ~A~%" p) (error 'unimplemented :comment (format nil "~A" p)))
+	       (otherwise (format t "Unimplemented: ~A~%" p) (error 'syntax :comment (format nil "~A" p))))))))
 
 (defun jskifterm2perl (e s)
-  (cond ((varp e) (format s "$~(~A~)" (devariable e)))
+  (cond ((varp e) (format s "~A" (jskifvar2perl e)))
 	((stringp e) (prin1 e s))
 	((numberp e) (princ e s))
-	((atom e) (error 'syntax :comment (format nil "~A" e)))
+	((atom e) (format t "Syntax error: ~A~%" e) (error 'syntax :comment (format nil "~A" e)))
 	((eq (car e) '+) (format s "(") (list2infix (cdr e) "+" #'jskifterm2perl s) (format s ")"))
 	((eq (car e) '-) (format s "(") (list2infix (cdr e) "-" #'jskifterm2perl s) (format s ")"))
 	((eq (car e) '*) (format s "(") (list2infix (cdr e) "*" #'jskifterm2perl s) (format s ")"))
 	((eq (car e) '/) (format s "(") (list2infix (cdr e) "/" #'jskifterm2perl s) (format s ")"))
 	((eq (car e) 'len) (format s "length(") (jskifterm2perl (second e) s) (format s ")"))
  	((eq (car e) 'concat) (format s "(") (list2infix (cdr e) "." #'jskifterm2perl s) (format s ")"))
-	(t (error 'syntax :comment (format nil "~A" e)))))
+	(t (format t "Syntax error: ~A~%" e) (error 'syntax :comment (format nil "~A" e)))))
        
-
-
+(defun jskifvar2perl (v)
+  (setq v (tostring (devariable v)))
+  (dotimes (i (length v))
+    (dolist (s '((#\[ . #\_) (#\] . #\_) (#\- . #\_)))
+      (if (char= (aref v i) (car s))
+	  (setf (aref v i) (cdr s)))))
+  (format nil "$~(~A~)" v))
 	     
  
 

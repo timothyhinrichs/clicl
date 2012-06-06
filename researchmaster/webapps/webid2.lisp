@@ -190,6 +190,7 @@
 ; input constraint resolution: none
 
 ; data constraints/constraint resolution: none
+; see March 5, 2011 for how to construct query from constraints
 
 ; output constraints (incomplete list)
   (=> (not search.titdesc) (search.keywords ?x) (output ?id) (output.title ?id ?y) (includes ?y ?x))

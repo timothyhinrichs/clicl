@@ -1400,3 +1400,530 @@ leading to their automatic, in-design certification.
 (POS (PAPER.TOPIC SON2011ROLECAST PROGRAM-ANALYSIS))
 (POS (PAPER.TOPIC SON2011ROLECAST SECURITY))
 (POS (PAPER.DESCRIPTION SON2011ROLECAST "A paper on automatically analyzing PHP and JSP web apps to find missing security checks (without a specification of what those checks should be)."))
+(POS (PAPER.INSTANCE CHONG2007SIF))
+(POS (PAPER.BIBTEX CHONG2007SIF INPROCEEDINGS))
+(POS (PAPER.AUTHOR CHONG2007SIF STEPHEN.CHONG))
+(POS (PAPER.AUTHOR CHONG2007SIF K.VIKRAM))
+(POS (PAPER.AUTHOR CHONG2007SIF ANDREW.C.MYERS))
+(POS (PAPER.TITLE CHONG2007SIF "{SIF}: Enforcing Confidentiality and Integrity in Web Applications"))
+(POS (PAPER.PUBLICATION CHONG2007SIF USENIX))
+(POS (PAPER.URL CHONG2007SIF "http://www.cs.cornell.edu/andru/papers/sif.pdf"))
+(POS (PAPER.YEAR CHONG2007SIF 2007))
+(POS (PAPER.TOPIC CHONG2007SIF WWWTOPIC))
+(POS (PAPER.TOPIC CHONG2007SIF SECURITY))
+(POS (PAPER.TOPIC CHONG2007SIF TOPIC.35169205252))
+(POS (PAPER.DESCRIPTION CHONG2007SIF "The authors describe a refinement of the Java Servlets web application framework that enforces confidentiality and integrity policies expressed over variables in the program.  They build upon the Jif programming language."))
+(POS (PERSON.INSTANCE PERSON.35454909464))
+(POS (PERSON.FIRSTNAME PERSON.35454909464 "William"))
+(POS (PERSON.LASTNAME PERSON.35454909464 "Robertson"))
+(POS (PAPER.INSTANCE ROBERTSON2009STATIC))
+(POS (PAPER.BIBTEX ROBERTSON2009STATIC INPROCEEDINGS))
+(POS (PAPER.AUTHOR ROBERTSON2009STATIC PERSON.35454909464))
+(POS (PAPER.AUTHOR ROBERTSON2009STATIC PERSON.35280269025))
+(POS (PAPER.TITLE ROBERTSON2009STATIC "Static enforcement of web application integrity through strong typing"))
+(POS (PAPER.PUBLICATION ROBERTSON2009STATIC USENIX))
+(POS (PAPER.URL ROBERTSON2009STATIC "http://static.usenix.org/event/sec09/tech/full_papers/robertson.pdf"))
+(POS (PAPER.YEAR ROBERTSON2009STATIC 2009))
+(POS (PAPER.TOPIC ROBERTSON2009STATIC WWWTOPIC))
+(POS (PAPER.TOPIC ROBERTSON2009STATIC SECURITY))
+(POS (PAPER.TOPIC ROBERTSON2009STATIC TOPIC.35169205252))
+(POS (PAPER.DESCRIPTION ROBERTSON2009STATIC "This paper introduces a Haskell framework for web application development designed to mitigate CSS and SQLi attacks.  The key idea is to give both HTML documents and SQL queries types so that the structure of documents/queries is kept separate from the user-data used to populate those documents/queries.  Sanitizers can then automatically be applied to ensure user-data is devoid of special characters before it is flattened into HTML/SQL.
+"))
+(POS (PERSON.INSTANCE PERSON.35454917266))
+(POS (PERSON.FIRSTNAME PERSON.35454917266 "Alexander"))
+(POS (PERSON.LASTNAME PERSON.35454917266 "Yip"))
+(POS (PERSON.INSTANCE PERSON.35454917267))
+(POS (PERSON.FIRSTNAME PERSON.35454917267 "Xi"))
+(POS (PERSON.LASTNAME PERSON.35454917267 "Wang"))
+(POS (PERSON.INSTANCE PERSON.35454917268))
+(POS (PERSON.FIRSTNAME PERSON.35454917268 "Nickolai"))
+(POS (PERSON.LASTNAME PERSON.35454917268 "Zeldovich"))
+(POS (PERSON.INSTANCE PERSON.35454917269))
+(POS (PERSON.FIRSTNAME PERSON.35454917269 "M."))
+(POS (PERSON.MIDDLENAME PERSON.35454917269 "Frans"))
+(POS (PERSON.LASTNAME PERSON.35454917269 "Kaashoek"))
+(POS (PAPER.INSTANCE YIP2009IMPROVING))
+(POS (PAPER.BIBTEX YIP2009IMPROVING INPROCEEDINGS))
+(POS (PAPER.AUTHOR YIP2009IMPROVING PERSON.35454917266))
+(POS (PAPER.AUTHOR YIP2009IMPROVING PERSON.35454917267))
+(POS (PAPER.AUTHOR YIP2009IMPROVING PERSON.35454917268))
+(POS (PAPER.AUTHOR YIP2009IMPROVING PERSON.35454917269))
+(POS (PAPER.TITLE YIP2009IMPROVING "Improving Application Security with Data Flow Assertion"))
+(POS (PAPER.PUBLICATION YIP2009IMPROVING ACMSIGOPS))
+(POS (PAPER.URL YIP2009IMPROVING "http://www.sigops.org/sosp/sosp09/papers/yip-sosp09.pdf"))
+(POS (PAPER.YEAR YIP2009IMPROVING 2009))
+(POS (PAPER.TOPIC YIP2009IMPROVING TOPIC.35169205252))
+(POS (PAPER.TOPIC YIP2009IMPROVING SECURITY))
+(POS (PAPER.TOPIC YIP2009IMPROVING WWWTOPIC))
+(POS (PAPER.DESCRIPTION YIP2009IMPROVING "Resin is a language runtime, designed for web applications, that allows the programmer to write data flow assertions that are then enforced by the language.  For example, any user input data must flow through a sanitizer before it flows into a SQL query; Wiki page p may flow out of the system only to a user on p's ACL.  Conceptually, Resin requires the programmers define filter objects to check whether data flowing over a boundary is permitted to do so (e.g. sent over the network, written to a file, etc.).  The programmer annotates sensitive data with policy objects.  Data tracking is performed by Resin directly."))
+(POS (PERSON.INSTANCE PERSON.35454940708))
+(POS (PERSON.FIRSTNAME PERSON.35454940708 "Adam"))
+(POS (PERSON.LASTNAME PERSON.35454940708 "Chlipala"))
+(POS (SYMPOSIUM.INSTANCE SYMPOSIUM.35454941089))
+(POS (PRETTYNAME SYMPOSIUM.35454941089 "USENIX Symposium on Operating Systems Design and Implementation"))
+(POS (SHORTNAME SYMPOSIUM.35454941089 "OSDI"))
+(POS (PAPER.INSTANCE CHLIPALA2010STATIC))
+(POS (PAPER.BIBTEX CHLIPALA2010STATIC INPROCEEDINGS))
+(POS (PAPER.AUTHOR CHLIPALA2010STATIC PERSON.35454940708))
+(POS (PAPER.TITLE CHLIPALA2010STATIC "Static Checking of Dynamically-Varying Security Policies in Database-Backed Applications"))
+(POS (PAPER.URL CHLIPALA2010STATIC "http://adam.chlipala.net/papers/UrFlowOSDI10/UrFlowOSDI10.pdf"))
+(POS (PAPER.YEAR CHLIPALA2010STATIC 2010))
+(POS (PAPER.TOPIC CHLIPALA2010STATIC WWWTOPIC))
+(POS (PAPER.TOPIC CHLIPALA2010STATIC SECURITY))
+(POS (PAPER.TOPIC CHLIPALA2010STATIC TOPIC.35169205252))
+(POS (PAPER.TOPIC CHLIPALA2010STATIC DATABASE))
+(POS (PAPER.DESCRIPTION CHLIPALA2010STATIC "UrFlow is a language for writing web applications using a mix of functional languages and SQL.  It enables policies to be written using SQL statements that are checked statically through symbolic execution and SMT theorem proving (using implication).  In particular, the policies leverage the idea that the system can keep track of what the user knows and hence we can require that user u's secret can only become known to someone who already knows user u's password."))
+(NEG (PAPER.INSTANCE CHLIPALA2010STATIC))
+(NEG (PAPER.BIBTEX CHLIPALA2010STATIC INPROCEEDINGS))
+(NEG (PAPER.AUTHOR CHLIPALA2010STATIC PERSON.35454940708))
+(NEG (PAPER.TITLE CHLIPALA2010STATIC "Static Checking of Dynamically-Varying Security Policies in Database-Backed Applications"))
+(NEG (PAPER.URL CHLIPALA2010STATIC "http://adam.chlipala.net/papers/UrFlowOSDI10/UrFlowOSDI10.pdf"))
+(NEG (PAPER.YEAR CHLIPALA2010STATIC 2010))
+(NEG (PAPER.TOPIC CHLIPALA2010STATIC WWWTOPIC))
+(NEG (PAPER.TOPIC CHLIPALA2010STATIC SECURITY))
+(NEG (PAPER.TOPIC CHLIPALA2010STATIC TOPIC.35169205252))
+(NEG (PAPER.TOPIC CHLIPALA2010STATIC DATABASE))
+(NEG (PAPER.DESCRIPTION CHLIPALA2010STATIC "UrFlow is a language for writing web applications using a mix of functional languages and SQL.  It enables policies to be written using SQL statements that are checked statically through symbolic execution and SMT theorem proving (using implication).  In particular, the policies leverage the idea that the system can keep track of what the user knows and hence we can require that user u's secret can only become known to someone who already knows user u's password."))
+(POS (PAPER.INSTANCE CHLIPALA2010STATIC))
+(POS (PAPER.BIBTEX CHLIPALA2010STATIC INPROCEEDINGS))
+(POS (PAPER.AUTHOR CHLIPALA2010STATIC PERSON.35454940708))
+(POS (PAPER.TITLE CHLIPALA2010STATIC "Static Checking of Dynamically-Varying Security Policies in Database-Backed Applications"))
+(POS (PAPER.PUBLICATION CHLIPALA2010STATIC SYMPOSIUM.35454941089))
+(POS (PAPER.URL CHLIPALA2010STATIC "http://adam.chlipala.net/papers/UrFlowOSDI10/UrFlowOSDI10.pdf"))
+(POS (PAPER.YEAR CHLIPALA2010STATIC 2010))
+(POS (PAPER.TOPIC CHLIPALA2010STATIC WWWTOPIC))
+(POS (PAPER.TOPIC CHLIPALA2010STATIC SECURITY))
+(POS (PAPER.TOPIC CHLIPALA2010STATIC TOPIC.35169205252))
+(POS (PAPER.TOPIC CHLIPALA2010STATIC DATABASE))
+(POS (PAPER.DESCRIPTION CHLIPALA2010STATIC "UrFlow is a language for writing web applications using a mix of functional languages and SQL.  It enables policies to be written using SQL statements that are checked statically through symbolic execution and SMT theorem proving (using implication).  In particular, the policies leverage the idea that the system can keep track of what the user knows and hence we can require that user u&#39;s secret can only become known to someone who already knows user u&#39;s password."))
+(POS (PERSON.INSTANCE PERSON.35457334961))
+(POS (PERSON.FIRSTNAME PERSON.35457334961 "Raphael"))
+(POS (PERSON.MIDDLENAME PERSON.35457334961 "M."))
+(POS (PERSON.LASTNAME PERSON.35457334961 "Reischuk"))
+(POS (PAPER.INSTANCE REISCHUK2012SAFE))
+(POS (PAPER.BIBTEX REISCHUK2012SAFE INPROCEEDINGS))
+(POS (PAPER.AUTHOR REISCHUK2012SAFE PERSON.35457334961))
+(POS (PAPER.AUTHOR REISCHUK2012SAFE MICHAEL.BACKES))
+(POS (PAPER.AUTHOR REISCHUK2012SAFE PERSON.34795728492))
+(POS (PAPER.TITLE REISCHUK2012SAFE "{SAFE} Extensibility for Data-Driven Web Applications"))
+(POS (PAPER.PUBLICATION REISCHUK2012SAFE JOURNAL.34795694107))
+(POS (PAPER.URL REISCHUK2012SAFE "http://www.safe-activation.org/publications/safe-www2012.pdf"))
+(POS (PAPER.YEAR REISCHUK2012SAFE 2012))
+(POS (PAPER.TOPIC REISCHUK2012SAFE WWWTOPIC))
+(POS (PAPER.TOPIC REISCHUK2012SAFE PROGRAMMING))
+(POS (PAPER.TOPIC REISCHUK2012SAFE SECURITY))
+(POS (PAPER.TOPIC REISCHUK2012SAFE DATABASE))
+(POS (PAPER.DESCRIPTION REISCHUK2012SAFE "To allow users to write custom features of web applications, SAFE is a web application framework designed to admit modular web page authoring.  SQL queries are used directly in code to specify how web pages are to be updated and when.  A compiler creates PHP and Perl to implement the application."))
+(POS (PERSON.INSTANCE PERSON.35457509243))
+(POS (PERSON.FIRSTNAME PERSON.35457509243 "Yupeng"))
+(POS (PERSON.LASTNAME PERSON.35457509243 "Fu"))
+(POS (PERSON.INSTANCE PERSON.35457509244))
+(POS (PERSON.FIRSTNAME PERSON.35457509244 "Kian"))
+(POS (PERSON.MIDDLENAME PERSON.35457509244 "Win"))
+(POS (PERSON.LASTNAME PERSON.35457509244 "Ong"))
+(POS (PERSON.INSTANCE PERSON.35457509245))
+(POS (PERSON.FIRSTNAME PERSON.35457509245 "Yannis"))
+(POS (PERSON.LASTNAME PERSON.35457509245 "Papakonstantinou"))
+(POS (PERSON.INSTANCE PERSON.35457509246))
+(POS (PERSON.FIRSTNAME PERSON.35457509246 "Michalis"))
+(POS (PERSON.LASTNAME PERSON.35457509246 "Petropoulos"))
+(POS (CONFERENCE.INSTANCE CONFERENCE.35457510724))
+(POS (PRETTYNAME CONFERENCE.35457510724 "Conference on Innovative Data Systems Research"))
+(POS (SHORTNAME CONFERENCE.35457510724 "CIDR"))
+(POS (PAPER.INSTANCE FU2011SQL))
+(POS (PAPER.BIBTEX FU2011SQL INPROCEEDINGS))
+(POS (PAPER.AUTHOR FU2011SQL PERSON.35457509243))
+(POS (PAPER.AUTHOR FU2011SQL PERSON.35457509244))
+(POS (PAPER.AUTHOR FU2011SQL PERSON.35457509245))
+(POS (PAPER.AUTHOR FU2011SQL PERSON.35457509246))
+(POS (PAPER.TITLE FU2011SQL "The {SQL}-based All-declarative {FORWARD} Web Application Development Framework"))
+(POS (PAPER.PUBLICATION FU2011SQL CONFERENCE.35457510724))
+(POS (PAPER.URL FU2011SQL "http://demo.forward.ucsd.edu/"))
+(POS (PAPER.YEAR FU2011SQL 2011))
+(POS (PAPER.TOPIC FU2011SQL WWWTOPIC))
+(POS (PAPER.TOPIC FU2011SQL PROGRAMMING))
+(POS (PAPER.TOPIC FU2011SQL DATABASE))
+(POS (PAPER.DESCRIPTION FU2011SQL "FORWARD makes building AJAX web pages simple.  It provides developers with a single namespace for any number of both local and remote data sources, e.g. the server's application database, the corresponding session object, Google maps.  Roughly, an application consists of 3 things: (i) definitions for data sources, (ii) a web page written in HTML that includes blocks of SQL queries dictating how to display which fragments of which data sources, (iii) actions for updating data sources (written in SQL).
+"))
+(POS (WORKSHOP.INSTANCE WORKSHOP.35460991651))
+(POS (PRETTYNAME WORKSHOP.35460991651 "Higher-Order Workshop on Automated Runtime Verification and Debugging"))
+(POS (SHORTNAME WORKSHOP.35460991651 "HOWARD-60"))
+(POS (PERSON.INSTANCE PERSON.35460992082))
+(POS (PERSON.FIRSTNAME PERSON.35460992082 "A."))
+(POS (PERSON.MIDDLENAME PERSON.35460992082 "Prasad"))
+(POS (PERSON.LASTNAME PERSON.35460992082 "Sistla"))
+(POS (PAPER.INSTANCE HINRICHS2011MODEL))
+(POS (PAPER.BIBTEX HINRICHS2011MODEL INPROCEEDINGS))
+(POS (PAPER.AUTHOR HINRICHS2011MODEL TIMOTHYLHINRICHS))
+(POS (PAPER.AUTHOR HINRICHS2011MODEL PERSON.35460992082))
+(POS (PAPER.AUTHOR HINRICHS2011MODEL PERSON.35312191701))
+(POS (PAPER.TITLE HINRICHS2011MODEL "Model Check What You Can, Runtime Verify the Rest"))
+(POS (PAPER.PUBLICATION HINRICHS2011MODEL WORKSHOP.35460991651))
+(POS (PAPER.YEAR HINRICHS2011MODEL 2011))
+(POS (PAPER.TOPIC HINRICHS2011MODEL VERIFICATION))
+(POS (PAPER.DESCRIPTION HINRICHS2011MODEL "Model checking and runtime verification are pillars of formal verification but for the most part are used independently.  In this position paper we argue that the formal verification community would be well-served by developing theory, algorithms, implementations, and applications that combine model checking and runtime verification into a single, seamless technology.  This technology would allow system developers to carefully choose the appropriate balance between offline verification of expressive properties (model checking) and online verification of important parts of the system's state space (runtime verification).  We present several realistic examples where such technology appears necessary and a preliminary formalization of the idea.
+"))
+(POS (CONFERENCE.INSTANCE CONFERENCE.35460997854))
+(POS (PRETTYNAME CONFERENCE.35460997854 "USENIX Conference on Web Application Development"))
+(POS (SHORTNAME CONFERENCE.35460997854 "WebApps"))
+(POS (PAPER.INSTANCE SKRUPSKY2012DONT))
+(POS (PAPER.BIBTEX SKRUPSKY2012DONT INPROCEEDINGS))
+(POS (PAPER.DESCRIPTION SKRUPSKY2012DONT "The current practice of web application development treats the client and
+server components of the application as two separate but interacting pieces of 
+software.  Each component is written independently, usually 
+in distinct programming languages and development platforms---
+a process known to be problematic when the client and server
+must share application logic.  When the client and server
+are out of sync, an impedance mismatch occurs, often leading to
+software vulnerabilities as demonstrated by recent work on parameter tampering.
+This paper outlines the groundwork for a new software development
+approach, WAVES, where developers author the server-side 
+application logic and rely on tools to automatically synthesize 
+the corresponding client-side application logic.
+WAVES employs program analysis techniques to extract a logical
+ specification from the server and synthesizes client code
+ from that specification. WAVES also synthesizes
+ interactive client interfaces that include asynchronous callbacks
+ whose performance and coverage rival that of manually written clients,
+ while ensuring that no new security vulnerabilities are introduced.
+ We demonstrate and evaluate the effectiveness of WAVES on three 
+ real-world web applications. 
+"))
+(NEG (PAPER.INSTANCE SKRUPSKY2012DONT))
+(NEG (PAPER.BIBTEX SKRUPSKY2012DONT INPROCEEDINGS))
+(NEG (PAPER.DESCRIPTION SKRUPSKY2012DONT "The current practice of web application development treats the client and
+server components of the application as two separate but interacting pieces of 
+software.  Each component is written independently, usually 
+in distinct programming languages and development platforms---
+a process known to be problematic when the client and server
+must share application logic.  When the client and server
+are out of sync, an impedance mismatch occurs, often leading to
+software vulnerabilities as demonstrated by recent work on parameter tampering.
+This paper outlines the groundwork for a new software development
+approach, WAVES, where developers author the server-side 
+application logic and rely on tools to automatically synthesize 
+the corresponding client-side application logic.
+WAVES employs program analysis techniques to extract a logical
+ specification from the server and synthesizes client code
+ from that specification. WAVES also synthesizes
+ interactive client interfaces that include asynchronous callbacks
+ whose performance and coverage rival that of manually written clients,
+ while ensuring that no new security vulnerabilities are introduced.
+ We demonstrate and evaluate the effectiveness of WAVES on three 
+ real-world web applications. 
+"))
+(POS (PAPER.INSTANCE SKRUPSKY2012DONT))
+(POS (PAPER.BIBTEX SKRUPSKY2012DONT INPROCEEDINGS))
+(POS (PAPER.AUTHOR SKRUPSKY2012DONT PERSON.34893530412))
+(POS (PAPER.AUTHOR SKRUPSKY2012DONT PERSON.35312197405))
+(POS (PAPER.AUTHOR SKRUPSKY2012DONT PERSON.34893530411))
+(POS (PAPER.AUTHOR SKRUPSKY2012DONT TIMOTHYLHINRICHS))
+(POS (PAPER.AUTHOR SKRUPSKY2012DONT PERSON.34893530414))
+(POS (PAPER.AUTHOR SKRUPSKY2012DONT PERSON.35312191701))
+(POS (PAPER.DESCRIPTION SKRUPSKY2012DONT "The current practice of web application development treats the client and
+server components of the application as two separate but interacting pieces of 
+software.  Each component is written independently, usually 
+in distinct programming languages and development platforms---
+a process known to be problematic when the client and server
+must share application logic.  When the client and server
+are out of sync, an impedance mismatch occurs, often leading to
+software vulnerabilities as demonstrated by recent work on parameter tampering.
+This paper outlines the groundwork for a new software development
+approach, WAVES, where developers author the server-side 
+application logic and rely on tools to automatically synthesize 
+the corresponding client-side application logic.
+WAVES employs program analysis techniques to extract a logical
+ specification from the server and synthesizes client code
+ from that specification. WAVES also synthesizes
+ interactive client interfaces that include asynchronous callbacks
+ whose performance and coverage rival that of manually written clients,
+ while ensuring that no new security vulnerabilities are introduced.
+ We demonstrate and evaluate the effectiveness of WAVES on three 
+ real-world web applications. 
+"))
+(NEG (PAPER.INSTANCE SKRUPSKY2012DONT))
+(NEG (PAPER.BIBTEX SKRUPSKY2012DONT INPROCEEDINGS))
+(NEG (PAPER.AUTHOR SKRUPSKY2012DONT PERSON.34893530412))
+(NEG (PAPER.AUTHOR SKRUPSKY2012DONT PERSON.35312197405))
+(NEG (PAPER.AUTHOR SKRUPSKY2012DONT PERSON.34893530411))
+(NEG (PAPER.AUTHOR SKRUPSKY2012DONT TIMOTHYLHINRICHS))
+(NEG (PAPER.AUTHOR SKRUPSKY2012DONT PERSON.34893530414))
+(NEG (PAPER.AUTHOR SKRUPSKY2012DONT PERSON.35312191701))
+(NEG (PAPER.DESCRIPTION SKRUPSKY2012DONT "The current practice of web application development treats the client and
+server components of the application as two separate but interacting pieces of 
+software.  Each component is written independently, usually 
+in distinct programming languages and development platforms---
+a process known to be problematic when the client and server
+must share application logic.  When the client and server
+are out of sync, an impedance mismatch occurs, often leading to
+software vulnerabilities as demonstrated by recent work on parameter tampering.
+This paper outlines the groundwork for a new software development
+approach, WAVES, where developers author the server-side 
+application logic and rely on tools to automatically synthesize 
+the corresponding client-side application logic.
+WAVES employs program analysis techniques to extract a logical
+ specification from the server and synthesizes client code
+ from that specification. WAVES also synthesizes
+ interactive client interfaces that include asynchronous callbacks
+ whose performance and coverage rival that of manually written clients,
+ while ensuring that no new security vulnerabilities are introduced.
+ We demonstrate and evaluate the effectiveness of WAVES on three 
+ real-world web applications. 
+"))
+(POS (PAPER.INSTANCE SKRUPSKY2012DONT))
+(POS (PAPER.BIBTEX SKRUPSKY2012DONT INPROCEEDINGS))
+(POS (PAPER.AUTHOR SKRUPSKY2012DONT PERSON.34893530412))
+(POS (PAPER.AUTHOR SKRUPSKY2012DONT PERSON.35312197405))
+(POS (PAPER.AUTHOR SKRUPSKY2012DONT PERSON.34893530411))
+(POS (PAPER.AUTHOR SKRUPSKY2012DONT TIMOTHYLHINRICHS))
+(POS (PAPER.AUTHOR SKRUPSKY2012DONT PERSON.34893530414))
+(POS (PAPER.AUTHOR SKRUPSKY2012DONT PERSON.35312191701))
+(POS (PAPER.TITLE SKRUPSKY2012DONT "Don't Repeat Yourself: Automatically Synthesizing Client-side Validation Code for Web Applications"))
+(POS (PAPER.PUBLICATION SKRUPSKY2012DONT CONFERENCE.35460997854))
+(POS (PAPER.URL SKRUPSKY2012DONT "papers/skrupsky2012dont.pdf"))
+(POS (PAPER.YEAR SKRUPSKY2012DONT 2012))
+(POS (PAPER.TOPIC SKRUPSKY2012DONT WWWTOPIC))
+(POS (PAPER.TOPIC SKRUPSKY2012DONT SECURITY))
+(POS (PAPER.TOPIC SKRUPSKY2012DONT PROGRAM-ANALYSIS))
+(POS (PAPER.DESCRIPTION SKRUPSKY2012DONT "The current practice of web application development treats the client and
+server components of the application as two separate but interacting pieces of 
+software.  Each component is written independently, usually 
+in distinct programming languages and development platforms---
+a process known to be problematic when the client and server
+must share application logic.  When the client and server
+are out of sync, an impedance mismatch occurs, often leading to
+software vulnerabilities as demonstrated by recent work on parameter tampering.
+This paper outlines the groundwork for a new software development
+approach, WAVES, where developers author the server-side 
+application logic and rely on tools to automatically synthesize 
+the corresponding client-side application logic.
+WAVES employs program analysis techniques to extract a logical
+ specification from the server and synthesizes client code
+ from that specification. WAVES also synthesizes
+ interactive client interfaces that include asynchronous callbacks
+ whose performance and coverage rival that of manually written clients,
+ while ensuring that no new security vulnerabilities are introduced.
+ We demonstrate and evaluate the effectiveness of WAVES on three 
+ real-world web applications. 
+"))
+(NEG (PAPER.INSTANCE HINRICHS2011MODEL))
+(NEG (PAPER.BIBTEX HINRICHS2011MODEL INPROCEEDINGS))
+(NEG (PAPER.AUTHOR HINRICHS2011MODEL TIMOTHYLHINRICHS))
+(NEG (PAPER.AUTHOR HINRICHS2011MODEL PERSON.35460992082))
+(NEG (PAPER.AUTHOR HINRICHS2011MODEL PERSON.35312191701))
+(NEG (PAPER.TITLE HINRICHS2011MODEL "Model Check What You Can, Runtime Verify the Rest"))
+(NEG (PAPER.PUBLICATION HINRICHS2011MODEL WORKSHOP.35460991651))
+(NEG (PAPER.YEAR HINRICHS2011MODEL 2011))
+(NEG (PAPER.TOPIC HINRICHS2011MODEL VERIFICATION))
+(NEG (PAPER.DESCRIPTION HINRICHS2011MODEL "Model checking and runtime verification are pillars of formal verification but for the most part are used independently.  In this position paper we argue that the formal verification community would be well-served by developing theory, algorithms, implementations, and applications that combine model checking and runtime verification into a single, seamless technology.  This technology would allow system developers to carefully choose the appropriate balance between offline verification of expressive properties (model checking) and online verification of important parts of the system's state space (runtime verification).  We present several realistic examples where such technology appears necessary and a preliminary formalization of the idea.
+"))
+(POS (PAPER.INSTANCE HINRICHS2011MODEL))
+(POS (PAPER.BIBTEX HINRICHS2011MODEL INPROCEEDINGS))
+(POS (PAPER.AUTHOR HINRICHS2011MODEL TIMOTHYLHINRICHS))
+(POS (PAPER.AUTHOR HINRICHS2011MODEL PERSON.35460992082))
+(POS (PAPER.AUTHOR HINRICHS2011MODEL PERSON.35312191701))
+(POS (PAPER.TITLE HINRICHS2011MODEL "Model Check What You Can, Runtime Verify the Rest"))
+(POS (PAPER.PUBLICATION HINRICHS2011MODEL WORKSHOP.35460991651))
+(POS (PAPER.URL HINRICHS2011MODEL "papers/hinrichs2011model.pdf"))
+(POS (PAPER.YEAR HINRICHS2011MODEL 2011))
+(POS (PAPER.TOPIC HINRICHS2011MODEL VERIFICATION))
+(POS (PAPER.DESCRIPTION HINRICHS2011MODEL "Model checking and runtime verification are pillars of formal verification but for the most part are used independently.  In this position paper we argue that the formal verification community would be well-served by developing theory, algorithms, implementations, and applications that combine model checking and runtime verification into a single, seamless technology.  This technology would allow system developers to carefully choose the appropriate balance between offline verification of expressive properties (model checking) and online verification of important parts of the system&#39;s state space (runtime verification).  We present several realistic examples where such technology appears necessary and a preliminary formalization of the idea.
+"))
+(NEG (PAPER.INSTANCE HINRICHS2012APPLICATION))
+(NEG (PAPER.BIBTEX HINRICHS2012APPLICATION TECHREPORT))
+(NEG (PAPER.AUTHOR HINRICHS2012APPLICATION TIMOTHYLHINRICHS))
+(NEG (PAPER.AUTHOR HINRICHS2012APPLICATION PERSON.35226101344))
+(NEG (PAPER.AUTHOR HINRICHS2012APPLICATION ADAM.J.LEE))
+(NEG (PAPER.AUTHOR HINRICHS2012APPLICATION JOHN.C.MITCHELL))
+(NEG (PAPER.TITLE HINRICHS2012APPLICATION "Application-Sensitive Access Control Evaluation: Logical Foundations (Extended Version)"))
+(NEG (PAPER.PUBLISHER HINRICHS2012APPLICATION PUBLISHER.35364044021))
+(NEG (PAPER.NUMBER HINRICHS2012APPLICATION "TR-12-185"))
+(NEG (PAPER.YEAR HINRICHS2012APPLICATION 2012))
+(NEG (PAPER.TOPIC HINRICHS2012APPLICATION AUTHORIZATION))
+(NEG (PAPER.DESCRIPTION HINRICHS2012APPLICATION "  Although the security community recommends that applications be
+  designed for security from day one, today there is no formal
+  technique for choosing the access control system that is best-suited
+  for a particular application.  In this paper, we present a formal
+  framework and logic for comparing access control systems with
+  respect to a particular application.  The analyst&amp;amp;amp;#39;s main task is to
+  determine whether a given workload---a formalism that we develop to
+  represent an application&amp;amp;amp;#39;s access control demands---can be 
+  implemented correctly by each of several candidate access control systems.  
+  And because correctness by itself allows for implementations that few application
+  developers would seriously consider, we develop several additional 
+  classifications for implementations that offer guarantees beyond correctness:
+  homomorphic, non-interfering, safe, and succinct.
+  The system that admits the implementation with the strongest
+  guarantees is deemed the best fit for the application.  We demonstrate the
+  use of our framework by analyzing a workload that is
+  anecdotally troublesome for the U.S. government&amp;amp;amp;#39;s access control
+  solution and present results for ten different access control models.
+"))
+(POS (PAPER.INSTANCE HINRICHS2012APPLICATION))
+(POS (PAPER.BIBTEX HINRICHS2012APPLICATION TECHREPORT))
+(POS (PAPER.AUTHOR HINRICHS2012APPLICATION TIMOTHYLHINRICHS))
+(POS (PAPER.AUTHOR HINRICHS2012APPLICATION PERSON.35226101344))
+(POS (PAPER.AUTHOR HINRICHS2012APPLICATION ADAM.J.LEE))
+(POS (PAPER.AUTHOR HINRICHS2012APPLICATION JOHN.C.MITCHELL))
+(POS (PAPER.TITLE HINRICHS2012APPLICATION "Application-Sensitive Access Control Evaluation: Logical Foundations (Extended Version)"))
+(POS (PAPER.PUBLISHER HINRICHS2012APPLICATION PUBLISHER.35364044021))
+(POS (PAPER.NUMBER HINRICHS2012APPLICATION "TR-12-185"))
+(POS (PAPER.URL HINRICHS2012APPLICATION "papers/hinrichs2012application.pdf"))
+(POS (PAPER.YEAR HINRICHS2012APPLICATION 2012))
+(POS (PAPER.TOPIC HINRICHS2012APPLICATION AUTHORIZATION))
+(POS (PAPER.DESCRIPTION HINRICHS2012APPLICATION "  Although the security community recommends that applications be
+  designed for security from day one, today there is no formal
+  technique for choosing the access control system that is best-suited
+  for a particular application.  In this paper, we present a formal
+  framework and logic for comparing access control systems with
+  respect to a particular application.  The analyst&amp;amp;amp;amp;#39;s main task is to
+  determine whether a given workload---a formalism that we develop to
+  represent an application&amp;amp;amp;amp;#39;s access control demands---can be 
+  implemented correctly by each of several candidate access control systems.  
+  And because correctness by itself allows for implementations that few application
+  developers would seriously consider, we develop several additional 
+  classifications for implementations that offer guarantees beyond correctness:
+  homomorphic, non-interfering, safe, and succinct.
+  The system that admits the implementation with the strongest
+  guarantees is deemed the best fit for the application.  We demonstrate the
+  use of our framework by analyzing a workload that is
+  anecdotally troublesome for the U.S. government&amp;amp;amp;amp;#39;s access control
+  solution and present results for ten different access control models.
+"))
+(NEG (PAPER.INSTANCE GARRISON2012APPLICATION))
+(NEG (PAPER.BIBTEX GARRISON2012APPLICATION TECHREPORT))
+(NEG (PAPER.AUTHOR GARRISON2012APPLICATION PERSON.35226101344))
+(NEG (PAPER.AUTHOR GARRISON2012APPLICATION ADAM.J.LEE))
+(NEG (PAPER.AUTHOR GARRISON2012APPLICATION TIMOTHYLHINRICHS))
+(NEG (PAPER.TITLE GARRISON2012APPLICATION "Application-Sensitive Access Control Evaluation: Suitability and Cost Analysis (Extended Version)"))
+(NEG (PAPER.PUBLISHER GARRISON2012APPLICATION PUBLISHER.35364044021))
+(NEG (PAPER.NUMBER GARRISON2012APPLICATION "TR-12-186"))
+(NEG (PAPER.YEAR GARRISON2012APPLICATION 2012))
+(NEG (PAPER.TOPIC GARRISON2012APPLICATION AUTHORIZATION))
+(NEG (PAPER.DESCRIPTION GARRISON2012APPLICATION "  To date, most work regarding the formal analysis of access control schemes
+  has focused on quantifying and comparing the expressive power of a set of
+  schemes. Although expressive power is important, it is a property
+  that exists in an absolute sense, detached from the
+  application-specific context within which an access control scheme will
+  ultimately be deployed. In this paper, we depart from the practice of
+  absolute evaluation and introduce a mathematical framework aimed at assessing
+  the suitability of existing access control schemes for a specific
+  application. In our framework, an analyst first formally defines a workload
+  representing the operational demands of the application and specifies 
+  metrics representing the pertinent costs. Reductions demonstrate how
+  each candidate scheme---or some augmentation of it---can be
+  used to safely implement the workload. Our framework assigns each
+  such implementation a score based on the chosen cost metric and deems that
+  the access control scheme with the highest scoring implementation is the one
+  best suited for the application. We demonstrate our framework by
+  presenting an example workload based on the requirements of a modern
+  military, and exploring the suitability of a series of popular access control
+  schemes for this workload.
+"))
+(POS (PAPER.INSTANCE GARRISON2012APPLICATION))
+(POS (PAPER.BIBTEX GARRISON2012APPLICATION TECHREPORT))
+(POS (PAPER.AUTHOR GARRISON2012APPLICATION PERSON.35226101344))
+(POS (PAPER.AUTHOR GARRISON2012APPLICATION ADAM.J.LEE))
+(POS (PAPER.AUTHOR GARRISON2012APPLICATION TIMOTHYLHINRICHS))
+(POS (PAPER.TITLE GARRISON2012APPLICATION "Application-Sensitive Access Control Evaluation: Suitability and Cost Analysis (Extended Version)"))
+(POS (PAPER.PUBLISHER GARRISON2012APPLICATION PUBLISHER.35364044021))
+(POS (PAPER.NUMBER GARRISON2012APPLICATION "TR-12-186"))
+(POS (PAPER.URL GARRISON2012APPLICATION "papers/garrison2012application.pdf"))
+(POS (PAPER.YEAR GARRISON2012APPLICATION 2012))
+(POS (PAPER.TOPIC GARRISON2012APPLICATION AUTHORIZATION))
+(POS (PAPER.DESCRIPTION GARRISON2012APPLICATION "  To date, most work regarding the formal analysis of access control schemes
+  has focused on quantifying and comparing the expressive power of a set of
+  schemes. Although expressive power is important, it is a property
+  that exists in an absolute sense, detached from the
+  application-specific context within which an access control scheme will
+  ultimately be deployed. In this paper, we depart from the practice of
+  absolute evaluation and introduce a mathematical framework aimed at assessing
+  the suitability of existing access control schemes for a specific
+  application. In our framework, an analyst first formally defines a workload
+  representing the operational demands of the application and specifies 
+  metrics representing the pertinent costs. Reductions demonstrate how
+  each candidate scheme---or some augmentation of it---can be
+  used to safely implement the workload. Our framework assigns each
+  such implementation a score based on the chosen cost metric and deems that
+  the access control scheme with the highest scoring implementation is the one
+  best suited for the application. We demonstrate our framework by
+  presenting an example workload based on the requirements of a modern
+  military, and exploring the suitability of a series of popular access control
+  schemes for this workload.
+"))
+(POS (PERSON.INSTANCE PERSON.35466872438))
+(POS (PERSON.FIRSTNAME PERSON.35466872438 "Shauvik"))
+(POS (PERSON.MIDDLENAME PERSON.35466872438 "Roy"))
+(POS (PERSON.LASTNAME PERSON.35466872438 "Choudhary"))
+(POS (PERSON.INSTANCE PERSON.35466872439))
+(POS (PERSON.FIRSTNAME PERSON.35466872439 "Mattia"))
+(POS (PERSON.LASTNAME PERSON.35466872439 "Fazzini"))
+(POS (PERSON.INSTANCE PERSON.35466872440))
+(POS (PERSON.FIRSTNAME PERSON.35466872440 "Alessandro"))
+(POS (PERSON.LASTNAME PERSON.35466872440 "Orso"))
+(POS (SYMPOSIUM.INSTANCE SYMPOSIUM.35466872959))
+(POS (PRETTYNAME SYMPOSIUM.35466872959 "International Symposium on Software Testing and Analysis"))
+(POS (SHORTNAME SYMPOSIUM.35466872959 "ISSTA"))
+(POS (PAPER.INSTANCE ALKHALAF2012VIEWPOINTS))
+(POS (PAPER.BIBTEX ALKHALAF2012VIEWPOINTS INPROCEEDINGS))
+(POS (PAPER.AUTHOR ALKHALAF2012VIEWPOINTS PERSON.35426236293))
+(POS (PAPER.AUTHOR ALKHALAF2012VIEWPOINTS PERSON.35466872438))
+(POS (PAPER.AUTHOR ALKHALAF2012VIEWPOINTS PERSON.35466872439))
+(POS (PAPER.AUTHOR ALKHALAF2012VIEWPOINTS PERSON.35426236294))
+(POS (PAPER.AUTHOR ALKHALAF2012VIEWPOINTS PERSON.35466872440))
+(POS (PAPER.AUTHOR ALKHALAF2012VIEWPOINTS PERSON.35280269024))
+(POS (PAPER.TITLE ALKHALAF2012VIEWPOINTS "Viewpoints: Differential String Analysis for Discovering Client and Server-Side Input Validation Inconsistencies"))
+(POS (PAPER.PUBLICATION ALKHALAF2012VIEWPOINTS SYMPOSIUM.35466872959))
+(POS (PAPER.URL ALKHALAF2012VIEWPOINTS "http://www.cs.ucsb.edu/~bultan/publications/issta12.pdf"))
+(POS (PAPER.YEAR ALKHALAF2012VIEWPOINTS 2012))
+(POS (PAPER.TOPIC ALKHALAF2012VIEWPOINTS WWWTOPIC))
+(POS (PAPER.TOPIC ALKHALAF2012VIEWPOINTS SECURITY))
+(POS (PAPER.TOPIC ALKHALAF2012VIEWPOINTS PROGRAM-ANALYSIS))
+(POS (PAPER.DESCRIPTION ALKHALAF2012VIEWPOINTS "The authors extract a formal representation of the input validation performed by both the client and server of a web application and compare them to find inconsistencies.  In particular, they model the client and server code as finite state machines."))
+(POS (PERSON.INSTANCE PERSON.35468798601))
+(POS (PERSON.FIRSTNAME PERSON.35468798601 "Margus"))
+(POS (PERSON.LASTNAME PERSON.35468798601 "Veanes"))
+(POS (PAPER.INSTANCE VEANES2012SYMBOLIC))
+(POS (PAPER.BIBTEX VEANES2012SYMBOLIC INPROCEEDINGS))
+(POS (PAPER.AUTHOR VEANES2012SYMBOLIC PERSON.35468798601))
+(POS (PAPER.AUTHOR VEANES2012SYMBOLIC PIETER.HOOIMEIJER))
+(POS (PAPER.AUTHOR VEANES2012SYMBOLIC PERSON.34795751804))
+(POS (PAPER.AUTHOR VEANES2012SYMBOLIC PERSON.35280250558))
+(POS (PAPER.AUTHOR VEANES2012SYMBOLIC NIKOLAJ.BJORNER))
+(POS (PAPER.TITLE VEANES2012SYMBOLIC "Symbolic Finite State Transducers: Algorithms and Applications"))
+(POS (PAPER.PUBLICATION VEANES2012SYMBOLIC POPL))
+(POS (PAPER.URL VEANES2012SYMBOLIC "http://research.microsoft.com/en-us/um/people/livshits/papers/pdf/popl12.pdf"))
+(POS (PAPER.YEAR VEANES2012SYMBOLIC 2012))
+(POS (PAPER.TOPIC VEANES2012SYMBOLIC WWWTOPIC))
+(POS (PAPER.DESCRIPTION VEANES2012SYMBOLIC "Finite State Transducers are finite state machines with one input tape and one output tape.  This paper investigates a symbolic version of finite state transducers where the labels on edges are formulas from a specific class of theories.  The main results are (practical) decidability algorithms for various operations on symbolic finite state transducers such as union, composition, emptiness."))
+(POS (TOPIC.INSTANCE TOPIC.35468801213))
+(POS (PRETTYNAME TOPIC.35468801213 "Automata"))
+(POS (SHORTNAME TOPIC.35468801213 "Automata"))
+(NEG (PAPER.INSTANCE VEANES2012SYMBOLIC))
+(NEG (PAPER.BIBTEX VEANES2012SYMBOLIC INPROCEEDINGS))
+(NEG (PAPER.AUTHOR VEANES2012SYMBOLIC PERSON.35468798601))
+(NEG (PAPER.AUTHOR VEANES2012SYMBOLIC PIETER.HOOIMEIJER))
+(NEG (PAPER.AUTHOR VEANES2012SYMBOLIC PERSON.34795751804))
+(NEG (PAPER.AUTHOR VEANES2012SYMBOLIC PERSON.35280250558))
+(NEG (PAPER.AUTHOR VEANES2012SYMBOLIC NIKOLAJ.BJORNER))
+(NEG (PAPER.TITLE VEANES2012SYMBOLIC "Symbolic Finite State Transducers: Algorithms and Applications"))
+(NEG (PAPER.PUBLICATION VEANES2012SYMBOLIC POPL))
+(NEG (PAPER.URL VEANES2012SYMBOLIC "http://research.microsoft.com/en-us/um/people/livshits/papers/pdf/popl12.pdf"))
+(NEG (PAPER.YEAR VEANES2012SYMBOLIC 2012))
+(NEG (PAPER.TOPIC VEANES2012SYMBOLIC WWWTOPIC))
+(NEG (PAPER.DESCRIPTION VEANES2012SYMBOLIC "Finite State Transducers are finite state machines with one input tape and one output tape.  This paper investigates a symbolic version of finite state transducers where the labels on edges are formulas from a specific class of theories.  The main results are (practical) decidability algorithms for various operations on symbolic finite state transducers such as union, composition, emptiness."))
+(POS (PAPER.INSTANCE VEANES2012SYMBOLIC))
+(POS (PAPER.BIBTEX VEANES2012SYMBOLIC INPROCEEDINGS))
+(POS (PAPER.AUTHOR VEANES2012SYMBOLIC PERSON.35468798601))
+(POS (PAPER.AUTHOR VEANES2012SYMBOLIC PIETER.HOOIMEIJER))
+(POS (PAPER.AUTHOR VEANES2012SYMBOLIC PERSON.34795751804))
+(POS (PAPER.AUTHOR VEANES2012SYMBOLIC PERSON.35280250558))
+(POS (PAPER.AUTHOR VEANES2012SYMBOLIC NIKOLAJ.BJORNER))
+(POS (PAPER.TITLE VEANES2012SYMBOLIC "Symbolic Finite State Transducers: Algorithms and Applications"))
+(POS (PAPER.PUBLICATION VEANES2012SYMBOLIC POPL))
+(POS (PAPER.URL VEANES2012SYMBOLIC "http://research.microsoft.com/en-us/um/people/livshits/papers/pdf/popl12.pdf"))
+(POS (PAPER.YEAR VEANES2012SYMBOLIC 2012))
+(POS (PAPER.TOPIC VEANES2012SYMBOLIC WWWTOPIC))
+(POS (PAPER.TOPIC VEANES2012SYMBOLIC TOPIC.35468801213))
+(POS (PAPER.TOPIC VEANES2012SYMBOLIC TOPIC.35167900183))
+(POS (PAPER.DESCRIPTION VEANES2012SYMBOLIC "Finite State Transducers are finite state machines with one input tape and one output tape.  This paper investigates a symbolic version of finite state transducers where the labels on edges are formulas from a specific class of theories.  The main results are (practical) decidability algorithms for various operations on symbolic finite state transducers such as union, composition, emptiness."))

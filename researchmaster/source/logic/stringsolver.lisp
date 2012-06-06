@@ -25,6 +25,10 @@
 (defparameter *SS-INFER-SYMBOL-VAR-SPELLING* t
   "whether or not to infer the spelling of symbol variables when we encounter string variables") 
 (defparameter *ss-php-functions-to-drop* nil)
+(defparameter *ss-add-non-string-types* t
+  "whether or not to add NUM BOOL types when doing type inference")
+(defparameter *ss-use-solver-var-spelling* t
+  "whether or not to translate field names of the form a[b] to a_b_")
 
 ; external helper routines
 (defParameter *hampi-regtest-tmp* "/tmp/hampiregtest.txt"
@@ -701,9 +705,10 @@
     ; fix constraints
     (setf (ss-prob-phi prob) (ss-cast (ss-prob-phi prob) types))
     ; add non-string types to prob-types
-    (dolist (y types)
-      (when (member (cdr y) '(num bool)) 
-	(push (list 'type (car y) (cdr y)) (ss-prob-types prob))))
+    (when *ss-add-non-string-types*
+      (dolist (y types)
+	(when (member (cdr y) '(num bool)) 
+	  (push (list 'type (car y) (cdr y)) (ss-prob-types prob)))))
     ; return result
     prob))
 
@@ -794,11 +799,12 @@
 		    (when entry (when (eq (third entry) 'var) (setf (third entry) class)))
 		    entry))))
 	 (varspelling (strvar)
-	   (dotimes (i (length strvar))
-	     (dolist (s '((#\[ . #\_) (#\] . #\_) (#\- . #\_)))
-	       (if (char= (aref strvar i) (car s))
-		   (setf (aref strvar i) (cdr s)))))
-	   strvar))
+	   (if *ss-use-solver-var-spelling*
+	       (dotimes (i (length strvar) strvar)
+		 (dolist (s '((#\[ . #\_) (#\] . #\_) (#\- . #\_)))
+		   (if (char= (aref strvar i) (car s))
+		       (setf (aref strvar i) (cdr s)))))
+	       strvar)))
     (cond ((varp p)   
 	   (cond ((find p *ss-varmapping* :key #'first) p)
 		 (t

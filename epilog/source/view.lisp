@@ -457,6 +457,232 @@
         (t (setq *answers* (cons (plugstdexp *thing* alist) *answers*)) nil)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; viewsupports: viewfinds but returns supporting data as well
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun viewsupports (*thing* p *theory* &optional (*filter* #'failure))
+  (let (alist *answers* *residue*)
+    (setq *unifications* 0)
+    (setq *inferences* 0)
+    (setq *termination* nil)
+    (setq alist (environment))
+    (viewsupps p (list p) alist 0 nil)
+    (nreverse (uniquify *answers*))))
+
+(defun viewsupps (p pl al depth cont)
+  (setq *inferences* (1+ *inferences*))
+  (viewcall p al depth)
+  (cond ((>= *inferences* *limit*) (setq *termination* t) (viewstop (car pl) al depth))
+        ((>= depth *depth*) (setq *termination* t) (viewstop (car pl) al depth))
+        (t (viewsuppsexp p pl al depth cont))))
+
+(defun viewsuppsexp (p pl al depth cont)
+  (cond ((atom p) (viewsuppsconstant p pl al depth cont))
+        ((eq (car p) 'not) (viewsuppsunprovable p pl al depth cont))
+        ((eq (car p) 'and) (viewsuppsand p pl al depth cont))
+        ((eq (car p) 'or) (viewsuppsor p pl al depth cont))
+        ((eq (car p) 'same) (viewsuppssame p pl al depth cont))
+        ((eq (car p) 'distinct) (viewsuppsdistinct p pl al depth cont))
+        ((eq (car p) 'oneof) (viewsuppsoneof p pl al depth cont))
+        ((eq (car p) 'choose) (viewsuppschoose p pl al depth cont))
+        ((eq (car p) 'bagofall) (viewsuppsbagofall p pl al depth cont))
+        ((eq (car p) 'unprovable) (viewsuppsunprovable p pl al depth cont))
+	((eq (car p) 'ground) (viewsuppsground p pl al depth cont))
+	((eq (car p) 'nonground) (viewsuppsnonground p pl al depth cont))
+        ((eq (car p) 'execute) (viewsuppsexecute p pl al depth cont))
+        ((eq (car p) 'evaluate) (viewsuppsevaluate p pl al depth cont))
+        ((eq (car p) 'stringmatch) (viewsuppsstringmatch p pl al depth cont))
+	((get (car p) 'basicval) (viewsuppsbasicval p pl al depth cont))
+        ((get (car p) 'basic) (viewsuppsbasic p pl al depth cont))
+        (t (viewsuppsrs p pl al depth cont))))
+
+(defun viewsuppsconstant (p pl al depth cont)
+  (cond ((eq p 'true) (viewsuppslast pl al depth cont))
+        ((eq p 'false) (viewsuppsfail (car pl) al depth))
+        (t (viewsuppsrs p pl al depth cont))))
+
+(defun viewsuppsand (p pl al depth cont)
+  (cond ((null (cdr p)) (viewsuppslast pl al depth cont))
+        ((viewsupps (cadr p) (cdr p) al depth (cons (list pl al depth) cont)))
+        (t (viewsuppsfail (car pl) al depth))))
+
+(defun viewsuppsor (p pl al depth cont)
+  (setq cont (cons (list pl al depth) cont))
+  (do ((l (cdr p) (cdr l)))
+      ((null l) (viewsuppsfail (car pl) al depth))
+      (viewsupps (car l) (list (car l)) al depth cont)))
+
+(defun viewsuppssame (p pl al depth cont)
+  (let (ol)
+    (cond ((setq ol (unify (cadr p) al (caddr p) al))
+           (viewsuppslast pl al depth cont)
+           (backup ol))
+          (t (viewsuppsfail p al depth)))))
+
+(defun viewsuppsdistinct (p pl al depth cont)
+  (let (ol)
+    (cond ((setq ol (unify (cadr p) al (caddr p) al))
+           (backup ol) (viewsuppsfail p al depth))
+          (t (viewsuppslast pl al depth cont)))))
+
+(defun viewsuppsoneof (p pl al depth cont)
+  (when (seqvarp (caddr p)) (setq p (plug p al)))
+  (do ((l (cddr p) (cdr l)) (ol))
+      ((null l) (viewsuppsfail (car pl) al depth))
+      (when (setq ol (unify (cadr p) al (car l) al))
+        (viewsuppsexit pl al depth cont)
+        (backup ol))))
+
+(defun viewsuppschoose (p pl al depth cont)
+  (let (x ol)
+    (setq p (plugstdexp p al))
+    (setq x (viewfindx (cadr p) (caddr p) *theory*))
+    (cond ((and (not (null x)) (setq ol (unify (cadddr p) alist x alist)))
+           (prog1 (viewsuppsexit pl al depth cont) (backup ol)))
+          (t (viewsuppsfail (car pl) al depth)))))
+
+(defun viewsuppsbagofall (p pl al depth cont)
+  (let (answer ol)
+    (setq p (plug p al))
+    (setq answer (cons 'listof (viewfinds (cadr p) (caddr p) *theory*)))
+    (cond ((setq ol (unify answer al (cadddr p) al))
+           (prog1 (viewsuppslast pl al depth cont) (backup ol)))
+          (t (viewsuppsfail (car pl) al depth)))))
+
+(defun viewsuppsunprovable (p pl al depth cont)
+  (cond ((viewone (cadr p) (cdr p) al depth nil) (viewsuppsfail (car pl) al depth))
+        (t (viewsuppslast pl al depth cont))))
+
+(defun viewsuppsground (p pl al depth cont)
+  (setq p (plug p al))
+  (if (groundp p) (viewsuppsexit pl al depth cont)))
+
+(defun viewsuppsnonground (p pl al depth cont)
+  (setq p (plug p al))
+  (if (groundp p) nil (viewsuppsexit pl al depth cont)))
+
+(defun viewsuppsexecute (p pl al depth cont)
+  (let (values ol)
+    (setq p (plug p al))
+    (cond ((null (cddr p))
+           (cond ((ignore-errors (eval (cadr p))) (viewsuppsexit pl al depth cont))
+                 (t (viewsuppsfail (car pl) al depth))))
+          ((and (car (setq values (ignore-errors (multiple-value-list (eval (cadr p))))))
+                (setq ol (matchify `(listof . ,(cddr p)) al `(listof . ,(mapcar #'quotify values)) al)))
+           (prog1 (viewsuppsexit pl al depth cont) (backup ol)))
+          (t (viewsuppsfail (car pl) al depth)))))
+
+(defun viewsuppsevaluate (p pl al depth cont)
+  (let (values ol)
+    (setq p (plug p al))
+    (cond ((null (cddr p))
+           (cond ((viewevals (cadr p)) (viewsuppsexit pl al depth cont))
+                 (t (viewsuppsfail (car pl) al depth))))
+          ((and (car (setq values (viewevals (cadr p))))
+                (setq ol (matchify `(listof . ,(cddr p)) al `(listof . ,values) al)))
+           (prog1 (viewsuppsexit pl al depth cont) (backup ol)))
+          (t (viewsuppsfail (car pl) al depth)))))
+
+(defun viewsuppsstringmatch (p pl al depth cont)
+  (viewsuppsexp `(execute (stringmatches ,(cadr p) ,(caddr p)) ? . ,(cdddr p)) pl al depth cont))
+
+(defun viewsuppsbasicval (p pl al depth cont)
+  (let (x y ol)
+    (setq p (plug p al) x (butlast p) y (car (last p)))
+    (cond ((not (groundp x)) (viewsuppsfail (car pl) al depth))
+          ((setq ol (unify (funcall (get (car x) 'basicval) x) al y al))
+           (prog1 (viewsuppslast pl al depth cont) (backup ol)))
+          (t (viewsuppsfail (car pl) al depth)))))
+
+(defun viewsuppsbasic (p pl al depth cont)
+  (setq p (plug p al))
+  (cond ((and (groundp p) (apply (get (car p) 'basic) (cdr p))
+              (viewsuppsexit pl al depth cont)))
+        (t (viewsuppsfail (car pl) al depth))))
+
+(defun viewsuppsrs (p pl al depth cont)
+  (cond ((and *ancestry* (viewsuppsancestor p al cont)) (viewsuppsfail (car pl) al depth))
+        ((and (numberp *ancestry*) (viewsuppsnumber p al cont 0))
+         (setq *termination* t) (viewsuppsfail (car pl) al depth))
+        ((viewsuppsdb p pl al depth cont *theory*))
+        (t (viewsuppsfail (car pl) al depth))))
+
+(defun viewsuppsancestor (p al cont)
+  (do ((l cont (cdr l)))
+      ((null l) nil)
+      (if (identify (caaar l) (cadar l) p al) (return t))))
+
+(defun viewsuppsnumber (p al cont n)
+  (let (ol)
+    (cond ((numgeqp n *ancestry*))
+          ((null cont) nil)
+          ((atom p)
+           (viewsuppsnumber p al (cdr cont) (if (eq p (caaar cont)) (1+ n) n)))
+          ((setq ol (unify p al (caaar cont) (cadar cont)))
+           (prog1 (viewsuppsnumber p al (cdr cont) (1+ n)) (backup ol)))
+          (t (viewsuppsnumber p al (cdr cont) n)))))
+
+(defun viewsuppsdb (p pl al depth cont th)
+  (viewsuppsth p pl al depth cont th)
+  (do ((l (includees th) (cdr l)))
+      ((null l))
+      (viewsuppsdb p pl al depth cont (car l))))
+
+(defun viewsuppsth (p pl al depth cont th)
+  (do ((l (envindexps p al th) (cdr l)) (bl (environment)) (ol))
+      ((null l))
+      (cond ((and (listp (car l)) (eq '<= (caar l)) (null (cddar l)))
+             (when (setq ol (unify (cadar l) bl p al))
+               (viewsuppsexit pl al depth cont)
+               (cond ((subolp ol (alist bl)) (backup ol) (return nil))
+                   (t (backup ol)))))
+            ((and (listp (car l)) (eq '<= (caar l)))
+             (when (setq ol (unify (cadar l) bl p al))
+               (viewsupps (caddar l) (cddar l) bl
+                        (1+ depth) (cons (list pl al depth) cont))
+               (backup ol)))
+            ((setq ol (unify (car l) bl p al))
+             (viewsuppsexit pl al depth cont)
+             (cond ((subolp ol (alist bl)) (backup ol) (return nil))
+                   (t (backup ol)))))))
+
+(defun viewsuppsfail (p al depth)
+  (let (ol)
+    (viewfail p al depth)
+    (when (setq ol (unify p al (car *residue*) truth)) 
+      ;(format t "~&Deleting ~A from residue~%" (plugstdexp p al))
+      (backup ol)
+      (setq *residue* (cdr *residue*)))))
+
+(defun viewsuppsexit (pl al depth cont)
+  (let (p pplug)
+    (setq p (car pl))
+    (viewexit p al depth)
+  ; when finished with a thing that *filter* okays, include it in the answers
+  ; answers is a list of (ans . support)
+  ; until we've finished with
+    (when (funcall *filter* (if (atom p) p (car p)))
+      (setq pplug (plugstdexp p alist))
+      (unless (eq (car *residue*) pplug)
+	;(format t "~&Adding ~A to residue~%" pplug)
+	(push pplug *residue*)))
+    (cond ((cdr pl) (viewsupps (cadr pl) (cdr pl) al depth cont))
+	  (cont (viewsuppsexit (caar cont) (cadar cont) (caddar cont) (cdr cont)))
+	  (t (push (cons (plugstdexp *thing* alist) *residue*) *answers*)))
+    (when (eq (car *residue*) pplug)
+      ;(format t "~&Deleting ~A from residue~%" pplug)
+      (setq *residue* (cdr *residue*)))
+    (viewredo (car pl) al depth)))
+
+(defun viewsuppslast (pl al depth cont)
+  (viewexit (car pl) al depth)
+  (when (funcall *filter* (if (atom (car pl)) (car pl) (caar pl)))
+    (setq *answers* (cons (cons (plugstdexp (car pl) alist) (car *answers*)) (cdr *answers*))))
+  (cond ((cdr pl) (viewsupps (cadr pl) (cdr pl) al depth cont))
+        (cont (viewsuppsexit (caar cont) (cadar cont) (caddar cont) (cdr cont)))
+        (t (setq *answers* (list* nil (cons (plugstdexp *thing* alist) (car *answers*)) (cdr *answers*))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; nextfindp
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1265,6 +1491,7 @@
 (defun viewresidueschoose (p pl al depth cont)
   (let ((*residue* (cons p *residue*))) (viewresidueslast pl al depth cont)))
 
+#|
 (defun viewresiduesbagofall (p pl al depth cont)
   (let (answer ol)
     (setq p (plug p al))
@@ -1272,6 +1499,8 @@
     (cond ((setq ol (unify answer al (cadddr p) al))
            (prog1 (nextalllast pl al depth cont) (backup ol)))
           (t (nextfail (car pl) al depth)))))
+|#
+
 
 (defun viewresiduesbagofall (p pl al depth cont)
   (let (residue)
@@ -1380,6 +1609,7 @@
              (cond ((subolp ol (alist bl)) (backup ol) (return nil))
                    (t (backup ol)))))))
 
+#|
 (defun viewresiduesexit (pl al depth cont)
   (let (dum ans)
     (viewexit (car pl) al depth)
@@ -1395,6 +1625,7 @@
              ;(print ans)
              (setq *answers* (adjoin (maksand ans) *answers* :test #'equalp))))
     (viewredo (car pl) al depth)))
+|#
 
 (defun viewresiduesexit (pl al depth cont)
   (let (dum ans)
@@ -1412,6 +1643,8 @@
              (setq *answers* (adjoin (maksand ans) *answers* :test #'equalp))))
     (viewredo (car pl) al depth)))
 
+#|
+
 (defun viewresidueslast (pl al depth cont)
   (let (dum ans)
     (viewexit (car pl) al depth)
@@ -1425,6 +1658,7 @@
              ;  (unless (eq (setq dum (plugstdexp var alist)) var)
              ;    (setq ans (cons `(same ,var ,dum) ans))))
              (setq *answers* (adjoin (maksand ans) *answers* :test #'equalp))))))
+|#
 
 (defun viewresidueslast (pl al depth cont)
   (let (dum ans)
