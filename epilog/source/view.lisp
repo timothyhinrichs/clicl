@@ -662,7 +662,7 @@
   ; answers is a list of (ans . support)
   ; until we've finished with
     (when (funcall *filter* (if (atom p) p (car p)))
-      (setq pplug (plugstdexp p alist))
+      (setq pplug (plugstdexp p al))
       (unless (eq (car *residue*) pplug)
 	;(format t "~&Adding ~A to residue~%" pplug)
 	(push pplug *residue*)))

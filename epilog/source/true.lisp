@@ -21,6 +21,15 @@
   checker).  It returns T as value."
   (dropth p th f))
 
+(defmethod drop* (p th &optional (f 'samep))
+ "(DROP* P TH &OPTIONAL (F 'SAMEP))
+  DROP takes as argument a sentence, a theory, and an equivalence
+  checker.  It removes from the specified theory and all its included
+  theories all sentences equivalent
+  to the specified sentence (according to the specified equivalence 
+  checker).  It returns T as value."
+  (dropth* p th f))
+
 (defmethod kill (p th &optional (f 'samep))
  "(KILL P TH &OPTIONAL (F 'SAMEP))
   KILL takes as argument an expression, a theory, and an equivalence
@@ -240,6 +249,10 @@
 ;;; Note that DROPTH drops all sentences equivalent to P.  This
 ;;; is more expensive than it need be if facts are added with the
 ;;; same equivalence checker used for removal.  But it is nice this way.
+
+(defun dropth* (p th f)
+  (mapc #'(lambda (x) (dropth* p x f)) (includees th))
+  (dropth p th f))
 
 (defun dropth (p th f)
   (do ((l (indexps p th) (cdr l)))

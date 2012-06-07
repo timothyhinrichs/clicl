@@ -4,7 +4,7 @@
 
 (defconstant *cookie-session-name* '__cookie.session)
 (defun find-cookie-session (cookie) (viewfindx '?x `(,*cookie-session-name* ?x) cookie))
-(defun drop-cookie-session (cookie) (remove-if #'(lambda (x) (eq (relation x) *cookie-session-name*)) cookie))
+(defun drop-cookie-session (cookie) (drop `(,*cookie-session-name* ?x) cookie #'matchp))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Program Parsing
@@ -106,7 +106,7 @@
 	     (push (cons (first ls) (format nil "constraint ~A" cnt)) th))))))
 
 ; cookie data built into the framework: need to add a guard so we can check it
-(define-guard '__single-cookie-session `((=> (,*cookie-session-name* ?x) (,*cookie-session-name* ?y) (= ?x ?y))))
+(define-guard '__single-cookie-session `((=> (,*cookie-session-name* ?x) (,*cookie-session-name* ?y) (same ?x ?y))))
 (defguard __globalstate :inherits (db cookie session __single-cookie-session))
 
 (defguard db)
@@ -263,8 +263,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Execution Engine
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+(defvar *debug-webapps* nil)
 (define-condition guard-violation (error) ((comment :initarg :comment :accessor comment)))
+
 
 (defun serve (in cookie servletname s)
   "(SERVE IN COOKIE SERVLETNAME) executes the servlet with name SERVLETNAME on data IN and COOKIE
@@ -275,40 +276,40 @@
     (setq sessionid (find-cookie-session cookie))
     (cond (sessionid  
 	   ; check if parameter pollution in cookie
+	   (setq cookie (define-theory (make-instance 'prologtheory) "" cookie))
 	   (handler-case (guard-check '__single-cookie-session cookie)
 	     (guard-violation (e) (showerror in cookie servlet e) (return-from serve)))
 	   ; check if we have the session
 	   (multiple-value-bind (session present) (gethash sessionid *sessions*)
-	     (cond (present (serve-normal in (drop-cookie-session cookie) session sessionid servletname))
+	     (cond (present (serve-with-session in (drop-cookie-session cookie) session sessionid servletname))
 		   (t ; lost the session or cookie tampering
 		    (serve-lost-session in cookie servletname)))))
 	    ; non-session request
-	  (t (serve-normal in cookie nil nil servletname)))))
+	  (t (serve-with-session in cookie nil nil servletname)))))
 
 
-(defun serve-normal (in cookie session sessionid servletname)
-  "(SERVE-NORMAL IN COOKIE SESSION SERVLETNAME S) takes lists for IN, COOKIE, SESSION, a SERVLETNAME, and a stream S.
+(defun serve-with-session (in cookie session sessionid servletname)
+  "(SERVE-NORMAL IN COOKIE SESSION SERVLETNAME S) takes theories for IN, COOKIE, SESSION, a SERVLETNAME, and a stream S.
    It outputs the result of the servlet to stream S and returns the new cookie data as a list."
-  (let (newth th servlet)
+  (let (th servlet)
     ; lookup servlet
     (setq servlet (find-servlet servletname))
-    ; create joint theory of in, cookie, session, db
-    (setq th (global-theory in cookie session))
+    ; create data structure (a theory) representing the server's global state and including in, cookie, and session
+    (setq th (get-server-state in cookie session))
     ; process data according to servlet semantics
     (handler-case (progn
                     ; check guards
 		    (mapc #'(lambda (x) (guard-check x th)) (servlet-guards servlet))
-		    ; run updates
-		    (setq newth (transduce-all-data (servlet-updates servlet) th))
+		    ; run updates on theory TH
+		    (transduce-all-data (servlet-updates servlet) th)
 		    ; check integrity constraints for all our data stores
-		    (guard-check '__globalstate newth))
-      (condition (e) (showerror in cookie servlet e) (return-from serve-normal)))
-    ; update global state
-    (setq cookie (update-state (contents newth) sessionid))
+		    (guard-check '__globalstate th))
+      (condition (e) (showerror in cookie servlet e) (return-from serve-with-session)))
+    ; set server's state using results of transduction
+    (setq cookie (set-server-state th sessionid))
     ; render the page to the user
-    (render (servlet-page servlet) newth)
-    ; free memory by unincluding all theories
-    (decludes newth)
+    (render (servlet-page servlet) th)
+    ; free memory by unincluding all theories so that when TH goes out of scope, the memory is freed
     (decludes th)
     ; return the cookie
     cookie))
@@ -317,26 +318,20 @@
   (declare (ignore servletname))
   (render 'lostsession (append in cookie)))
 
-(defun find-cookie-data (th) (find-data 'cookie th))
-(defun find-appdb-data (th) (find-data 'db th))
-(defun find-session-data (th) (find-data 'session th))
-; HORRIBLE PERFORMANCE
-(defun find-data (namespace th)
-  (let (l)
-    (setq namespace (tostring namespace "."))
-    (setq l (length namespace))
-    (remove-if-not #'(lambda (x) (and (listp x) (>= (length (tostring (car x))) l) 
-				      (string= (subseq (tostring (car x)) 0 l) namespace))) (contents th))))
-
-(defun global-theory (in cookie session)
-  (assert (and (listp in) (listp cookie) (listp session)) nil "In global-theory, expected lists for in, cookie, session")
-  (let (th)
-    (setq th (define-theory (make-instance 'prologtheory) "" (append in cookie session)))
-    (includes th *appdb*)  ; does this get deallocated EVER?
+(defun get-server-state (in cookie session)
+  "(GET-SERVER-STATE IN COOKIE SESSION) returns a theory (possibly with includees) that contains 
+   all of IN, COOKIE, SESSION, and *appdb*"
+  (let (th theories)
+    (setq theories (list *appdb*))
+    (if (listp in) (setq th (nconc th in)) (push in theories))
+    (if (listp cookie) (setq th (nconc th cookie)) (push cookie theories))
+    (if (listp session) (setq th (nconc th session)) (push session theories))
+    (setq th (define-theory (make-instance 'prologtheory) "" th))
+    (mapc #'(lambda (x) (includes th x)) theories)  ; this ensures TH only gets deallocated if we declude it when we're done
     th))
 
-(defun update-state (th sessionid)
-  "(UPDATE-STATE TH SESSIONID) updates the server's state and returns the cookie for the user to update her state."
+(defun set-server-state (th sessionid)
+  "(SET-SERVER-STATE TH SESSIONID) updates the server's state and returns the cookie for the user to update her state."
   (let (cookie session)
     (setq *appdb* (define-theory (make-instance 'prologtheory) "" (find-appdb-data th)))
     (setq session (find-session-data th))
@@ -353,11 +348,25 @@
 	   (when sessionid (remhash sessionid *sessions*))))
     cookie))
 
+(defun find-cookie-data (th) (find-data 'cookie th))
+(defun find-appdb-data (th) (find-data 'db th))
+(defun find-session-data (th) (find-data 'session th))
+; HORRIBLE PERFORMANCE
+(defun find-data (namespace th)
+  (let (l)
+    (setq namespace (tostring namespace "."))
+    (setq l (length namespace))
+    (remove-if-not #'(lambda (x) (and (listp x) (>= (length (tostring (car x))) l) 
+				      (string= (subseq (tostring (car x)) 0 l) namespace))) (sentences '? th))))
+
 (defun transduce-all-data (updates data)
   "(TRANSDUCE-ALL-DATA UPDATES DATA) applies a sequence of database names UPDATES to DATA and
    returns the result.  DATA is assumed to be indexed; returns an indexed DATA."
+  (when *debug-webapps* (format t "~&Initial Database: ~%~S~%" (sentences '? data)))
   (dolist (u updates data)
-    (setq data (transduce-data u data))))
+    (when *debug-webapps* (format t "~&Applying update ~A~%" u))
+    (setq data (transduce-data u data))
+    (when *debug-webapps* (format t "~&Database after applying update ~A: ~%~S~%" u (sentences '? data)))))
 
 (defun transduce-data (up data)
   "(TRANSDUCE-DATA UP DATA) applies the update named UP to DATA (including any guards checking for UP)
@@ -375,12 +384,15 @@
     (includes data (update-datalog up))
     (setq pos (viewfinds '?x `(pos ?x) data))
     (setq neg (viewfinds '?x `(neg ?x) data))
+    (when *debug-webapps* (format t "~&Pos update: ~%~S~%" pos))
+    (when *debug-webapps* (format t "~&Neg update: ~%~S~%" neg))
+
 ;    (setq th (mapcan #'(lambda (x) (let ((p (cons (parameter-symbol x) 
 ;						  (maptimes #'newindvar (parameter-arity x)))))
 ;				     (viewfinds p p data)))
 ;	  preds))
     (unincludes data (update-datalog up))
-    (mapc #'(lambda (x) (drop x data)) neg)
+    (mapc #'(lambda (x) (drop* x data)) neg)  ; using drop* to ensure removed from all included theories
     (mapc #'(lambda (x) (save x data)) pos)
     data))
 
@@ -390,15 +402,18 @@
    for why satisfaction fails.  Should always be able to assume DATA is complete; however,
    there might be datalog view definitions in GUARD."
   (assert (not (listp data)) nil (format nil "guard-check assumes DATA is a real theory, not a list"))
-  (let (th errs)
+  (let (th preds errs)
+    ;(setq *tmp* th)
     (setq th (guard-datalog (find-guard guard)))
     (includes th data)
-    (setq errs (viewsupports '?text '(__error ?text) th))
+    (setq preds (mapcar #'parameter-symbol (get-vocabulary (maksand (contents data)))))
+    ;(setq *tmp2* preds)
+    (setq errs (viewsupports '?text '(__error ?text) th #'(lambda (x) (member x preds))))
     (unincludes th data)
-    (when errs (error 'guard-violation :comment errs))))
+    (when errs (error 'guard-violation :comment (list guard errs)))))
 
 (defun showerror (in cookie servlet err)
-  (format *output-stream* "~&!!!!Caught an error!!!!~%~%")
+  (format *output-stream* "~&!!!!Caught an error!!!!~%")
   (print (comment err) *output-stream*)
   (print in *output-stream*)
   (print cookie *output-stream*)
@@ -411,7 +426,7 @@
    forms.  Similarly for tables.  So after a subpage is generated, these replacements are made.
    At the end, forms are populated with DATA."
   (declare (ignore pagename))
-  (print data *output-stream*))
+  (print (sentences '? data) *output-stream*))
 
 ;  (princ (populate-page-with-data (render-to-string pagename) data) s))
 

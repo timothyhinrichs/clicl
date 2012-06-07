@@ -154,18 +154,18 @@
   (<= (pos (db.user.newsletter ?x ?y)) (and (profile.username ?x) (profile.newsletter ?y)) )
   ;(<= (db.user.regdate ?x ?now) (profile.username ?x) (builtin.now ?now) )
 
-  (<= (neg (db.user.name ?x ?y)) (and (profile.username ?x) (db.user.name ?y)) )
-  (<= (neg (db.user.pass ?x ?y)) (and (profile.username ?x) (db.user.pass ?y)) )
-  (<= (neg (db.user.birthmonth ?x ?y)) (and (profile.username ?x) (db.user.birthmonth ?y)) )
-  (<= (neg (db.user.birthday ?x ?y)) (and (profile.username ?x) (db.user.birthday ?y)) )
-  (<= (neg (db.user.birthyear ?x ?y)) (and (profile.username ?x) (db.user.birthyear ?y)) )
-  (<= (neg (db.user.address ?x ?y)) (and (profile.username ?x) (db.user.address ?y)) )
-  (<= (neg (db.user.city ?x ?y)) (and (profile.username ?x) (db.user.city ?y)) )
-  (<= (neg (db.user.state ?x ?y)) (and (profile.username ?x) (db.user.state ?y)) )
-  (<= (neg (db.user.country ?x ?y)) (and (profile.username ?x) (db.user.country ?y)) )
-  (<= (neg (db.user.zip ?x ?y)) (and (profile.username ?x) (db.user.zip ?y)) )
-  (<= (neg (db.user.telephone ?x ?y)) (and (profile.username ?x) (db.user.telephone ?y)) )
-  (<= (neg (db.user.newsletter ?x ?y)) (and (profile.username ?x) (db.user.newsletter ?y)) )
+  (<= (neg (db.user.name ?x ?y)) (and (profile.username ?x) (db.user.name ?x ?y)) )
+  (<= (neg (db.user.pass ?x ?y)) (and (profile.username ?x) (db.user.pass ?x ?y)) )
+  (<= (neg (db.user.birthmonth ?x ?y)) (and (profile.username ?x) (db.user.birthmonth ?x ?y)) )
+  (<= (neg (db.user.birthday ?x ?y)) (and (profile.username ?x) (db.user.birthday ?x ?y)) )
+  (<= (neg (db.user.birthyear ?x ?y)) (and (profile.username ?x) (db.user.birthyear ?x ?y)) )
+  (<= (neg (db.user.address ?x ?y)) (and (profile.username ?x) (db.user.address ?x ?y)) )
+  (<= (neg (db.user.city ?x ?y)) (and (profile.username ?x) (db.user.city ?x ?y)) )
+  (<= (neg (db.user.state ?x ?y)) (and (profile.username ?x) (db.user.state ?x ?y)) )
+  (<= (neg (db.user.country ?x ?y)) (and (profile.username ?x) (db.user.country ?x ?y)) )
+  (<= (neg (db.user.zip ?x ?y)) (and (profile.username ?x) (db.user.zip ?x ?y)) )
+  (<= (neg (db.user.telephone ?x ?y)) (and (profile.username ?x) (db.user.telephone ?x ?y)) )
+  (<= (neg (db.user.newsletter ?x ?y)) (and (profile.username ?x) (db.user.newsletter ?x ?y)) )
     
 #|  Notice that the following is much easier to write than the above.
   (=> (profile.username ?x) (db.user ?x))
@@ -192,28 +192,25 @@
 ; note: could combine lookupprofile and saveprofile into 1 updater with a conditioned malleable and <=> instead of =>
 (defupdate lookupprofile ()
   ; data constraints (note these are not datalog)
-  (<= (profile.username ?x) (db.user ?x))					
-  (<= (and (profile.username ?x) (profile.name ?y)) (db.user.name ?x ?y))
-  (<= (and (profile.username ?x) (profile.pass ?y)) (db.user.pass ?x ?y))
-  (<= (and (profile.username ?x) (profile.birthmonth ?y)) (db.user.birthmonth ?x ?y))
-  (<= (and (profile.username ?x) (profile.birthday ?y)) (db.user.birthday ?x ?y))
-  (<= (and (profile.username ?x) (profile.birthyear ?y)) (db.user.birthyear ?x ?y))
-  (<= (and (profile.username ?x) (profile.address ?y)) (db.user.address ?x ?y))
-  (<= (and (profile.username ?x) (profile.city ?y)) (db.user.city ?x ?y))
-  (<= (and (profile.username ?x) (profile.state ?y)) (db.user.state ?x ?y))
-  (<= (and (profile.username ?x) (profile.country ?y)) (db.user.country ?x ?y))
-  (<= (and (profile.username ?x) (profile.zip ?y)) (db.user.zip ?x ?y))
-  (<= (and (profile.username ?x) (profile.telephone ?y)) (db.user.telephone ?x ?y))
-  (<= (and (profile.username ?x) (profile.newsletter ?y)) (db.user.newsletter ?x ?y))
-  ; data constraint resolution
-  (malleable profile*)
-  ; conditioned resolution (for combining lookup and save updates)
-  ;(ifthenelse (empty profile) (malleable profile.*) (malleable db.user*))
+  (<= (pos (profile.name ?y)) (profile.username ?x) (db.user.name ?x ?y))
+  (<= (pos (profile.pass ?y)) (profile.username ?x) (db.user.pass ?x ?y))
+  (<= (pos (profile.birthmonth ?y)) (profile.username ?x) (db.user.birthmonth ?x ?y))
+  (<= (pos (profile.birthday ?y)) (profile.username ?x) (db.user.birthday ?x ?y))
+  (<= (pos (profile.birthyear ?y)) (profile.username ?x) (db.user.birthyear ?x ?y))
+  (<= (pos (profile.address ?y)) (profile.username ?x)  (db.user.address ?x ?y))
+  (<= (pos (profile.city ?y)) (profile.username ?x) (db.user.city ?x ?y))
+  (<= (pos (profile.state ?y)) (profile.username ?x) (db.user.state ?x ?y))
+  (<= (pos (profile.country ?y)) (profile.username ?x) (db.user.country ?x ?y))
+  (<= (pos (profile.zip ?y)) (profile.username ?x)  (db.user.zip ?x ?y))
+  (<= (pos (profile.telephone ?y)) (profile.username ?x) (db.user.telephone ?x ?y))
+  (<= (pos (profile.newsletter ?y)) (profile.username ?x) (db.user.newsletter ?x ?y))
+)
+(defupdate session2profile ()
+  (<= (pos (profile.username ?x)) (session.user ?x))
 )
 
-; written in datalog
 (defupdate statusok ()
-    (<= (status "ok"))
+    (<= (pos (status "ok")))
 )
 
 ; described with constraints
@@ -275,15 +272,12 @@
   (malleable search.output.*)
 )
 
-; written with constraints
 (defupdate login (:guards (login-basic))
 ;  (=> (login.id ?id) (builtin.freshsession ?sess) (and (cookie.session ?sess) (session.id ?sess)))
-  ; just stick something in the session so the system initializes it
-  (<= (pos (session.user ?x)) (login.id ?x))
-
-  ; data constraint resolution
 ;  (malleable cookie.session) 
 ;  (malleable session.*)
+
+  (<= (pos (session.user ?x)) (login.id ?x))
 )
 
 (defupdate profile2login ()
@@ -292,7 +286,7 @@
 )
 
 (defupdate news ()
-   (<- (news ?x) (db.news ?x)))
+   (<= (pos (news ?x)) (db.news ?x)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;; Forms/Tables ;;;;;;;;;;;;;;;;;;
@@ -329,9 +323,9 @@
 ; Registration processing: store profile, convert profile username/pwd to login schema, login, return simple page saying "Registration saved"
 (defservlet register :guards (profile-uniqueness profile-basic) :updates (saveprofile profile2login login) :page success)
 ; Profile lookup for editing
-(defservlet show-profile :updates (lookupprofile) :page edit-profile :entry t)
+(defservlet show-profile :updates (session2profile lookupprofile) :page edit-profile :entry t)
 ; Profile saving: store profile, login, repopulate profile page with profile and set status message to OK.
-(defservlet update-profile :guards (profile-loggedin profile-basic) :updates (saveprofile lookupprofile statusok) :page edit-profile)
+(defservlet update-profile :guards (profile-loggedin profile-basic) :updates (session2profile saveprofile statusok) :page edit-profile)
 
 ; Advanced search page: combine search fields and results onto single page 
 ;(defservlet search :guards (search-basic) :actions (runsearch) :page search :entry t)
