@@ -839,7 +839,8 @@ function addWidget (obj) {
     (setq p (pl-fhl-to-fhl p (ws-builtin-parameters)))
     (setq p (vars2monadics p))
     (setq errs (fhlp p builtins))
-    (if errs (values (remove-duplicates errs :test #'equal) p) nil)))
+    (when errs (pprint p) (pprint errs))
+    errs))
 
 (defun fhlc2web-theory (p &key (completep nil) (casesensitive t) (allowconflicts t) (debug nil) (unique t))
   (let (th preds builtins)
