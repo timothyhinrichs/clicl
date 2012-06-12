@@ -824,14 +824,21 @@ function addWidget (obj) {
     (when (htmlform-errors html)
       (warn (htmlform-errors html)))
     (htmlform-javascript html)))
-    
+
 (defun pl-fhl-to-js (p &key (completep t) (casesensitive t) (allowconflicts t) (debug nil) (unique t))
   "(PLFHLC-to-JS P) takes a sentence in FHL extended with traditional programming language syntactic sugar and
    returns the JavaScript for checking those constraints."
-  (setq p (pl-fhl-to-fhl p (ws-builtins)))
+  (setq p (pl-fhl-to-fhl p (ws-builtin-parameters)))
   (setq p (vars2monadics p))
   (fhlc2js p :completep completep :casesensitive casesensitive :allowconflicts allowconflicts
 	   :debug debug :unique unique))
+
+(defun pl-fhl-to-js-check (p)
+  "(PL-FHL-TO-JS-CHECK P) runs a syntax checker on P (after doing a little conversion) and returns a list of serrors"
+  (setq p (pl-fhl-to-fhl p (ws-builtin-parameters)))
+  (setq p (vars2monadics p))
+  (print p)
+  (fhlp p nil)) ;(ws-builtin-parameters)))
 
 (defun fhlc2web-theory (p &key (completep nil) (casesensitive t) (allowconflicts t) (debug nil) (unique t))
   (let (th preds builtins)

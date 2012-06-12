@@ -535,7 +535,7 @@
 (defun improper-funcs-to-relns (p vocab)
   "(IMPROPER-FUNCS-TO-RELNS P) translates all functions that appear as atoms (implicitly casted to bool) into relations"
   (let (isfunc)
-    (setq isfunc #'(lambda (x y) (and (eq x (pred-name y)) (isfunction (pred-parameter y)))))
+    (setq isfunc #'(lambda (x y) (and (eq x (parameter-symbol y)) (isfunction y))))
     (mapatoms #'(lambda (q) (let (b)
 			      (setq b (find (relation q) vocab :test isfunc))
 			      (if b `(= true (tobool ,q)) q)))
