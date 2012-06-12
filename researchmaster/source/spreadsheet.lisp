@@ -924,6 +924,9 @@ function addWidget (obj) {
   (mapcar #'(lambda (x) (tostring *ws-php-namespace* "." x)) *ws-php-builtin-names*)
   "The list of all php builtins with the namespace prefixed")
 
+(defun ws-builtin-parameters ()
+  (mapcar #'pred-parameter (ws-builtins)))
+
 (defun ws-builtins () 
   (nconc (mapcar #'(lambda (x) (make-pred :parameter x 
 					  :kind :builtin)) 
