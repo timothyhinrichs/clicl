@@ -833,12 +833,13 @@ function addWidget (obj) {
   (fhlc2js p :completep completep :casesensitive casesensitive :allowconflicts allowconflicts
 	   :debug debug :unique unique))
 
-(defun pl-fhl-to-js-check (p)
+(defun pl-fhl-to-js-check (p &optional (builtins (ws-builtin-parameters)))
   "(PL-FHL-TO-JS-CHECK P) runs a syntax checker on P (after doing a little conversion) and returns a list of serrors"
-  (setq p (pl-fhl-to-fhl p (ws-builtin-parameters)))
-  (setq p (vars2monadics p))
-  (print p)
-  (fhlp p nil)) ;(ws-builtin-parameters)))
+  (let (errs)
+    (setq p (pl-fhl-to-fhl p (ws-builtin-parameters)))
+    (setq p (vars2monadics p))
+    (setq errs (fhlp p builtins))
+    (if errs (values (remove-duplicates errs :test #'equal) p) nil)))
 
 (defun fhlc2web-theory (p &key (completep nil) (casesensitive t) (allowconflicts t) (debug nil) (unique t))
   (let (th preds builtins)
