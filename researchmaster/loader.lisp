@@ -48,6 +48,7 @@
 (load (loadfn "spreadsheet" :dir "source"))
 (load (loadfn "spreadsheetserver" :dir "source"))
 (load (loadfn "webapps1" :dir "source"))
+(load (loadfn "webapps2" :dir "source"))
 
 
 

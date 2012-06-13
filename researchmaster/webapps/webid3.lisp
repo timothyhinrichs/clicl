@@ -321,11 +321,11 @@
 ; Registration creation
 (defservlet show-registration :page new-profile :entry t)
 ; Registration processing: store profile, convert profile username/pwd to login schema, login, return simple page saying "Registration saved"
-(defservlet register :guards (profile-uniqueness profile-basic) :updates (saveprofile profile2login login) :page success)
+(defservlet register :guards (profile-uniqueness profile-basic) :updates (saveprofile profile2login login) :page success :entry t)
 ; Profile lookup for editing
-(defservlet show-profile :updates (session2profile lookupprofile) :page edit-profile :entry t)
+(defservlet show-profile :updates (session2profile lookupprofile) :page edit-profile-page)
 ; Profile saving: store profile, login, repopulate profile page with profile and set status message to OK.
-(defservlet update-profile :guards (profile-loggedin profile-basic) :updates (session2profile saveprofile statusok) :page edit-profile)
+(defservlet update-profile :guards (profile-loggedin profile-basic) :updates (session2profile saveprofile statusok) :page edit-profile-page)
 
 ; Advanced search page: combine search fields and results onto single page 
 ;(defservlet search :guards (search-basic) :actions (runsearch) :page search :entry t)

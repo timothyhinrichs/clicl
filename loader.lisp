@@ -31,6 +31,7 @@
 (load (loadfn "load" :dir "dso-lex-0.3.2"))  ; lex
 (load (loadfn "yacc" :dir "cl-yacc-0.3"))   ; yacc
 (load (loadfn "loader" :dir "sapa-stats"))   ; statistics
+(load (loadfn "xmls" :dir "xmls-1.4.1")) ; XML/HTML parsing
 
 ; epilog
 (load (loadfn "loader" :dir "epilog"))
