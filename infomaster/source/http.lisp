@@ -353,11 +353,17 @@
 ;;; output
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun output-html-prolog (s status-code)
+(defun output-html-prolog (s status-code &optional (oldcookies nil) (newcookies nil))
   (format s "HTTP/1.0 ~D ~A"
 	  status-code (rest (assoc status-code *http-status-codes*))) (crlf s)
   (format s "Content-type: text/html") (crlf s)
-  (crlf s))  
+  ; delete old cookies by setting expiration date in the past
+  (dolist (c (set-difference oldcookies newcookies :key #'car :test #'equal))
+    (format s "Set-Cookie: ~A=~A; Expires=Wed, 13 Jun 2012 10:18:14 GMT" (car c) (cdr c)) (crlf s))	  
+  ; insert new cookies
+  (dolist (c newcookies)
+    (format s "Set-Cookie: ~A=~A" (car c) (cdr c)) (crlf s))
+  (crlf s))
 
 (defun output-xml-prolog (s dum)
   (format s "HTTP/1.0 200 OK") (crlf s)

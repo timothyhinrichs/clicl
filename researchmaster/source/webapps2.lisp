@@ -1,10 +1,32 @@
-(defvar *appdb* nil)
-(defvar *sessions* (make-hash-table))
-(defvar *output-stream* t)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Global variables
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; make sure to end with / 
+(defparameter *fs-path* "/Users/thinrich/Research/code/clicl/researchmaster/")
+(defparameter *web-path* "/docserver/infoserver/examples/researchmaster/")
+(defparameter *component-paths* '((:app . "webapps/webid/")
+				  (:html . "webapps/webid/")
+				  (:compile . "webapps/webid/compiled/")))
+(defun fspath (component path)
+  (let ((res (find component *component-paths* :key #'car)))
+    (assert res nil (format nil "Couldn't find component ~A when computing absolute path for ~A" component path))
+    (stringappend *fs-path* (cdr res) path)))
+
+(defun webpath (component path)
+  (let ((res (find component *component-paths* :key #'car)))
+    (assert res nil (format nil "Couldn't find component ~A when computing absolute path for ~A" component path))
+    (stringappend *web-path* (cdr res) path)))
+
 
 (defconstant *cookie-session-name* '__cookie.session)
 (defun find-cookie-session (cookie) (viewfindx '?x `(,*cookie-session-name* ?x) cookie))
 (defun drop-cookie-session (cookie) (drop `(,*cookie-session-name* ?x) cookie #'matchp))
+
+; internal globals
+(defvar *appdb* nil)
+(defvar *sessions* (make-hash-table))
+(defvar *output-stream* t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Program Parsing
@@ -22,10 +44,10 @@
   "(DEFSIGNATURE P &REST L) takes a signature name and a list of symbol declarations.
    Each symbol declaration is either a symbol or a list (symbol [:arity n] [:type thing])"
   `(define-signature ',p ',l))
-
+  
 (defun define-signature (p l)
   (let ((arity nil) (h nil) (type nil) name (sig nil))
-    ; walk over the symbol declarations and turn into a parameter
+    ; walk over the symbol declarations and turn each into a parameter
     (dolist (x l)
       (cond ((atom x) (setq name x))
 	    ((listp x) 
@@ -35,11 +57,46 @@
 	     (setq type (gethash :type h)))
 	    (t (error 'invalid-signature :comment (format nil "Unknown symbol declaration type: ~A" x))))
       (unless (symbolp name) (error 'invalid-signature :comment (format nil "Unknown symbol name type: ~A" x )))
-      (unless (and (numberp arity) (>= arity 0)) (setq arity 2))
-      (unless type (setq type 'string))
+      ; make sure type is a list of things, when it is provided
+      (when (and type (atom type)) (setq type (list type)))
+      ; make sure reasonable values for arity and type, when provided
+      (when (and arity (or (not (integerp arity)) (< arity 0)))
+	(error 'invalid-signature :comment (format nil "Non-integral or non-positive arity ~A for symbol ~A" arity x)))
+       (when (and type (not (every #'symbolp type)))
+	(error 'invalid-signature :comment (format nil "Typename not a symbol in ~A" x)))
+      ; infer arity/type if not provided
+       (cond ((and (not arity) (not type)) (setq arity 1) (setq type (list 'string)))
+	    ((and arity (not type)) (setq type (n-copies arity 'string)))
+	    ((and (not arity) type) (setq arity (length type)))
+	    (t (unless (= (length type) arity)
+		 (error 'invalid-signature :comment (format nil "Type and arity incompatible in ~A" x)))))
+      ; make the parameter
       (push (make-parameter :symbol name :arity arity :type type) sig))
-    ;(when (gethash p *signatures*) (warn (format nil "Redefining signature ~A" p)))
-    (setf (gethash p *signatures*) sig)))
+    ; store list of parameters *in the order the programmer declared them*
+    (setf (gethash p *signatures*) (nreverse sig))))
+
+(defmacro defsignature1 (p &rest l)
+  "(DEFSIGNATURE1 P &REST L) takes a signature name and a list of symbol declarations.
+   Each symbol declaration is either a symbol or a list (symbol [:type thing]).
+   Ensures the arity of each symbol is 1, regardless of declaration."
+  `(define-signature1 ',p ',l))
+
+(defun define-signature1 (p l)
+  (mapc #'(lambda (x) (setf (parameter-arity x) 1)) (define-signature p l)))
+
+(defmacro defsignature3 (p &rest l)
+  "(DEFSIGNATURE3 P &REST L) takes a signature name and a list of symbol declarations.
+   Each symbol declaration is either a symbol or a list (symbol [:type thing]).
+   Ensures the signature represents a table in triples format, i.e. the first relation is the key
+   and has arity 1, and the rest are attributes and have arity 2, where the first argument is the key."
+  `(define-signature3 ',p ',l))
+
+(defun define-signature3 (p l)
+  (setq p (define-signature p l))
+  (setf (parameter-arity (car p)) 1)
+  (mapc #'(lambda (x) (setf (parameter-arity x) 2)) (cdr p)))
+
+
 
 (defvar *schemas* (make-hash-table))
 (defstruct schema name guards signature)
@@ -68,7 +125,7 @@
 (defun find-guard (x)
   (multiple-value-bind (y present) (gethash x *guards*)
     (unless present (error 'unknown-guard :comment x))
-    y))
+    y))   
 
 (defmacro defguard (p &rest l)
   "(DEFGUARD P &REST L)"
@@ -104,14 +161,6 @@
 	     (setq ls (cdr ls)))
 	    (t
 	     (push (cons (first ls) (format nil "constraint ~A" cnt)) th))))))
-
-; cookie data built into the framework: need to add a guard so we can check it
-(define-guard '__single-cookie-session `((=> (,*cookie-session-name* ?x) (,*cookie-session-name* ?y) (same ?x ?y))))
-(defguard __globalstate :inherits (db cookie session __single-cookie-session))
-
-(defguard db)
-(defguard cookie)
-(defguard session)
 
 
 (defvar *updates* (make-hash-table))
@@ -197,7 +246,9 @@
     (setf (gethash p *servlets*) (make-servlet :name p :page (gethash :page h) :guards (gethash :guards h) 
 					       :updates (gethash :updates h) :entry (gethash :entry h)))))
 
+; HTML keys are lists of (htmlpagenames or filenames or HTMLREPL objs)
 (defvar *html* (make-hash-table))
+(defstruct htmlrepl target forms tables)
 (define-condition invalid-html (error) ((comment :initarg :comment :accessor comment)))
 (define-condition unknown-html (error) ((comment :initarg :comment :accessor comment)))
 (defun find-html (x)
@@ -210,9 +261,17 @@
   `(define-html ',p ',l))
 
 (defun define-html (p l)
-  ;(when (gethash p *html*) (warn (format nil "Redefining html ~A" p)))
-  (setf (gethash p *html*) l))
-
+  (let (h (newl nil))
+    (dolist (e l)
+      (cond ((symbolp e) (push e newl))
+	    ((stringp e) (push e newl))
+	    ((listp e) 
+	     (unless (or (symbolp (car e)) (stringp (car e))) (error 'invalid-html :comment (format nil "~A in ~A" e p)))
+	     (setq h (grab-keyvals (cdr e) '(:forms :tables) 'invalid-html))
+	     (push (make-htmlrepl :target (car e) :forms (gethash :forms h) :tables (gethash :tables h)) newl))
+	    (t (error 'invalid-html :comment p))))
+    (setf (gethash p *html*) (nreverse newl))))
+    
 
 ;;; Helper functions
 (defun grab-keyvals (l keys error)
@@ -221,11 +280,29 @@
   (do ((ys l (cdr ys))
        (h (make-hash-table)))
       ((null ys) h)
-    (cond ((member (first ys) keys) 
+    (cond ((or (not keys) (member (first ys) keys))
 	   (setf (gethash (first ys) h) (second ys))
 	   (setq ys (cdr ys)))
 	  (t (error error  :comment (format nil "Unknown option: ~A" ys))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Builtin program elements
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; must be defined *after* all of the above--they're macros, after all.
+
+; internal guard ensuring each cookie has a single session key
+(define-guard '__single-cookie-session `((=> (,*cookie-session-name* ?x) (,*cookie-session-name* ?y) (same ?x ?y))))
+
+; internal guard to check against the global state
+(defguard __globalstate :inherits (db cookie session __single-cookie-session))
+; can all be re-defined by the app
+(defguard db)
+(defguard cookie)
+(defguard session)
+
+; internal servlet: for when unknown servlet is chosen
+(defservlet __unknown :page "__unknown.html" :entry t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Program Analysis
@@ -259,38 +336,140 @@
       (format t ";~A~%" v))
     (not errors)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Compiler
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; right now we're throwing away results, but we ought to be storing them and making this an
+;   actual compilation step
+(defun guard-logic-full (guard)
+  "(GUARD-LOGIC-FULL GUARD) returns the list of all sentences in the guard named GUARD or in 
+   one of the guards inherited from GUARD (recursively).  Memoized."
+  (remove-duplicates (guard-logic-full-aux guard (make-hash-table)) :test #'equal))
+
+(defun guard-logic-full-aux (guardname done)
+  "(GUARD-LOGIC-FULL-AUX GUARDNAME DONE) takes a guard name GUARDNAME and a hash table DONE.
+   Returns the guard-logic for GUARD and memoizes results in DONE."
+  (let (logic guard)
+    (setq logic (gethash guardname done))
+    (cond (logic logic)
+	  (t (setq guard (find-guard guardname))
+	     (setf (gethash guardname done) 
+		   (append (apply #'append (mapcar #'(lambda (x) (guard-logic-full-aux x done)) (guard-supers guard)))
+			   (guard-logic guard)))))))
+
+; TODO: figure out uniqueness from constraints; more generally, do something smarter than dropping quantified constraints
+(defun compile-form (formname &key (html nil) (js t))
+  "(COMPILE-FORM FORMNAME) runs Plato to generate the form described by FORMNAME and saves
+  to an HTML/JS file in *compile-dir*."   
+
+  (let (th form target schema guards h)    
+    ; extract info
+    (setq form (find-form formname))
+    (setq target (form-target form))
+    (setq schema (find-schema (form-schema form)))
+    (setq guards nil)
+    (setq guards (union (form-guards form) (schema-guards schema)))
+    (setq guards (remove-if-not #'quantifier-free-sentencep (remove-duplicates (mapcan #'guard-logic-full guards) :test #'equal)))
+    (setq guards (and2list (del-namespace (maksand guards) (schema-signature (find-schema (form-schema (find-form formname)))))))
+    (setq th (prep-plato-theory formname target nil))
+    (push `(constraints ',guards) th)
+    (setq h (compile-websheet th))
+    (setf (htmlform-action h) (format nil "/scwa?"))
+    (when html
+      (with-open-file (f (fspath :compile (tostring formname ".html")) :direction :output :if-does-not-exist :create :if-exists :supersede)
+	(output-htmlform-form f h)))
+    (when js
+      (with-open-file (f (fspath :compile (tostring formname ".js")) :direction :output :if-does-not-exist :create :if-exists :supersede)
+	(princ (htmlform-javascript h) f)
+	(format f "function getBigBoxName (x) { return x + 'BIGBOX'; }~%")))
+    'done))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Execution Engine
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defvar *debug-webapps* nil)
 (define-condition guard-violation (error) ((comment :initarg :comment :accessor comment)))
+; internal servlet
 
+; TODO: parameter tampering defense so we don't need formname as data
+(defmethod process-cookies ((file (eql 'scwa)) postlines)  
+  (let (servletname formname cookies in)
+
+    ; grab target (only necessary b/c deployed using interpreter)
+    (setq servletname (read-user-string (getf-post "servlet" postlines)))
+    (unless (gethash servletname *servlets*) (setq servletname '__unknown))
+
+    ; grab source and correct for namespace
+    (setq formname (read-user-string (getf-post "formname" postlines)))
+    (setq in (remove-if #'(lambda (x) (member (car x) '("servlet" "formname") :test #'equal)) postlines)) 
+    (when formname
+      (setq in (add-namespace in (tostring (schema-signature (find-schema (form-schema (find-form formname))))))))
+    (add-namespace cookies "cookie")
+
+    ; make relations symbols
+    (setq in (pairs2data in))
+    (setq cookies (pairs2data *cookies*))
+
+    ; run the servlet and return its cookies
+    (setq *content*
+	  (with-output-to-string (stream)
+	    (setq cookies (serve in cookies servletname stream))))
+    cookies))
+
+(defun add-namespace (l prefix)
+  "(ADD-NAMESPACE L PREFIX) takes a postlines L and a string PREFIX."
+  (assert (and (stringp prefix) (every #'(lambda (x) (stringp (car x))) l)) nil 
+	  (format nil "ADD-NAMESPACE requires strings as arguments"))
+  (mapcar #'(lambda (x) (if (atom x)
+			    (tosymbol (stringappend prefix "." x))
+			    (cons (stringappend prefix "." (car x)) (cdr x))))
+		    l))
+
+(defun del-namespace (l prefix)
+  (let* (pre lpre)
+    (setq pre (tostring prefix "."))
+    (setq lpre (length pre))
+    (mapatoms #'(lambda (x) (let ((p (tostring (relation x))))
+			      (if (and (>= (length p) lpre) (string= pre p :end2 lpre))
+				  (if (atom x)
+				      (tosymbol (subseq p lpre))
+				      (cons (tosymbol (subseq p lpre)) (cdr x)))
+				  x)))
+	      l)))
+
+; process is now called *after* process-cookies, which for us does all the work.
+; So we just print the result of process-cookies, which was saved in *content*
+(defmethod process (s (file (eql 'scwa)) postlines)
+  (declare (ignore postlines))
+  (princ *content* s))
+
+(defun pairs2data (postlines)
+  (mapcar #'(lambda (x) (list (read-user-string (car x)) (cdr x))) postlines))
 
 (defun serve (in cookie servletname s)
   "(SERVE IN COOKIE SERVLETNAME) executes the servlet with name SERVLETNAME on data IN and COOKIE
    and prints the resulting HTML page to stream S and returns new cookie data.  All data is represented
-   as lists."
+   as lists of KIF atoms."
   (let (servlet sessionid (*output-stream* s))
     ; Session?
     (setq sessionid (find-cookie-session cookie))
-    (cond (sessionid  
-	   ; check if parameter pollution in cookie
-	   (setq cookie (define-theory (make-instance 'prologtheory) "" cookie))
-	   (handler-case (guard-check '__single-cookie-session cookie)
+    (cond (sessionid  	  
+	   (when (listp cookie) (setq cookie (define-theory (make-instance 'prologtheory) "" cookie)))
+	   (handler-case (guard-check '__single-session-cookie cookie)
 	     (guard-violation (e) (showerror in cookie servlet e) (return-from serve)))
 	   ; check if we have the session
 	   (multiple-value-bind (session present) (gethash sessionid *sessions*)
-	     (cond (present (serve-with-session in (drop-cookie-session cookie) session sessionid servletname))
+	     (cond (present (serve-session in (drop-cookie-session cookie) session sessionid servletname))
 		   (t ; lost the session or cookie tampering
 		    (serve-lost-session in cookie servletname)))))
 	    ; non-session request
-	  (t (serve-with-session in cookie nil nil servletname)))))
+	  (t (serve-session in cookie nil nil servletname)))))
 
 
-(defun serve-with-session (in cookie session sessionid servletname)
+(defun serve-session (in cookie session sessionid servletname)
   "(SERVE-NORMAL IN COOKIE SESSION SERVLETNAME S) takes theories for IN, COOKIE, SESSION, a SERVLETNAME, and a stream S.
-   It outputs the result of the servlet to stream S and returns the new cookie data as a list."
+   It outputs the result of the servlet to stream S and returns the new cookie data as a list. "
   (let (th servlet)
     ; lookup servlet
     (setq servlet (find-servlet servletname))
@@ -304,7 +483,7 @@
 		    (transduce-all-data (servlet-updates servlet) th)
 		    ; check integrity constraints for all our data stores
 		    (guard-check '__globalstate th))
-      (condition (e) (showerror in cookie servlet e) (return-from serve-with-session)))
+      (condition (e) (showerror in cookie servlet e) (return-from serve-session)))
     ; set server's state using results of transduction
     (setq cookie (set-server-state th sessionid))
     ; render the page to the user
@@ -419,37 +598,145 @@
   (print cookie *output-stream*)
   (print servlet *output-stream*))
 
-(defun render (pagename data)
-  "(RENDER PAGENAME DATA S) takes a PAGENAME, DATA to populate that page (overwriting
-   any data extracted by PAGENAME as a default), and outputs that page to S.  In particular,
-   a subpage can be designated so that any number of formnames can be replaced by auto-generated
-   forms.  Similarly for tables.  So after a subpage is generated, these replacements are made.
-   At the end, forms are populated with DATA."
-  (declare (ignore pagename))
-  (print (sentences '? data) *output-stream*))
+(defstruct htmlbl forms tables)
 
-;  (princ (populate-page-with-data (render-to-string pagename) data) s))
+(defun render (htmlname data)
+  "(RENDER HTMLNAME DATA) takes an HTMLNAME, DATA to populate that page (overwriting
+   any data extracted by PAGENAME as a default), and outputs that page to the default stream.  
+   Current implementation only does form/table replacement after html page is fully created;
+   to do it properly we need an XML/HTML parser that appropriately deals with partial XML
+   files (in a non-lossy way).  For pages with multiple forms/tables that have the same name,
+   this implementation is incorrect.  Also, assuming that formname.widgetname gives a unique ID,
+   which is again incorrect for pages with multiple forms."
+  (multiple-value-bind (s repls) (render-to-string htmlname)
+    (princ (html-subst s (htmlrepls2htmlbl repls) data) *output-stream*)))
 
-#|
-(defun render-to-string (pagename)
-  (let (s)
-    (setq s (make-stringbuffer))
-    (setq page (gethash pagename *pages*))
-    (unless page (error 'page-not-found :comment pagename))
-    (dolist (x (page-subpages page))
-      (cond ((stringp x) (format s "~A" (read-any-file x)))
-	    ((symbolp x) (format s "~A" (render-to-string x)))
-	    ((listp x) (format s "~A" (page-subst (render-to-string (car x) data) (cdr x))))
-	    (t (error 'invalid-page-definition :comment (format nil "~A" x)))))
-    s))
+(defun htmlrepls2htmlbl (repls) 
+  (make-htmlbl :forms (mapcan #'(lambda (x) (copy-list (htmlrepl-forms x))) repls)
+	       :tables (mapcan #'(lambda (x) (copy-list (htmlrepl-tables x))) repls)))
 
-(defun page-subst (str replacements)
+(defun render-to-string (thing)
+  "(RENDER-TO-STRING THING) returns a string representing the html file named HTMLFILE
+   as well as the sequence of htmlrepls that ought to be applied.  Note: does not apply
+   those HTMLREPLS as it ought to.  Super slow---copying html fragments over and over."
+  (let (subhtml out bl)
+    (setq out (make-stringbuffer))
+    (setq bl nil)
+    (cond ((stringp thing) (format out "~A" (read-static-file thing)))
+	  ((symbolp thing) 
+	   (setq subhtml (gethash thing *html*))
+	   (dolist (x subhtml)
+	     (multiple-value-bind (s b) (render-to-string x)
+	       (format out "~A" s) (setq bl (nconc b bl)))))
+	  ((htmlrepl-p thing) 
+	   (multiple-value-bind (s b) (render-to-string (htmlrepl-target thing))
+	     (setq out s) (setq bl (cons thing b))))
+	  (t (error 'invalid-html :comment thing)))
+    (values out bl)))
+
+(defun read-static-file (name) (read-any-file (fspath :html name)))
+
+(defun html-subst (str htmlrepl data)
   "(PAGE-SUBST STR REPLACEMENTS) takes a valid HTML fragment STR as a string and a list
    of the form :forms ((\"search\" search)) :tables ((\"auctions\" auctions)) and replaces
    each occurrence of a form \"search\" with a rendering of the form SEARCH; similarly for table."
-  str
-)
+  (xmls:toxml (html-subst-aux (xmls:parse str) htmlrepl data) :shortend nil))
+
+(defun html-subst-aux (html repl data)
+  (cond ((atom html) html)
+	((not (listp html)) (error 'invalid-html :comment html))
+	(t
+	 (let (tag)
+	   (handler-case (setq tag (tosymbol (car html)))
+	     (condition () (setq tag nil)))
+	   (case tag
+	     (head (html-augment-head html *corejs* *corecss*))
+	     (form (html-subst-form html repl data))
+	     (table (html-subst-table html repl data))
+	     (otherwise (mapcar #'(lambda (x) (html-subst-aux x repl data)) html)))))))
+
+#|
+(defun xml2html (x)
+  (cond ((atom x) x)
+	((not (listp x)) (error 'invalid-html :comment x))
+	(t (list* (tosymbol (car x)) 
+		  (mapcar #'(lambda (x) (cons (tosymbol (first x)) (rest x))) (second x)) 
+		  (mapcar #'xml2html (cddr x))))))
 |#
+(defun html-augment-head (head jsfiles cssfiles) 
+  (append head (mapcar #'js-include-xml jsfiles) (mapcar #'css-include-xml cssfiles))) 
+(defun js-include-xml (jsfile) (xmls:parse (js-include jsfile)))
+(defun js-include (jsfile) (with-output-to-string (s) (output-htmlform-js jsfile s)))
+(defun css-include-xml (cssfile) (xmls:parse (css-include cssfile)))
+(defun css-include (cssfile) (with-output-to-string (s) (output-htmlform-style cssfile s)))
 
+(defun html-subst-form (form bls data)
+  (let (name bl)
+    (setq name (second (find "name" (second form) :key #'first :test #'equalp)))
+    (setq bl (find name (htmlbl-forms bls) :key #'first :test #'equal))
+    (if bl
+	(xmls:parse (generate-form (second bl) data))
+	(xmls:parse "<form></form>"))))
 
+(defun html-subst-table (table bls data)
+  (let (name bl)
+    (setq name (second (find "name" (second table) :key #'first :test #'equalp)))
+    (setq bl (find name (htmlbl-tables bls) :key #'first :test #'equal))
+    (if bl
+	(generate-table (second bl) data)
+	(list* (first table) (second table) (mapcar #'(lambda (x) (html-subst-aux x bls data)) (cddr table))))))
+
+(defun generate-form (formname data)
+  "(GENERATE-FORM FORMNAME DATA) output an HTML form as described by FORMNAME
+   where the initial values are drawn from DATA.  Assume JS for error-checking has already been compiled."
+  (let (form target th html)
+    (setq form (find-form formname))
+    (setq target (form-target form))
+    (setq th (prep-plato-theory formname target data))
+    (push `(constraints 'nil) th)
+    (setq html (compile-websheet th))
+    (setf (htmlform-action html) (format nil "/scwa?"))
+    (setf (htmlform-submitprep html) "true")
+    (with-output-to-string (s)
+      (format s "<p>") ; to ensure parsing handles both elements
+      (when (probe-file (fspath :compile (tostring formname ".js"))) 
+	(princ (js-include (webpath :compile (tostring formname ".js"))) s))
+      (output-htmlform-form s html)
+      (format s "</p>"))))
+
+; TODO: have plato's output be wrapped in namespaces so that it actually works.  
+;   Need to Init for each of the forms.
+;   Should only have 1 copy of the basic functions (e.g. spreadsheet.js), but then cellvalue needs to be specific to a form.
+; TODO: need to analyze guards to figure out which fields are unique, which are required, etc.
+; TODO: need to initialize with form data
+(defun prep-plato-theory (formname target data)
+  "(PREP-PLATO-THEORY FORMNAME DATA) builds a theory for Plato describing FORMNAME, except constraints."
+  (let (th name req init desc style incundef unique type)
+    ; create basic Plato theory 
+    (push `(formname ,formname) th)
+    (push `(definitions 'nil) th)
+    (push `(option completep t) th)
+    (push `(option casesensitive t) th)
+    (push `(option allowconflicts t) th)
+    (push `(option debug nil) th)
+    ; add widgets
+    (dolist (p (find-signature (schema-signature (find-schema (form-schema (find-form formname))))))
+      (assert (= (parameter-arity p) 1) nil 
+	      (format nil "All symbols used during form generation must have arity 1; ~A has arity ~A" (parameter-symbol p) (parameter-arity p)))
+      (setq name (parameter-symbol p))
+      (setq req nil)
+      (setq init (cons 'listof (viewfinds '?x `(,name ?x) data)))
+      (setq desc (tostring name))
+      (setq style 'textbox)
+      (setq incundef t)
+      (setq unique t)
+      (setq type (first (parameter-type p)))
+      (push `(widget :name ,name :req ,req :init ,init :desc ,desc :style ,style :incundef ,incundef :unique ,unique :typename ,type) th))
+    ; providing all the fields for this widget since otherwise load-formstructure does something stupid
+    (push `(widget :name servlet :init (listof ,target) :style hidden :desc "" :req nil :incundef nil :unique t :typename string) th)
+    (nreverse th)))
+
+(defun generate-table (tablename data)
+  (declare (ignore tablename data))
+  (xmls:parse "<table name=\"tim\"></table>"))
 

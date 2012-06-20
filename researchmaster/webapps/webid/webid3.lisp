@@ -1,50 +1,41 @@
 
 ;;;;;;;;; Using <= for datalog and everything else for FOL
 
+;;;;;;; Cookie and session
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;; Schemas ;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; signature is a collection of symbols possibly with types and arities (default arity is 1, default type is a cross-product of strings)
-;   e.g. (defsignature author (id :type number) (name :arity 2 :type (number string)) (address :arity 2 :type (number string)))
+; signature is a collection of symbols possibly with types and arities (default arity is 2, default type is string)
 ; schema is a signature with a number of guards
 
-; Special case: a HTML form's signature is one where all arities are 1.
-; Special case: a HTML table's signature is one in triple format (see below).
+(defsignature db db.user db.user.name db.user.pass db.user.newsletter db.user.regdate db.user.birthmonth db.user.birthday db.user.birthyear db.user.address db.user.city db.user.state db.user.zip db.user.country db.user.telephone) 
+(defschema db :signature db :guards (db-uniqueness db-misc db-password))
 
-; Each signature3 is schema with 1 unary relation (the first one listed) and some number of binary relations (those that remain).
-;   Such a signature represents a single DB table in triples format.
-
-; Syntax: Period can only be used in names of signatures/schemas -- not in predicates of those schemas.  
-;    More precisely, predicates must be valid JS and HTML identifiers (safe to use alphanum and _)
-;    In logic, reference via <signaturename>.<predicate>
-
-(defsignature3 db.user id name pass newsletter regdate birthmonth birthday birthyear address city state zip country telephone) 
-(defschema db.user :signature db.user :guards (db.user))
-
-(defsignature3 status msg)
+(defsignature status (status :arity 1))
 (defschema status :signature status)
 
-(defsignature3 login id pass)
+(defsignature login (login.id :arity 1) login.pass)
 (defschema login :signature login)
 
-(defsignature profile username name pass pass2 birthmonth birthday birthyear address city state country zip telephone newsletter accttype)
+(defsignature profile (profile.username :arity 1) profile.name profile.pass profile.pass2 profile.birthmonth profile.birthday profile.birthyear profile.address profile.city profile.state profile.country profile.zip profile.telephone profile.newsletter)
 (defschema profile :signature profile)
 
-(defsignature search titdesc keywords closed category lowprice highprice buyitnow buyitnowonly ending)
+(defsignature search search.titdesc search.keywords search.closed search.category search.lowprice search.highprice search.buyitnow search.buyitnowonly search.ending)
 (defschema search :signature search)
 
-(defsignature3 auctionlisting id title description closingdate category price buyitnow payments seller country zip ending auctiontype)
-(defschema auctionlisting :signature auctionlisting)
+(defsignature auction-listing (auclist.id :arity 1) auclist.title aulist.description auclist.closingdate auclist.category auclist.price auclist.buyitnow auclist.payments auclist.seller auclist.country auclist.zip auclist.ending auclist.auctiontype)
+(defschema auction-listing :signature auction-listing)
 
-(defsignature babysearch keywords)
+(defsignature babysearch search.keywords)
 (defschema babysearch :signature babysearch)
 
-(defsignature3 category id)
-(defschema category :signature category)
+(defsignature categoryid (category.id :arity 1))
+(defschema categoryid :signature categoryid)
 
-(defsignature3 news msg date)
-(defschema news :signature news)
+(defsignature news (news :arity 1))
+(defschema new :signature news)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;; Guards ;;;;;;;;;;;;;;;;;;
@@ -79,11 +70,9 @@
   (category.id 0)
   (=> (category.id ?x) (category.id ?y) (= ?x ?y)))
 
-(defguard db :inherits (db.user))
+(defguard db :inherits (db-basic db-misc))
 
-(defguard db.user :inherits (db.user-basic db.user-misc))
-
-(defguard db.user-basic
+(defguard db-basic
   (=> (db.user ?x) (exists (db.name ?x ?y)))
   (=> (db.user ?x) (exists (db.pass ?x ?y)))
   (=> (db.user ?x) (exists (db.newsletter ?x ?y)))
@@ -92,7 +81,7 @@
 (defguard password  ; not inserted into DB since we store the hash of the PWD in the DB.
   (=> (pass ?pass) (gte (len ?pass) 6)))
 
-(defguard db.user-misc
+(defguard db-misc
   (=> (db.user.email ?user ?email) (in ?email "[0-9a-zA-Z]@[0-9a-zA-Z\\.]"))
   (=> (db.user.telephone ?user ?telephone) (in ?telephone "\d\d\d\-\d\d\d-\d\d\d\d"))
   (=> (db.user.accttype ?user ?acct)
@@ -330,7 +319,7 @@
 ; Each form in the list is <form> :target <servlet> where :target <servlet> overrides the default :target of <form>
 
 ; Registration creation
-(defservlet show-registration :page new-profile-page :entry t)
+(defservlet show-registration :page new-profile :entry t)
 ; Registration processing: store profile, convert profile username/pwd to login schema, login, return simple page saying "Registration saved"
 (defservlet register :guards (profile-uniqueness profile-basic) :updates (saveprofile profile2login login) :page success :entry t)
 ; Profile lookup for editing
@@ -349,24 +338,24 @@
 ;;;;;;;;;;;;;;;;;; Pages ;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
 ; should probably just use HTML (or at least allow for the possibility of using just HTML), at least in the writeup.
 
 ; (defhtml <name> sequence of pages or HTML files to concatenate, where each page can be followed by substitutions )
-
-;(defhtml home header "3colsstart.html" categories empty home-extras "3colsend.html")
-(defhtml header "header.html") ;("header.html" :forms (("search" babysearch) ("category" category))))
-;(defhtml categories ("categories.html" :forms (("category" category) ("allcategories" topcategory))))
-;(defhtml home-extras login news)
+(defhtml home header "3colsstart.html" categories empty home-extras "3colsend.html")
+(defhtml header ("header.html" :forms (("search" babysearch) ("category" category))))
+(defhtml categories ("categories.html" :forms (("category" category) ("allcategories" topcategory))))
+(defhtml home-extras login news)
 (defhtml login ("login.html" :forms (("login" login))))
-;(defhtml news ("news.html" :tables (("news" news news))))   ;(<tablename> <schemaname> <data>)  if <data> is nil, use global data
-;(defhtml empty "empty.html")
+(defhtml news ("news.html" :table (("news" news news))))   ;(<tablename> <schemaname> <data>)  if <data> is nil, use global data
+(defhtml empty "empty.html")
 (defhtml footer "footer.html")
 
 (defhtml new-profile-page header new-profile footer)
-(defhtml new-profile ("profile.html" :forms (("registration" new-profile)) :tables (("status" status))))
+(defhtml new-profile ("profile.html" :forms (("profile" . new-profile)) :tables (("status" . status))))
 
 (defhtml edit-profile-page header edit-profile footer)
-(defhtml edit-profile ("profile.html" :forms (("profile" edit-profile)) :tables (("status" status))))
+(defhtml edit-profile ("profile.html" :forms (("profile" . edit-profile)) :tables (("status" . status))))
 
 (defhtml search-page header search footer)
 (defhtml search ("search.html" :forms (("search" search)) :tables (("auctions" auctions))))

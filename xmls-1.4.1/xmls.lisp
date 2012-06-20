@@ -29,7 +29,8 @@
     ("gt;" #\>)
     ("amp;" #\&)
     ("apos;" #\')
-    ("quot;" #\")))
+    ("quot;" #\")
+    ("nbsp;" #\Space)))
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *whitespace* (remove-duplicates
                         '(#\Newline #\Space #\Tab #\Return #\Linefeed))))
@@ -155,7 +156,7 @@
     (integer (format nil "~D" raw-value))
     (float (format nil "~G" raw-value))))
 
-(defun generate-xml (e s indent)
+(defun generate-xml (e s indent shortend)
   "Renders a lisp node tree to an xml string stream."
   (if (> indent 0) (incf indent))
   (etypecase e
@@ -172,14 +173,14 @@
                   (write-char #\" s)
                   (write-escaped (translate-raw-value (second a)) s)
                   (write-char #\" s))))
-     (if (null (node-children e))
+     (if (and (null (node-children e)) shortend)
          (progn
            (write-string "/>" s)
            (if (> indent 0) (write-char #\Newline s)))
          (progn
            (write-char #\> s)
            (if (> indent 0) (write-char #\Newline s))
-           (mapcan (lambda (c) (generate-xml c s indent)) (node-children e))
+           (mapcan (lambda (c) (generate-xml c s indent shortend)) (node-children e))
            (if (> indent 0)
                (progn
                  (dotimes (i (* 2 (- indent 2)))
@@ -187,9 +188,9 @@
            (format s "</~A>" (node-name e))
            (if (> indent 0) (write-char #\Newline s)))))
     (number
-     (generate-xml (translate-raw-value e) s indent))
+     (generate-xml (translate-raw-value e) s indent shortend))
     (symbol
-     (generate-xml (translate-raw-value e) s indent))
+     (generate-xml (translate-raw-value e) s indent shortend))
     (string
      (progn
        (if (> indent 0)
@@ -693,16 +694,16 @@ character translation."
 ;;;-----------------------------------------------------------------------------
 ;;; PUBLIC INTERFACE
 ;;;-----------------------------------------------------------------------------
-(defun write-xml (e s &key (indent nil))
+(defun write-xml (e s &key (indent nil) (shortend t))
   "Renders a lisp node tree to an xml stream.  Indents if indent is non-nil."
   (if (null s)
       (toxml e :indent indent)
-    (generate-xml e s (if indent 1 0))))
+    (generate-xml e s (if indent 1 0) shortend)))
 
-(defun toxml (e &key (indent nil))
+(defun toxml (e &key (indent nil) (shortend t))
   "Renders a lisp node tree to an xml string."
   (with-output-to-string (s)
-    (write-xml e s :indent indent)))
+    (write-xml e s :indent indent :shortend shortend)))
 
 (defun parse (s &key (compress-whitespace t))
   "Parses the supplied stream or string into a lisp node tree."

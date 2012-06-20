@@ -30,6 +30,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Web interface
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
+#|  from old loader
+; initialize webform-database for websheet server
+(ws-server-register-form (make-webformdb :name 'plfeature2 :package :plfeature2 :data nil
+	:htmlfile "researchmaster/wsgallery/plfeature2.html"
+	:lispfile "researchmaster/wsgallery/plfeature2.lisp"
+	:widgets '(e m o fs c)))
+(webapp-register-form *scwa-webid*)
+|#
 
 (defvar *webapp-forms* nil "Registry of all web forms for this app")
 

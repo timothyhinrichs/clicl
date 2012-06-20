@@ -1,0 +1,198 @@
+<html>
+  <head>
+    <title>
+      WeBid
+    </title>
+    <style type="text/css" xml:space="preserve">
+
+.errfont {font-family:Verdana, Arial, Helvetica;font-size:small;color:#FF9900;font-weight: bold;}
+.smlfont {font-family:Verdana, Arial, Helvetica;font-size:xx-small;color:#000000;}
+.stdfont {font-family:Verdana, Arial, Helvetica;font-size:x-small;color:#000000}
+body {font-family:Verdana, Arial, Helvetica;font-size:x-small;color:#000000}
+#container{ width:90%;background-color:3366cc}
+.footerfont {font-family:Verdana, Arial, Helvetica;font-size:xx-small;color:#aaaaaa;}
+#footer	{ padding: 5px 5px 5px 5px; text-align: center;font-family:Verdana, Arial, Helvetica;font-size:xx-small;color:#aaaaaa; }
+.tltfont {font-family:Tahoma, Verdana, Arial;font-size:medium;color:#3300CC;font-weight: bold;}
+.titTable2 {font-family:Tahoma, Verdana, Arial;font-size:medium;color:#3300CC;font-weight: bold;;border-color:#3300CC }
+.navfont {font-family:Verdana, Arial, Helvetica;font-size:small;color:#3366CC;font-weight: bold;}
+th {background-color : #888888;}
+#barSec {background-color : #888888;}
+.titTable1 {background-color : #888888;}
+a:link,a:visited {
+	color : 003399;
+}
+
+</style>
+    <link rel="stylesheet" type="text/css" href="/docserver/infoserver/examples/researchmaster/webapps/webid/style.css" />
+  </head>
+  <body>
+    <table width="90%" cellpadding="0" cellspacing="0" border="0" class="container">
+      <tr>
+        <td>
+          <table width="100%" border="0" cellpadding="5" cellspacing="5" class="logo">
+            <tbody>
+              <tr>
+                <td width="50%">
+                  <a
+                  href="http://herge.sisl.rites.uic.edu/notamper/instrumented/WeBid-0.5.4/index.php?"><img
+                  src="http://herge.sisl.rites.uic.edu/notamper/instrumented/WeBid-0.5.4/themes/default/logo.gif"
+                  border="0" alt="WeBid" /></a>
+                </td>
+                <td width="50%">
+                </td>
+              </tr>
+              <tr>
+                <td align="center" colspan="2">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <table width="100%" border="0" cellpadding="0" cellspacing="5" class="counters">
+            <tr>
+              <td align="right">
+                <b>0</b>&nbsp;AUCTIONS |&nbsp;<b>0</b>&nbsp;REGISTERED
+                USERS&nbsp;|&nbsp;<b>1</b>&nbsp;USERS ONLINE|&nbsp;Jun
+                13, 2012 <span id="servertime"></span>
+              </td>
+            </tr>
+          </table>
+          <table width="100%" border="0" cellpadding="0" cellspacing="3" class="navbar">
+            <tr>
+              <td>
+                <table cellspacing="0" class="table-bar">
+                  <tbody>
+                    <tr>
+                      <td>
+                        <a
+                        href="http://herge.sisl.rites.uic.edu/notamper/instrumented/WeBid-0.5.4/index.php?">Home</a>
+                        <div class="imgSep">
+                          <img
+                          src="http://herge.sisl.rites.uic.edu/notamper/instrumented/WeBid-0.5.4/images/transparent.gif"
+                          width="10" height="10" alt="spacer" />
+                        </div>
+                      </td>
+                      <td>
+                        <a
+                        href="http://herge.sisl.rites.uic.edu/notamper/instrumented/WeBid-0.5.4/select_category.php?">
+                        Sell an item</a>
+                        <div class="imgSep">
+                          <img
+                          src="http://herge.sisl.rites.uic.edu/notamper/instrumented/WeBid-0.5.4/images/transparent.gif"
+                          width="10" height="10" alt="spacer" />
+                        </div>
+                      </td>
+                      <td>
+                        <a
+                        href="http://herge.sisl.rites.uic.edu/notamper/instrumented/WeBid-0.5.4/register.php?">Register
+                        now</a>
+                        <div class="imgSep">
+                          <img
+                          src="http://herge.sisl.rites.uic.edu/notamper/instrumented/WeBid-0.5.4/images/transparent.gif"
+                          width="10" height="10" alt="spacer" />
+                        </div>
+                      </td>
+                      <td>
+                        <a
+                        href="http://herge.sisl.rites.uic.edu/notamper/instrumented/WeBid-0.5.4/user_login.php?">Login</a>
+                        <div class="imgSep">
+                          <img
+                          src="http://herge.sisl.rites.uic.edu/notamper/instrumented/WeBid-0.5.4/images/transparent.gif"
+                          width="10" height="10" alt="spacer" />
+                        </div>
+                      </td>
+                      <td>
+                        <a
+                        href="javascript: window_open('http://herge.sisl.rites.uic.edu/notamper/instrumented/WeBid-0.5.4/faqs.php','faqs',500,400,20,20)">
+                        Help</a>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          </table>
+          <table border="0" class="barSec" style="height:37; width:100%;">
+            <tr>
+              <td width="50%">
+                <form name="search" action="http://herge.sisl.rites.uic.edu/notamper/instrumented/WeBid-0.5.4/search.php" method="get" id="search">
+                  <div class="barSearch">
+                    <input type="hidden" name="" /> Search <input
+                    type="text" name="q" size="15" value="" /> <input
+                    type="submit" name="" value="Go!" class="button" /> &nbsp;&nbsp;<a
+                    href="http://herge.sisl.rites.uic.edu/notamper/instrumented/WeBid-0.5.4/adsearch.php">
+                    Advanced Search </a>
+                  </div>
+                </form>
+              </td>
+              <td width="50%" align="right">
+                <form name="gobrowse" action="http://herge.sisl.rites.uic.edu/notamper/instrumented/WeBid-0.5.4/browse.php" method="get" id="gobrowse">
+                  <div class="barBrowse">
+                    Browse <select name="id">
+                    <option value="">
+                      Select a category
+                    </option>
+                    <option value=""></option>
+                    <option value="1">
+                      Art &amp; Antiques
+                    </option>
+                    <option value="28">
+                      Books
+                    </option>
+                    <option value="220">
+                      Cars &amp; Vehicles
+                    </option>
+                    <option value="69">
+                      Clothing &amp; Accessories
+                    </option>
+                    <option value="73">
+                      Coins &amp; Stamps
+                    </option>
+                    <option value="76">
+                      Collectibles
+                    </option>
+                    <option value="114">
+                      Comics, Cards &amp; Science Fiction
+                    </option>
+                    <option value="123">
+                      Computers &amp; Software
+                    </option>
+                    <option value="128">
+                      Electronics &amp; Photography
+                    </option>
+                    <option value="134">
+                      Gemstones &amp; Jewelry
+                    </option>
+                    <option value="149">
+                      Home &amp; Garden
+                    </option>
+                    <option value="159">
+                      Movies &amp; Video
+                    </option>
+                    <option value="164">
+                      Music
+                    </option>
+                    <option value="171">
+                      Office &amp; Business
+                    </option>
+                    <option value="176">
+                      Other Goods &amp; Services
+                    </option>
+                    <option value="221">
+                      Real Estate
+                    </option>
+                    <option value="184">
+                      Sports &amp; Recreation
+                    </option>
+                    <option value="188">
+                      Toys &amp; Games
+                    </option>
+                    <option value=""></option>
+                    <option value="0">
+                      View all categories
+                    </option></select>
+                    <input type="submit" name="sub" value="Go!" class="button" />
+                  </div>
+                </form>
+              </td>
+            </tr>
+          </table>

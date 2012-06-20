@@ -47,7 +47,6 @@
 (load (loadfn "overloads" :dir "source"))
 (load (loadfn "spreadsheet" :dir "source"))
 (load (loadfn "spreadsheetserver" :dir "source"))
-(load (loadfn "webapps1" :dir "source"))
 (load (loadfn "webapps2" :dir "source"))
 
 
@@ -84,14 +83,6 @@
 (setq *auththeory* (make-instance 'prologtheory))
 (define-prologtheory *auththeory* "" (mapcar #'morph-tag-queries (read-file *authfile*)))
 (includes *repository* *auththeory*)
-
-; initialize webform-database for websheet server
-(ws-server-register-form (make-webformdb :name 'plfeature2 :package :plfeature2 :data nil
-	:htmlfile "researchmaster/wsgallery/plfeature2.html"
-	:lispfile "researchmaster/wsgallery/plfeature2.lisp"
-	:widgets '(e m o fs c)))
-(webapp-register-form *scwa-webid*)
-
 
 ; enable logging only after loading and logloading
 (defmethod insert (p (th (eql *repository*)))

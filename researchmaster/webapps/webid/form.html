@@ -1,0 +1,283 @@
+<form method="post" action="/scwa?servlet=REGISTER" onsubmit="return submitprep()">
+<table>
+<tr id='profile.usernameBIGBOX'><td class="description"><span class="description">PROFILE.USERNAME</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><span id="profile.usernamebox" class="databox" onMouseOver="textbox_mouseover('profile.username')" onMouseOut="textbox_mouseout('profile.username')" >
+<table border='0'><tr style='display:none; background-color:white;' id='profile.username_ghost'>
+<td>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.username_ghost',this)" />
+
+   <img src='/docserver/infomaster/images/delete.gif'
+
+      border='0' onClick="remWidgetSlot('profile.username',this)" />
+
+</td><td>
+<input type='text' name='profile.username' onChange="textbox_change('profile.username')" onFocus="textbox_focus('profile.username')" value='' disabled /></td></tr>
+<tr style='background-color:white'><td align='left' colspan='2'>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.username_ghost',this)" id='profile.username_bottom' />
+
+</td></tr></table></span></td></tr>
+<tr id='profile.nameBIGBOX'><td class="description"><span class="description">PROFILE.NAME</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><span id="profile.namebox" class="databox" onMouseOver="textbox_mouseover('profile.name')" onMouseOut="textbox_mouseout('profile.name')" >
+<table border='0'><tr style='display:none; background-color:white;' id='profile.name_ghost'>
+<td>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.name_ghost',this)" />
+
+   <img src='/docserver/infomaster/images/delete.gif'
+
+      border='0' onClick="remWidgetSlot('profile.name',this)" />
+
+</td><td>
+<input type='text' name='profile.name' onChange="textbox_change('profile.name')" onFocus="textbox_focus('profile.name')" value='' disabled /></td></tr>
+<tr style='background-color:white'><td align='left' colspan='2'>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.name_ghost',this)" id='profile.name_bottom' />
+
+</td></tr></table></span></td></tr>
+<tr id='profile.passBIGBOX'><td class="description"><span class="description">PROFILE.PASS</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><span id="profile.passbox" class="databox" onMouseOver="textbox_mouseover('profile.pass')" onMouseOut="textbox_mouseout('profile.pass')" >
+<table border='0'><tr style='display:none; background-color:white;' id='profile.pass_ghost'>
+<td>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.pass_ghost',this)" />
+
+   <img src='/docserver/infomaster/images/delete.gif'
+
+      border='0' onClick="remWidgetSlot('profile.pass',this)" />
+
+</td><td>
+<input type='text' name='profile.pass' onChange="textbox_change('profile.pass')" onFocus="textbox_focus('profile.pass')" value='' disabled /></td></tr>
+<tr style='background-color:white'><td align='left' colspan='2'>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.pass_ghost',this)" id='profile.pass_bottom' />
+
+</td></tr></table></span></td></tr>
+<tr id='profile.pass2BIGBOX'><td class="description"><span class="description">PROFILE.PASS2</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><span id="profile.pass2box" class="databox" onMouseOver="textbox_mouseover('profile.pass2')" onMouseOut="textbox_mouseout('profile.pass2')" >
+<table border='0'><tr style='display:none; background-color:white;' id='profile.pass2_ghost'>
+<td>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.pass2_ghost',this)" />
+
+   <img src='/docserver/infomaster/images/delete.gif'
+
+      border='0' onClick="remWidgetSlot('profile.pass2',this)" />
+
+</td><td>
+<input type='text' name='profile.pass2' onChange="textbox_change('profile.pass2')" onFocus="textbox_focus('profile.pass2')" value='' disabled /></td></tr>
+<tr style='background-color:white'><td align='left' colspan='2'>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.pass2_ghost',this)" id='profile.pass2_bottom' />
+
+</td></tr></table></span></td></tr>
+<tr id='profile.birthmonthBIGBOX'><td class="description"><span class="description">PROFILE.BIRTHMONTH</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><span id="profile.birthmonthbox" class="databox" onMouseOver="textbox_mouseover('profile.birthmonth')" onMouseOut="textbox_mouseout('profile.birthmonth')" >
+<table border='0'><tr style='display:none; background-color:white;' id='profile.birthmonth_ghost'>
+<td>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.birthmonth_ghost',this)" />
+
+   <img src='/docserver/infomaster/images/delete.gif'
+
+      border='0' onClick="remWidgetSlot('profile.birthmonth',this)" />
+
+</td><td>
+<input type='text' name='profile.birthmonth' onChange="textbox_change('profile.birthmonth')" onFocus="textbox_focus('profile.birthmonth')" value='' disabled /></td></tr>
+<tr style='background-color:white'><td align='left' colspan='2'>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.birthmonth_ghost',this)" id='profile.birthmonth_bottom' />
+
+</td></tr></table></span></td></tr>
+<tr id='profile.birthdayBIGBOX'><td class="description"><span class="description">PROFILE.BIRTHDAY</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><span id="profile.birthdaybox" class="databox" onMouseOver="textbox_mouseover('profile.birthday')" onMouseOut="textbox_mouseout('profile.birthday')" >
+<table border='0'><tr style='display:none; background-color:white;' id='profile.birthday_ghost'>
+<td>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.birthday_ghost',this)" />
+
+   <img src='/docserver/infomaster/images/delete.gif'
+
+      border='0' onClick="remWidgetSlot('profile.birthday',this)" />
+
+</td><td>
+<input type='text' name='profile.birthday' onChange="textbox_change('profile.birthday')" onFocus="textbox_focus('profile.birthday')" value='' disabled /></td></tr>
+<tr style='background-color:white'><td align='left' colspan='2'>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.birthday_ghost',this)" id='profile.birthday_bottom' />
+
+</td></tr></table></span></td></tr>
+<tr id='profile.birthyearBIGBOX'><td class="description"><span class="description">PROFILE.BIRTHYEAR</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><span id="profile.birthyearbox" class="databox" onMouseOver="textbox_mouseover('profile.birthyear')" onMouseOut="textbox_mouseout('profile.birthyear')" >
+<table border='0'><tr style='display:none; background-color:white;' id='profile.birthyear_ghost'>
+<td>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.birthyear_ghost',this)" />
+
+   <img src='/docserver/infomaster/images/delete.gif'
+
+      border='0' onClick="remWidgetSlot('profile.birthyear',this)" />
+
+</td><td>
+<input type='text' name='profile.birthyear' onChange="textbox_change('profile.birthyear')" onFocus="textbox_focus('profile.birthyear')" value='' disabled /></td></tr>
+<tr style='background-color:white'><td align='left' colspan='2'>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.birthyear_ghost',this)" id='profile.birthyear_bottom' />
+
+</td></tr></table></span></td></tr>
+<tr id='profile.addressBIGBOX'><td class="description"><span class="description">PROFILE.ADDRESS</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><span id="profile.addressbox" class="databox" onMouseOver="textbox_mouseover('profile.address')" onMouseOut="textbox_mouseout('profile.address')" >
+<table border='0'><tr style='display:none; background-color:white;' id='profile.address_ghost'>
+<td>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.address_ghost',this)" />
+
+   <img src='/docserver/infomaster/images/delete.gif'
+
+      border='0' onClick="remWidgetSlot('profile.address',this)" />
+
+</td><td>
+<input type='text' name='profile.address' onChange="textbox_change('profile.address')" onFocus="textbox_focus('profile.address')" value='' disabled /></td></tr>
+<tr style='background-color:white'><td align='left' colspan='2'>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.address_ghost',this)" id='profile.address_bottom' />
+
+</td></tr></table></span></td></tr>
+<tr id='profile.cityBIGBOX'><td class="description"><span class="description">PROFILE.CITY</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><span id="profile.citybox" class="databox" onMouseOver="textbox_mouseover('profile.city')" onMouseOut="textbox_mouseout('profile.city')" >
+<table border='0'><tr style='display:none; background-color:white;' id='profile.city_ghost'>
+<td>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.city_ghost',this)" />
+
+   <img src='/docserver/infomaster/images/delete.gif'
+
+      border='0' onClick="remWidgetSlot('profile.city',this)" />
+
+</td><td>
+<input type='text' name='profile.city' onChange="textbox_change('profile.city')" onFocus="textbox_focus('profile.city')" value='' disabled /></td></tr>
+<tr style='background-color:white'><td align='left' colspan='2'>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.city_ghost',this)" id='profile.city_bottom' />
+
+</td></tr></table></span></td></tr>
+<tr id='profile.stateBIGBOX'><td class="description"><span class="description">PROFILE.STATE</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><span id="profile.statebox" class="databox" onMouseOver="textbox_mouseover('profile.state')" onMouseOut="textbox_mouseout('profile.state')" >
+<table border='0'><tr style='display:none; background-color:white;' id='profile.state_ghost'>
+<td>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.state_ghost',this)" />
+
+   <img src='/docserver/infomaster/images/delete.gif'
+
+      border='0' onClick="remWidgetSlot('profile.state',this)" />
+
+</td><td>
+<input type='text' name='profile.state' onChange="textbox_change('profile.state')" onFocus="textbox_focus('profile.state')" value='' disabled /></td></tr>
+<tr style='background-color:white'><td align='left' colspan='2'>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.state_ghost',this)" id='profile.state_bottom' />
+
+</td></tr></table></span></td></tr>
+<tr id='profile.countryBIGBOX'><td class="description"><span class="description">PROFILE.COUNTRY</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><span id="profile.countrybox" class="databox" onMouseOver="textbox_mouseover('profile.country')" onMouseOut="textbox_mouseout('profile.country')" >
+<table border='0'><tr style='display:none; background-color:white;' id='profile.country_ghost'>
+<td>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.country_ghost',this)" />
+
+   <img src='/docserver/infomaster/images/delete.gif'
+
+      border='0' onClick="remWidgetSlot('profile.country',this)" />
+
+</td><td>
+<input type='text' name='profile.country' onChange="textbox_change('profile.country')" onFocus="textbox_focus('profile.country')" value='' disabled /></td></tr>
+<tr style='background-color:white'><td align='left' colspan='2'>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.country_ghost',this)" id='profile.country_bottom' />
+
+</td></tr></table></span></td></tr>
+<tr id='profile.zipBIGBOX'><td class="description"><span class="description">PROFILE.ZIP</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><span id="profile.zipbox" class="databox" onMouseOver="textbox_mouseover('profile.zip')" onMouseOut="textbox_mouseout('profile.zip')" >
+<table border='0'><tr style='display:none; background-color:white;' id='profile.zip_ghost'>
+<td>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.zip_ghost',this)" />
+
+   <img src='/docserver/infomaster/images/delete.gif'
+
+      border='0' onClick="remWidgetSlot('profile.zip',this)" />
+
+</td><td>
+<input type='text' name='profile.zip' onChange="textbox_change('profile.zip')" onFocus="textbox_focus('profile.zip')" value='' disabled /></td></tr>
+<tr style='background-color:white'><td align='left' colspan='2'>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.zip_ghost',this)" id='profile.zip_bottom' />
+
+</td></tr></table></span></td></tr>
+<tr id='profile.telephoneBIGBOX'><td class="description"><span class="description">PROFILE.TELEPHONE</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><span id="profile.telephonebox" class="databox" onMouseOver="textbox_mouseover('profile.telephone')" onMouseOut="textbox_mouseout('profile.telephone')" >
+<table border='0'><tr style='display:none; background-color:white;' id='profile.telephone_ghost'>
+<td>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.telephone_ghost',this)" />
+
+   <img src='/docserver/infomaster/images/delete.gif'
+
+      border='0' onClick="remWidgetSlot('profile.telephone',this)" />
+
+</td><td>
+<input type='text' name='profile.telephone' onChange="textbox_change('profile.telephone')" onFocus="textbox_focus('profile.telephone')" value='' disabled /></td></tr>
+<tr style='background-color:white'><td align='left' colspan='2'>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.telephone_ghost',this)" id='profile.telephone_bottom' />
+
+</td></tr></table></span></td></tr>
+<tr id='profile.newsletterBIGBOX'><td class="description"><span class="description">PROFILE.NEWSLETTER</span></td>
+<td class="required"><span class="required"></span></td>
+<td class="data"><span id="profile.newsletterbox" class="databox" onMouseOver="textbox_mouseover('profile.newsletter')" onMouseOut="textbox_mouseout('profile.newsletter')" >
+<table border='0'><tr style='display:none; background-color:white;' id='profile.newsletter_ghost'>
+<td>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.newsletter_ghost',this)" />
+
+   <img src='/docserver/infomaster/images/delete.gif'
+
+      border='0' onClick="remWidgetSlot('profile.newsletter',this)" />
+
+</td><td>
+<input type='text' name='profile.newsletter' onChange="textbox_change('profile.newsletter')" onFocus="textbox_focus('profile.newsletter')" value='' disabled /></td></tr>
+<tr style='background-color:white'><td align='left' colspan='2'>   <img src='/docserver/infomaster/images/add.gif'
+
+      border='0' onClick="addTableRow('profile.newsletter_ghost',this)" id='profile.newsletter_bottom' />
+
+</td></tr></table></span></td></tr>
+</table>
+<p><input type="submit" value="Submit" /></p><input type="hidden" name="time" id="time" /><input type="hidden" name="formname" id="formname" value="NEW-PROFILE" />
+<p />
+<hr width='90%' />
+<h2>Testing</h2>
+<p>Messages</p>
+<textarea cols='30' rows='5' id='msg' name='msg'>
+</textarea>
+
+<p />Eval<br />
+<textarea cols='30' rows='5' id='evalbox' name='evalbox'>
+</textarea><br />
+<input type='button' value='Eval' onclick="alerteval('evalbox');" />
+
+</form>

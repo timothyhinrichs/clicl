@@ -312,6 +312,9 @@
 	((null ms))
       (push (list (car ls) (car ms)) ps))))
 
+(defun n-copies (n val)
+  (let (l) (dotimes (i n l) (push val l))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;; Hashtable ;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

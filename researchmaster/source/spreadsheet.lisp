@@ -429,8 +429,8 @@ Input GUI
     (format s "Form Name <input type='textbox' id='formname' name='formname' value='~A'><br>"
 	    (if tmp tmp ""))
 
-    (format s "<p><input type='submit' name='command' value='Compile'>")
-    (format s "<input type='submit' name='command' value='Dump'>")
+    (format s "<p><input type='submit' name='command' value='Compile' />")
+    (format s "<input type='submit' name='command' value='Dump' />")
     (format s "<script type='text/javascript'>cellcounter = ~A;</script>" cnt) (crlf s)    
     (format s "</form>") (crlf s)))
 
@@ -441,13 +441,13 @@ Input GUI
 (defun output-plus-widget (s func &optional (id nil))
   (unless (search "(" func) (setq func (format nil "~A(this)" func)))
   (format s "   <img src='/docserver/infomaster/images/add.gif'") (crlf s)
-  (format s "      border='0' onClick=\"~A\"~A>" func (if id (format nil "id='~A'" id) "")) 
+  (format s "      border='0' onClick=\"~A\"~A />" func (if id (format nil " id='~A'" id) "")) 
   (crlf s))
 
 (defun output-minus-widget (s func &optional (id nil))
   (unless (search "(" func) (setq func (format nil "~A(this)" func)))
   (format s "   <img src='/docserver/infomaster/images/delete.gif'") (crlf s)
-  (format s "      border='0' onClick=\"~A\"~A>" func (if id (format nil "id='~A'" id) "")) 
+  (format s "      border='0' onClick=\"~A\"~A />" func (if id (format nil " id='~A'" id) "")) 
   (crlf s))
 
 
@@ -609,48 +609,54 @@ function addWidget (obj) {
   (finish-head s)
   (if (htmlform-onload html) (format-body s *bgcolor* (htmlform-onload html)) (format-body s *bgcolor*)) (crlf s)
   (output-header s)
-  (cond ((htmlform-errors html) 
-	 (dolist (msg (htmlform-errors html))
-	   (format s "<h2>Error: ~A</h2>~%" msg)))
-	(t
-	 (format s "<div class=\"autoform\">~%")
-	 (format s "<span id=\"status\"></span>")
-	 (format s "<center>~%")
-	 (format s "<form method=\"post\" action=\"~A\" onsubmit=\"return ~A\">~%" 
-		 (htmlform-action html) (htmlform-submitprep html))
-	 (cond (table
-		(format s "<table>~%")
-		(dolist (w (htmlform-widgets html))
-		  (format s "<tr id='~(~A~)BIGBOX'><td class=\"description\"><span class=\"description\">~A</span></td>~%"
-			  (htmlwidget-name w) (htmlwidget-description w))
-		  (format s "<td class=\"required\"><span class=\"required\">~A</span></td>~%" 
-			  (if (htmlwidget-required w) "*" ""))
-		  (format s "<td class=\"data\">~A</td></tr>~%"
-			  (htmlwidget-html w)))
-		(format s "</table>~%"))
-	       (t
-		(format s "<center><table><tr><td>~%")
-		(dolist (w (htmlform-widgets html))
-		  (format s "<div class='row' id='~(~A~)BIGBOX'>" (htmlwidget-name w))
-		  (format s "<div class='inputtd'>~A</div>" (htmlwidget-html w))
-		  (format s "<div class='requiredtd'>~A</div>" (if (htmlwidget-required w) "*" "&nbsp;"))
-		  (format s "<div class='descriptiontd'>~A</div>" (htmlwidget-description w))
-		  (format s "<div class='righttd'></div>")  ; to terminate "row"
-		  (format s "</div>~%"))
-		(format s "</td></tr></table></center>")))
-	 (format s "<p><input type=\"submit\" value=\"Submit\">")
-	 (dolist (h (htmlform-hidden html))
-	   (princ h s))
-	 (when (member 'debug (htmlform-options html) :key #'car) 
-	   (output-websheet-datalogtest s))
-	 (finish-form s)))
-  (format s "</center></div>")  ;</div></div>~%")))
+  (format s "<div class=\"autoform\">~%")
+  (format s "<span id=\"status\"></span>")
+  (format s "<center>~%")
+  (output-htmlform-errform s html table)
+  (format s "</center></div>")
   (output-footer s)
   (finish-body s) (crlf s)
   (finish-html s) (crlf s))
 
+(defun output-htmlform-errform (s html &optional (table t))
+  (cond ((htmlform-errors html) 
+	 (dolist (msg (htmlform-errors html))
+	   (format s "<h2>Error: ~A</h2>~%" msg)))
+	(t (output-htmlform-form s html table))))	 
+
+(defun output-htmlform-form (s html &optional (table t))
+  (format s "<form method=\"post\" action=\"~A\" onsubmit=\"return ~A\">~%" 
+	  (htmlform-action html) (htmlform-submitprep html))
+  (cond (table
+	 (format s "<table>~%")
+	 (dolist (w (htmlform-widgets html))
+	   (format s "<tr id='~(~A~)BIGBOX'><td class=\"description\"><span class=\"description\">~A</span></td>~%"
+		   (htmlwidget-name w) (htmlwidget-description w))
+	   (format s "<td class=\"required\"><span class=\"required\">~A</span></td>~%" 
+		   (if (htmlwidget-required w) "*" ""))
+	   (format s "<td class=\"data\">~A</td></tr>~%"
+		   (htmlwidget-html w)))
+	 (format s "</table>~%"))
+	(t
+	 (format s "<center><table><tr><td>~%")
+	 (dolist (w (htmlform-widgets html))
+	   (format s "<div class='row' id='~(~A~)BIGBOX'>" (htmlwidget-name w))
+	   (format s "<div class='inputtd'>~A</div>" (htmlwidget-html w))
+	   (format s "<div class='requiredtd'>~A</div>" (if (htmlwidget-required w) "*" "&nbsp;"))
+	   (format s "<div class='descriptiontd'>~A</div>" (htmlwidget-description w))
+	   (format s "<div class='righttd'></div>")  ; to terminate "row"
+	   (format s "</div>~%"))
+	 (format s "</td></tr></table></center>")))
+  (format s "<p><input type=\"submit\" value=\"Submit\" /></p>")
+  (dolist (h (htmlform-hidden html))
+    (princ h s))
+  (when (eq (first (htmlform-option 'debug html)) 'true) 
+    (output-websheet-datalogtest s))
+  (finish-form s))
+
+
 (defun output-htmlform-style (style s)
-  (format s "<link rel=\"stylesheet\" type=\"text/css\" href=\"~A\">~%" style))
+  (format s "<link rel=\"stylesheet\" type=\"text/css\" href=\"~A\" />~%" style))
 
 (defun output-htmlform-js (style s)
   (format s "<script type=\"text/javascript\" src=\"~A\"></script>~%" style))
@@ -958,7 +964,8 @@ function addWidget (obj) {
 (defstruct webform name preds univ constraints definitions options submit)
 (defvar *predkinds* '(:widget :extensional :intensional :builtin :query))
 (defstruct pred parameter (kind :extensional) (display nil))
-(defstruct widget name (init "") (typename "") desc (req nil) (style 'selector) (unique t) (incundef t))
+; NAME is the HTML attribute (i.e. the symbol used in constraints and sent to server); ID is the DOM identifier and must be unique
+(defstruct widget name id (init "") (typename "") desc (req nil) (style 'selector) (unique t) (incundef t))
 (defstruct value symbol (shortname "") (prettyname ""))
 
 ; handy routines
@@ -966,6 +973,7 @@ function addWidget (obj) {
   (mapcar #'pred-display 
 	  (remove-if-not #'(lambda (x) (eq (pred-kind x) :widget)) (webform-preds wf))))
 (defun webform-option (opt webform) (cdr (assoc opt (webform-options webform))))
+(defun htmlform-option (opt webform) (cdr (assoc opt (htmlform-options webform))))
 (defun pred-name (pred) (parameter-symbol (pred-parameter pred)))
 (defun pred-unique (pred) (if (widget-p (pred-display pred)) 
 			      (widget-unique (pred-display pred)) nil))
@@ -1119,13 +1127,19 @@ function addWidget (obj) {
 (defun ws-fixwidget (w univ types valuecomp)
   "(WS-FIXWIDGET W) adjusts the given widget W to meet assumptions of compiler."
   (let (type)
+    ; ensure that both name and ID are supplied
+    (unless (widget-name w) (setf (widget-name w) (widget-id w)))
+    (unless (widget-id w) (setf (widget-id w) (widget-name w)))
+    (assert (and (widget-id w) (widget-name w)) nil (format nil "Widget has neither a name nor a submitname: ~S" w))
+
     ; if typename not supplied or unknown, set to univ
     (setq type (find (widget-typename w) types :key #'parameter-symbol))
     (unless (or type (member (widget-typename w) *builtintypes*))
       (setf (widget-typename w) (mak-univ))) 
 
     ; set display so that the typename, unique, and undef fields can all be satisfied
-    (cond ((find (widget-typename w) *infinitetypes*) (setf (widget-style w) 'textbox))
+    (cond ((find (widget-typename w) *infinitetypes*) 
+	   (unless (eq (widget-style w) 'hidden) (setf (widget-style w) 'textbox)))
 	  ((and (widget-unique w) (widget-incundef w))
 	   (when (eq (widget-style w) 'checkbox) (setf (widget-style w) 'radio)))
 	  ((and (widget-unique w) (not (widget-incundef w)))
@@ -1264,12 +1278,13 @@ function addWidget (obj) {
     (setf (htmlform-name result) (webform-name struct))
     (setf (htmlform-action result) (format nil "/plato/commitform?"))
     (dolist (r (webform-widgets struct))
-      (setq code (compile-websheet-widget r struct))
-      (when code (push code (htmlform-widgets result))))
-    (push (format nil "<input type=\"hidden\" name=\"formname\" id=\"formname\" value=\"~A\">" 
-		  (webform-name struct))
+      (setq code (compile-websheet-widget r struct))  ; returns a struct
+      (cond ((not code))
+	    ((eq (widget-style r) 'hidden) (push (htmlwidget-html code) (htmlform-hidden result)))
+	    (t (push code (htmlform-widgets result)))))
+    (push (with-output-to-string (s) (output-ws-hidden s "formname" nil nil (make-value :prettyname (webform-name struct)) nil nil nil))
 	  (htmlform-hidden result))
-    (push (format nil "<input type=\"hidden\" name=\"time\" id=\"time\">")
+    (push (with-output-to-string (s) (output-ws-hidden s "time" nil nil (make-value :prettyname (get-universal-time)) nil nil nil))
 	  (htmlform-hidden result))
     (setf (htmlform-widgets result) (nreverse (htmlform-widgets result)))
     (setf (htmlform-options result) (webform-options struct))
@@ -1287,14 +1302,16 @@ function addWidget (obj) {
       (setf (htmlwidget-description res) (widget-desc r))
       (setf (htmlwidget-required res) (widget-req r))
       (setq s (make-array 0 :element-type 'character :adjustable t :fill-pointer 0))
-      (format s "<span id=\"~Abox\" class=\"databox\" onMouseOver=\"~A\" onMouseOut=\"~A\" >~%" 
-	      (websheet-cellname (widget-name r))
-	      (format nil "~(~A_mouseover('~A')~)" (widget-style r) (websheet-cellname (widget-name r)))
-	      (format nil "~(~A_mouseout('~A')~)" (widget-style r) (websheet-cellname (widget-name r))))
+      (unless (eq (widget-style r) 'hidden)
+	(format s "<span id=\"~Abox\" class=\"databox\" onMouseOver=\"~A\" onMouseOut=\"~A\" >~%" 
+		(websheet-cellname (widget-id r))
+		(format nil "~(~A_mouseover('~A')~)" (widget-style r) (websheet-cellname (widget-id r)))
+		(format nil "~(~A_mouseout('~A')~)" (widget-style r) (websheet-cellname (widget-id r)))))
       (cond ((eq (widget-style r) 'selector)
 	     (output-websheet-selector  
 	      s 
-	      (websheet-cellname (widget-name r)) 
+	      (websheet-cellname (widget-name r))
+	      (websheet-cellname (widget-id r))	      
 	      (pred-univ (find (widget-typename r) (webform-preds struct) :key #'pred-name))
 	      (widget-unique r)
 	      (widget-incundef r)
@@ -1305,15 +1322,27 @@ function addWidget (obj) {
 	     (output-websheet-textbox  
 	      s 
 	      (websheet-cellname (widget-name r)) 
+	      (websheet-cellname (widget-id r)) 
 	      (widget-unique r)
 	      (widget-incundef r)
 	      (widget-init r)
 	      (tostring (list "textbox_change('" (websheet-cellname (widget-name r)) "')"))
 	      (tostring (list "textbox_focus('" (websheet-cellname (widget-name r)) "')"))))
+	    ((eq (widget-style r) 'hidden)
+	     (output-websheet-hidden  
+	      s 
+	      (websheet-cellname (widget-name r)) 
+	      (websheet-cellname (widget-id r)) 
+	      (widget-unique r)
+	      (widget-incundef r)
+	      (widget-init r)
+	      ""  ;(list "textbox_change('" (websheet-cellname (widget-name r)) "')"))
+	      "")) ;(tostring (list "textbox_focus('" (websheet-cellname (widget-name r)) "')"))))
 	   ((eq (widget-style r) 'radio)
 	     (output-websheet-radio 
 	      s
 	      (websheet-cellname (widget-name r)) 
+	      (websheet-cellname (widget-id r)) 
 	      (pred-univ (find (widget-typename r) (webform-preds struct) :key #'pred-name))
 	      (widget-unique r)
 	      (widget-incundef r)
@@ -1324,13 +1353,14 @@ function addWidget (obj) {
 	     (output-websheet-checkbox 
 	      s 
 	      (websheet-cellname (widget-name r)) 
+	      (websheet-cellname (widget-id r)) 
 	      (pred-univ (find (widget-typename r) (webform-preds struct) :key #'pred-name))
 	      (widget-unique r)
 	      (widget-incundef r)
 	      (widget-init r)
 	      (tostring (list "checkbox_change('" (websheet-cellname (widget-name r)) "')"))
 	      (tostring (list "checkbox_focus('" (websheet-cellname (widget-name r)) "')")))))
-      (format s "</span>")
+      (unless (eq (widget-style r) 'hidden) (format s "</span>"))
       (setf (htmlwidget-html res) s)
       res)))
 
@@ -1339,14 +1369,17 @@ function addWidget (obj) {
 ;   Later, we should add an option that forces the empty set to mean the empty set.
 ;   If both incundef and emptyset must be expressible, we need another widget.
 ;   Programmatically, this means that (listof) and NIL are treated as the same initial value.
+; Also, we're not assigning IDs to the widgets because some of them can't be assigned IDs (e.g. multi-value text boxes)
+;   This is okay b/c we're using our own code to lookup/update cell values.
 
-(defun output-websheet-selector (s nameid options unique incundef values changeaction focus)
+(defun output-websheet-selector (s name id options unique incundef values changeaction focus)
   (when (and unique incundef) (setq options (cons *undefinedvalue* options)))
-  (output-ws-selector s nameid options (cdr values) changeaction focus nil (not unique)))
+  (output-ws-selector s name id options (cdr values) changeaction focus nil (not unique)))
 
-(defun output-ws-selector (s nameid options values changeaction focus disabled multi)
+(defun output-ws-selector (s name id options values changeaction focus disabled multi)
+  (declare (ignore id))
   (format s "<select name='~A' onChange=\"~A\" onFocus=\"~A\"~A~A>" 
-	  (websheet-cellname nameid) changeaction focus (if disabled "disabled" "")
+	  (websheet-cellname name) changeaction focus (if disabled "disabled" "")
 	  (if multi " multiple" ""))
   (dolist (option options)
     (format s "<option value='~A'~A>~A</option>"
@@ -1355,54 +1388,67 @@ function addWidget (obj) {
 	    (value-prettyname option)) (crlf s))
   (format s "</select>"))
 
-(defun output-websheet-textbox (s nameid unique incundef values changeaction focus)
+(defun output-websheet-hidden (s name id unique incundef values changeaction focus)
+  (declare (ignore unique))
+  (setq values (cdr values))
+  (dolist (v values)
+    (output-ws-hidden s name id incundef v changeaction focus nil)))
+
+(defun output-ws-hidden (s name id incundef value changeaction focus disabled)
+  (declare (ignore incundef id changeaction focus disabled))
+  (format s "<input type='hidden' name='~A' value='~A' />"
+	  (websheet-cellname name)
+	  (if value (value-prettyname value) "")))
+
+(defun output-websheet-textbox (s name id unique incundef values changeaction focus)
   (setq values (cdr values))
   (if unique
-      (output-ws-textbox s nameid incundef (first values) changeaction focus nil)
-      (output-websheet-multi s nameid incundef values changeaction focus #'output-ws-textbox)))
+      (output-ws-textbox s name id incundef (first values) changeaction focus nil)
+      (output-websheet-multi s name id incundef values changeaction focus #'output-ws-textbox)))
 
-(defun output-ws-textbox (s nameid incundef value changeaction focus disabled)
-  (declare (ignore incundef))
-  (format s "<input type='text' name='~A' onChange=\"~A\" onFocus=\"~A\" value='~A'~A>"
-	  (websheet-cellname nameid) 
+(defun output-ws-textbox (s name id incundef value changeaction focus disabled)
+  (declare (ignore incundef id))
+  (format s "<input type='text' name='~A' onChange=\"~A\" onFocus=\"~A\" value='~A'~A />"
+	  (websheet-cellname name)
 	  changeaction
 	  focus 
 	  (if value (value-prettyname value) "")
 	  (if disabled " disabled" "")))
 
-(defun output-websheet-multi (s nameid incundef values changeaction focus widgetfunc)
+(defun output-websheet-multi (s name id incundef values changeaction focus widgetfunc)
   (let (ghost att bottom)
-    (setq ghost (format nil "~A_ghost" nameid))
+    (setq ghost (format nil "~A_ghost" id))
     (setq att (format nil " style='display:none; background-color:white;' id='~A'" ghost))
-    (setq bottom (format nil "~A_bottom" nameid))
+    (setq bottom (format nil "~A_bottom" id))
     (format s "<table border='0'>")
     (dolist (v (cons t values))
       (format s "<tr~A>~%<td>" (if (eq v 't) att nil))
       (output-plusminus-widget s (format nil "addTableRow('~A',this)" ghost)
-			       (format nil "remWidgetSlot('~A',this)" (websheet-cellname nameid)))
+			       (format nil "remWidgetSlot('~A',this)" (websheet-cellname id)))
       (format s "~&</td><td>~%")
-      (funcall widgetfunc s nameid incundef (if (eq v 't) nil v) changeaction focus (eq v 't))
+      (funcall widgetfunc s name id incundef (if (eq v 't) nil v) changeaction focus (eq v 't))
       (format s "~&</td></tr>~%"))
     (format s "<tr style='background-color:white'><td align='left' colspan='2'>")
     (output-plus-widget s (format nil "addTableRow('~A',this)" ghost) bottom)
     (format s "</td></tr></table>")))
 
 ; checkbox does not handle undefined value or multiple values, but we should never get here if either is the case
-(defun output-websheet-checkbox (s nameid options unique incundef values changeaction focus)
+(defun output-websheet-checkbox (s name id options unique incundef values changeaction focus)
   (declare (ignore incundef))
   (setq values (cdr values))
   (assert (or (not unique) (not (cddr values))) nil 
-	  (format nil "Widget ~A cannot be a checkbox because it is unique and not boolean." nameid))
+	  (format nil "Widget ~A cannot be a checkbox because it is unique and not boolean." name))
   (if unique
-      (output-ws-checkbox s nameid (first options) (equalp (first values) (first options))
+      (output-ws-checkbox s name id (first options) (equalp (first values) (first options))
 			  changeaction focus nil)
       (dolist (o options)
-	(output-ws-checkbox s nameid o (member o values :test #'equalp) changeaction focus nil)
+	(output-ws-checkbox s name id o (member o values :test #'equalp) changeaction focus nil)
 	(format s "~%"))))
 
-(defun output-ws-checkbox (s nameid value checked changeaction focus disabled)
-  (format s "<input type='checkbox' name='~A' value='~A' onChange=\"~A\" onFocus=\"~A\"~A~A>~A"
-	  (websheet-cellname nameid) 
+(defun output-ws-checkbox (s name id value checked changeaction focus disabled)
+  (declare (ignore id))
+  (format s "<input type='checkbox' name='~A' value='~A' onChange=\"~A\" onFocus=\"~A\"~A~A />~A"
+	  (websheet-cellname name) 
 	  (js-thing (value-shortname value))
 	  changeaction
 	  focus
@@ -1410,18 +1456,19 @@ function addWidget (obj) {
 	  (if disabled " disabled" "")
 	  (if (member (value-prettyname value) *boolean* :test #'equalp) "" (value-prettyname value))))
 
-(defun output-websheet-radio (s nameid options unique incundef values changeaction focus)
+(defun output-websheet-radio (s name id options unique incundef values changeaction focus)
   (declare (ignore unique))
   (setq values (cdr values))
   (when incundef
     (setq options (cons (mak-undefinedvalue "Undefined") options)))
   (dolist (o options)
-    (output-ws-radio s nameid o (member o values :test #'equalp) changeaction focus nil)
+    (output-ws-radio s name id o (member o values :test #'equalp) changeaction focus nil)
     (format s "~%")))
 
-(defun output-ws-radio (s nameid value checked changeaction focus disabled)
-  (format s "<input type='radio' name='~A' value='~A' onChange=\"~A\" onFocus=\"~A\"~A~A>~A "
-	  (websheet-cellname nameid)
+(defun output-ws-radio (s name id value checked changeaction focus disabled)
+  (declare (ignore id))
+  (format s "<input type='radio' name='~A' value='~A' onChange=\"~A\" onFocus=\"~A\"~A~A />~A "
+	  (websheet-cellname name)
 	  (js-thing (value-shortname value))
 	  changeaction
 	  focus
@@ -1429,46 +1476,23 @@ function addWidget (obj) {
 	  (if disabled " disabled" "")
 	  (value-prettyname value)))
 
-
-
 (defun output-websheet-datalogtest (s)
 (format s "
 <p>
-<hr width='90%'>
+<hr width='90%'></hr>
 <h2>Testing</h2>
 <p>Messages</p>
-<textarea cols='30' rows='5' id='msg' name='msg'>
-</textarea>
+<textarea cols='30' rows='5' id='msg' name='msg'> </textarea>
+</p>
 
-<p>Eval<br>
+<p>Eval<br />
 <textarea cols='30' rows='5' id='evalbox' name='evalbox'>
-</textarea><br>
-<input type='button' value='Eval' onclick=\"alerteval('evalbox');\">
+</textarea><br />
+</p>
+<input type='button' value='Eval' onclick=\"alerteval('evalbox');\" />
 
 "))
 
-#|
-<p>Query<br>
-<!-- cell(q,V1) & univ(X0) & ~~assoc(X0,V1) -->
-<textarea cols='30' rows='5' id='query' name='query'>
-</textarea>
-
-<p>Theory<br>
-<textarea cols='30' rows='5' id='logic' name='logic'>
-")
-(output-websheet-javascript-datalog struct s)
-(format s "
-</textarea>
-
-<p>
-<input type='button' value='Findp' onclick=\"queryp('query', 'logic')\">
-<input type='button' value='Findx' onclick=\"queryx('query', 'logic')\">
-<input type='button' value='Finds' onclick=\"querys('query', 'logic')\">
-<input type='button' value='Proofx' onclick=\"queryproofx('query', 'logic')\">
-<input type='button' value='Proofs' onclick=\"queryproofs('query', 'logic')\">
-<input type='button' value='Conflicts' onclick=\"conflicts('query')\">
-
-")) |#
 
 (defun websheet-cellname (p) (format nil "~(~A~)" p))
 (defun websheet-valuename (v) 
@@ -1590,30 +1614,33 @@ function addWidget (obj) {
     (setq cpreds (mapcar #'pred-parameter cpreds)) ; complete
     (setq dpreds (mapcar #'pred-parameter dpreds)) ; preds with definitions in defs
 #|
-    (format t "~&wpreds: ~A~%lpreds: ~A~%qpreds: ~A~%cpreds: ~A~%dpreds: ~A~%"
+    (format t "~&wpreds: ~A~%lpreds: ~A~%qpreds: ~A~%cpreds: ~A~%dpreds: ~A~%constraints: ~A~%"
 	    (mapcar #'parameter-symbol wpreds)
 	    ;(mapcar #'parameter-symbol mpreds)
 	    (mapcar #'parameter-symbol lpreds)
 	    (mapcar #'parameter-symbol qpreds)
 	    (mapcar #'parameter-symbol cpreds)
-	    (mapcar #'parameter-symbol dpreds))
+	    (mapcar #'parameter-symbol dpreds)
+	    constraints)
 |#
 
-    (when (and (intersection cpreds (preds constraints) :key #'parameter-symbol)
+    ; test for cyclic constraints (acyclicity ensures a finite resolution closure)
+    (when (and (intersectionp cpreds (preds constraints) :key #'parameter-symbol)
 	       (agraph-cyclicp (syntactic-finiteness-graph (propositional-clauses (maksand constraints)))))
       (error 'cyclic-constraints))
 
-    ; compute components before compiling constraints
-    (setq comp (agraph-connected-components 
-		(undirected-dependency-graph constraints lpreds :test #'param-equal) 
-		:test #'param-equal))
+    ; compute components before compiling constraints (make sure every widget belongs to a component)    
+    (setq comp (undirected-dependency-graph constraints lpreds :test #'param-equal))
+    (mapc #'(lambda (x) (agraph-adjoin-noded x comp :test #'param-equal)) wpreds)
+    (setq comp (agraph-connected-components comp :test #'param-equal))
 
+    ; deal with 'undefined' values
     (setq constraints (fhlc-webform-multi constraints cpreds qpreds upreds (webform-option 'completep struct)))
     (when (member '(or) constraints :test #'equal)
       (error 'inconsistent-constraints))
 
     (setq cpreds (mapcar #'parameter-symbol cpreds))
-    (setq comp (maptree #'parameter-symbol comp))
+    (when comp (setq comp (maptree #'parameter-symbol comp)))  ; maptree dies on NIL
 
     (make-datalog :extensional (nconc (materialize (webform-definitions struct) dpreds) 
 				      (create-type-data (webform-preds struct)))
@@ -1722,7 +1749,6 @@ function addWidget (obj) {
 
     ; turn all clauses into rules
     (setq th (mapcan #'(lambda (x) (contrapositives* x (remove-if #'isfunction cpreds))) th))
-
 
     ; construct all contrapositives and then convert to IMPL queries
     (fhl-webform-uva-impl-queries th qpreds)))

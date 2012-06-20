@@ -10,7 +10,7 @@
     (nocommand  standard inspector)
     (nocommand  standard convert)
     (nocommand  standard memory)
-    (frontpage  standard "/researchmaster/pages/index.html")
+    (frontpage  standard "researchmaster/pages/index.html")
 
     (isa        examples interface)
     (recipient  examples repository)
@@ -24,9 +24,9 @@
     (nocommand  examples convert)
     (nocommand  examples memory)
     (nocreate   examples local)
-    (header     examples "/researchmaster/pages/examples-header.html")
-    (footer     examples "/researchmaster/pages/footer.html")
-    (frontpage  examples "/researchmaster/pages/examples.html")
+    (header     examples "researchmaster/pages/examples-header.html")
+    (footer     examples "researchmaster/pages/footer.html")
+    (frontpage  examples "researchmaster/pages/examples.html")
 
     (isa        references interface)
     (recipient  references repository)
@@ -38,9 +38,9 @@
     (nocommand  references convert)
     (nocommand  references memory)
     (nocreate   references local)
-    (header     references "/researchmaster/pages/references-header.html")
-    (footer     references "/researchmaster/pages/footer.html")
-    (frontpage  references "/researchmaster/pages/references.html")
+    (header     references "researchmaster/pages/references-header.html")
+    (footer     references "researchmaster/pages/footer.html")
+    (frontpage  references "researchmaster/pages/references.html")
 
     (isa        clama interface)
     (recipient  clama repository)
@@ -52,9 +52,9 @@
     (nocommand  clama convert)
     (nocommand  clama memory)
     (nocreate   clama local)
-    (header     clama "/researchmaster/pages/clama-header.html")
-    (footer     clama "/researchmaster/pages/footer.html")
-    (frontpage  clama "/researchmaster/pages/clama.html")
+    (header     clama "researchmaster/pages/clama-header.html")
+    (footer     clama "researchmaster/pages/footer.html")
+    (frontpage  clama "researchmaster/pages/clama.html")
 
     (isa        airforce interface)
     (recipient  airforce repository)
@@ -66,9 +66,9 @@
     (nocommand  airforce convert)
     (nocommand  airforce memory)
     (nocreate   airforce local)
-    (header     airforce "/researchmaster/pages/airforce-header.html")
-    (footer     airforce "/researchmaster/pages/footer.html")
-    (frontpage  airforce "/researchmaster/pages/airforce.html")
+    (header     airforce "researchmaster/pages/airforce-header.html")
+    (footer     airforce "researchmaster/pages/footer.html")
+    (frontpage  airforce "researchmaster/pages/airforce.html")
 
     (isa        plato plato)
 ;    (recipient  plato platoserver)
@@ -80,9 +80,9 @@
     (nocommand  plato convert)
     (nocommand  plato memory)
     (nocreate   plato local)
-    (header     plato "/researchmaster/pages/plato-header.html")
-    (footer     plato "/researchmaster/pages/footer.html")
-    (frontpage  plato "/researchmaster/pages/plato.html")
+    (header     plato "researchmaster/pages/plato-header.html")
+    (footer     plato "researchmaster/pages/footer.html")
+    (frontpage  plato "researchmaster/pages/plato.html")
 
     (isa        jack interface)
     (recipient  jack repository)
@@ -94,27 +94,27 @@
     (nocommand  jack convert)
     (nocommand  jack memory)
     (nocreate   jack local)
-    (header     jack "/researchmaster/pages/jack-header.html")
-    (footer     jack "/researchmaster/pages/footer.html")
-    (frontpage  jack "/researchmaster/pages/jack.html")
+    (header     jack "researchmaster/pages/jack-header.html")
+    (footer     jack "researchmaster/pages/footer.html")
+    (frontpage  jack "researchmaster/pages/jack.html")
 
     (security   integrator myviewserver)
-    (header     integrator "/researchmaster/pages/header.html")
+    (header     integrator "researchmaster/pages/header.html")
 
     (security   library myviewserver)
-    (header     library "/researchmaster/pages/header.html")
+    (header     library "researchmaster/pages/header.html")
 
     (security   repository myviewserver)
-    (header     repository "/researchmaster/pages/header.html")
+    (header     repository "researchmaster/pages/header.html")
 
     (security   warehouse myviewserver)
-    (header     warehouse "/researchmaster/pages/header.html")
+    (header     warehouse "researchmaster/pages/header.html")
 
     (security   manager myviewserver)
-    (header     manager "/researchmaster/pages/header.html")
+    (header     manager "researchmaster/pages/header.html")
 
     (security   metalibrary myviewserver)
-    (header     metalibrary "/researchmaster/pages/header.html")
+    (header     metalibrary "researchmaster/pages/header.html")
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

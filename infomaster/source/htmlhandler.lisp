@@ -104,13 +104,19 @@
 (defun chkpwd (client pwd)
   (triplep 'pwd client pwd *security*))
 
+(defvar *content* nil "allows communication between process-cookies and process")
 (defmethod htmleval (s command postlines)
-  (output-prolog s 200)
-  (process s command postlines))
+  (let (*content*)  ; for thread safety
+    (output-prolog s 200 *cookies* (process-cookies command postlines))
+    (process s command postlines)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; process
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod process-cookies (command postlines)
+  (declare (ignore command postlines))
+  *cookies*)
 
 (defmethod process (s command postlines)
   (cond ((null command) (process s 'toplevel postlines))
@@ -572,8 +578,8 @@
 ;;; Miscellaneous
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun output-prolog (s &optional (status-code 200))
-  (output-html-prolog s status-code))
+(defun output-prolog (s &optional (status-code 200) (oldcookies) (newcookies))
+  (output-html-prolog s status-code oldcookies newcookies))
 
 (defun output-break (s)
   (format s "<br/>"))
@@ -587,6 +593,7 @@
 (defun format-error (s text)
   (format s "<p><table><tr><td bgcolor=\"#ff9999\">~A</td></tr></table></p>" text))
 
+#|
 (defun output-classlink (s concept)
   (unless (findp `(nocommand ,*gui* metalevel) *manager*)
     (format s "<a href=\"/~A/change?Object=~A\" target=\"_blank\"><img src=\"~Aimages/pencil.gif\" border=\"0\"/></A>"
@@ -594,10 +601,12 @@
     (format s "<a href=\"/~A/qbeview?Object=~A\" target=\"_blank\"><img src=\"~Aimages/hammer.gif\" border=\"0\"/></A>"
             (addressify *gui*) (addressify concept) *home*))
   (format s (iconify concept)))
+|#
 
 (defun output-classlink (s concept)
   (format s (iconify concept)))
 
+#|
 (defun output-slotlink (s concept)
   (unless (findp `(nocommand ,*gui* metalevel) *manager*)
     (format s "<a href=\"/~A/change?Object=~A\" target=\"_blank\"><img src=\"~Aimages/pencil.gif\" border=\"0\"/></A>"
@@ -605,6 +614,7 @@
     (format s "<a href=\"/~A/qbeview?Object=~A\" target=\"_blank\"><img src=\"~Aimages/hammer.gif\" border=\"0\"/></A>"
             (addressify *gui*) (addressify concept) *home*))
   (format s (iconify concept)))
+|#
 
 (defun output-slotlink (s concept)
   (format s (iconify concept)))
@@ -869,7 +879,7 @@
         (t (output-anchor s item))))
 
 (defun output-handle-in-style (s value style)
-  (cond ((eq style 'imagestyle) (format s "<img src='~A'/>" value value))
+  (cond ((eq style 'imagestyle) (format s "<img src='~A'/>" value))
         ((eq style 'urlstyle) (format s "<a href='~A'><font color='red'>~A</font></A>" value value))
         ((eq style 'emailstyle) (format s "<a href='mailto:~A'><font color='red'>~A</font></A>" value value))
         ((eq style 'htmlstyle) (format s value))
@@ -892,9 +902,11 @@
 (defun output-simple (s item)
   (format s "~A" (prettyname item)))
 
+#|
 (defun output-anchor (s item)
   (format s "<span style='cursor:pointer; text-decoration:underline;' onClick='doclick(\"~A\",event)'>~A</span>"
           (addressify item) (prettyname item)))
+|#
 
 (defun output-anchor (s item)
   (format s "<a href='fastinspectpage?Object=~A'>~A</a>"
@@ -1112,9 +1124,11 @@
     (setq directory (append (pathname-directory *homedir*) (cdr directory))))
   (namestring (make-pathname :directory directory :name file :type type)))
 
+#|
 (defun make-filename (directory file type)
   (setq directory (append (pathname-directory *homedir*) (cdr directory)))
   (namestring (make-pathname :directory directory :name file :type type)))
+|#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; miscellaneous
