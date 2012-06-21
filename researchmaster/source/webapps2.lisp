@@ -21,7 +21,7 @@
 
 (defconstant *cookie-session-name* '__cookie.session)
 (defun find-cookie-session (cookie) (viewfindx '?x `(,*cookie-session-name* ?x) cookie))
-(defun drop-cookie-session (cookie) (drop `(,*cookie-session-name* ?x) cookie #'matchp))
+(defun drop-cookie-session (cookie) (drop `(,*cookie-session-name* ?x) cookie #'matchp) cookie)
 
 ; internal globals
 (defvar *appdb* nil)
@@ -196,6 +196,7 @@
   (multiple-value-bind (y present) (gethash x *forms*)
     (unless present (error 'unknown-form :comment x))
     y))
+(defun find-form-signaturename (x) (schema-signature (find-schema (form-schema (find-form x)))))
 
 (defmacro defform (p &rest l)
   "(DEFFORM P &REST L)"
@@ -303,6 +304,7 @@
 
 ; internal servlet: for when unknown servlet is chosen
 (defservlet __unknown :page "__unknown.html" :entry t)
+(defhtml __unknown ("__unknown.html" :tables (("message" status))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Program Analysis
@@ -371,7 +373,7 @@
     (setq guards nil)
     (setq guards (union (form-guards form) (schema-guards schema)))
     (setq guards (remove-if-not #'quantifier-free-sentencep (remove-duplicates (mapcan #'guard-logic-full guards) :test #'equal)))
-    (setq guards (and2list (del-namespace (maksand guards) (schema-signature (find-schema (form-schema (find-form formname)))))))
+    (setq guards (and2list (del-namespace (maksand guards) (find-form-signaturename formname))))
     (setq th (prep-plato-theory formname target nil))
     (push `(constraints ',guards) th)
     (setq h (compile-websheet th))
@@ -390,6 +392,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defvar *debug-webapps* nil)
 (define-condition guard-violation (error) ((comment :initarg :comment :accessor comment)))
+(define-condition lost-session (error) ((comment :initarg :comment :accessor comment)))
 ; internal servlet
 
 ; TODO: parameter tampering defense so we don't need formname as data
@@ -398,7 +401,12 @@
 
     ; grab target (only necessary b/c deployed using interpreter)
     (setq servletname (read-user-string (getf-post "servlet" postlines)))
-    (unless (gethash servletname *servlets*) (setq servletname '__unknown))
+    (unless (gethash servletname *servlets*) 
+      (setq *content* 
+	    (with-output-to-string (s)
+	      (let ((*output-stream* s))
+		(showerror in (pairs2data *cookies*) servletname (make-instance 'unknown-servlet)))))
+      (return-from process-cookies))
 
     ; grab source and correct for namespace
     (setq formname (read-user-string (getf-post "formname" postlines)))
@@ -415,7 +423,8 @@
     (setq *content*
 	  (with-output-to-string (stream)
 	    (setq cookies (serve in cookies servletname stream))))
-    cookies))
+    ; turn cookies database back to pairs
+    (data2pairs cookies)))
 
 (defun add-namespace (l prefix)
   "(ADD-NAMESPACE L PREFIX) takes a postlines L and a string PREFIX."
@@ -447,24 +456,30 @@
 (defun pairs2data (postlines)
   (mapcar #'(lambda (x) (list (read-user-string (car x)) (cdr x))) postlines))
 
+(defun data2pairs (data)
+  (mapcar #'(lambda (x) (cons (first x) (second x))) data))
+
 (defun serve (in cookie servletname s)
   "(SERVE IN COOKIE SERVLETNAME) executes the servlet with name SERVLETNAME on data IN and COOKIE
    and prints the resulting HTML page to stream S and returns new cookie data.  All data is represented
    as lists of KIF atoms."
-  (let (servlet sessionid (*output-stream* s))
-    ; Session?
+  (let (servlet sessionid session present (*attachments* nil) (*output-stream* s))
+    ; look up session if necessary
     (setq sessionid (find-cookie-session cookie))
-    (cond (sessionid  	  
-	   (when (listp cookie) (setq cookie (define-theory (make-instance 'prologtheory) "" cookie)))
-	   (handler-case (guard-check '__single-session-cookie cookie)
-	     (guard-violation (e) (showerror in cookie servlet e) (return-from serve)))
-	   ; check if we have the session
-	   (multiple-value-bind (session present) (gethash sessionid *sessions*)
-	     (cond (present (serve-session in (drop-cookie-session cookie) session sessionid servletname))
-		   (t ; lost the session or cookie tampering
-		    (serve-lost-session in cookie servletname)))))
-	    ; non-session request
-	  (t (serve-session in cookie nil nil servletname)))))
+    (setq session nil)
+    (when sessionid
+      (setq sessionid (read-user-string sessionid))
+      (when (listp cookie) (setq cookie (define-theory (make-instance 'prologtheory) "" cookie)))
+      ; ensure no cookie session pollution
+      (handler-case (guard-check '__single-cookie-session cookie)
+	(guard-violation (e) (showerror in cookie servlet e) (return-from serve)))
+      ; check if we have the session
+      (multiple-value-setq (session present) (gethash sessionid *sessions*))
+      (handler-case (unless present (error 'lost-session :comment (list sessionid nil)))
+	(lost-session (e) (showerror in cookie servlet e) (return-from serve))))
+    ; serve
+    (drop-cookie-session cookie)
+    (serve-session in cookie session sessionid servletname)))
 
 
 (defun serve-session (in cookie session sessionid servletname)
@@ -486,7 +501,7 @@
       (condition (e) (showerror in cookie servlet e) (return-from serve-session)))
     ; set server's state using results of transduction
     (setq cookie (set-server-state th sessionid))
-    ; render the page to the user
+    ; render the page to the user  
     (render (servlet-page servlet) th)
     ; free memory by unincluding all theories so that when TH goes out of scope, the memory is freed
     (decludes th)
@@ -591,12 +606,51 @@
     (unincludes th data)
     (when errs (error 'guard-violation :comment (list guard errs)))))
 
-(defun showerror (in cookie servlet err)
-  (format *output-stream* "~&!!!!Caught an error!!!!~%")
-  (print (comment err) *output-stream*)
-  (print in *output-stream*)
-  (print cookie *output-stream*)
-  (print servlet *output-stream*))
+;(class-name (class-of err))
+(defmethod showerror (in cookie servlet (err unknown-servlet))
+  (format *output-stream* "<html><head><title>Unknown servlet</title></head><body>")
+  (format *output-stream* "~&<P>Unknown servlet: ~A.~%" servlet)
+  (showerror-in in)
+  (showerror-cookie cookie)
+  (format *output-stream* "</body></html>"))
+  
+(defmethod showerror (in cookie servlet (err lost-session))
+  (declare (ignore servlet))
+  (format *output-stream* "<html><head><title>Lost session</title></head><body>")
+  (format *output-stream* "~&<P>Session invalid.  Please login again.~%")
+  (showerror-in in)
+  (showerror-cookie cookie)
+  (format *output-stream* "</body></html>"))
+
+(defmethod showerror (in cookie servlet (err guard-violation))
+  ; servlet name
+  (format *output-stream* "<html><head><title>Error caught by ~A</title></head><body>" (servlet-name servlet))
+  (format *output-stream* "~&<P>Servlet ~A caught an error~%" (servlet-name servlet))
+  ; errors and causes
+  (format *output-stream* "~&<p>Found error in guard ~A~%" (first (comment err)))
+  (format *output-stream* "<ul>")
+  (dolist (e (second (comment err)))
+    (format *output-stream* "<li>Error ~S caused by ~S~%" (first e) (second e)))
+  (format *output-stream* "</ul>~%")
+  (showerror-in in)
+  (showerror-cookie cookie)
+  (format *output-stream* "</body></html>"))
+
+(defun showerror-in (in)
+  (format *output-stream* "<p>Data received by server:~%")
+  (format *output-stream* "<ul>~%")
+  (dolist (i (contents in))
+    (format *output-stream* "<li>~S~%" i))
+  (format *output-stream* "</ul>~%"))
+
+(defun showerror-cookie (cookie)
+  (format *output-stream* "<p>Cookies received by server:~%")
+  (format *output-stream* "<ul>~%")
+  (dolist (i (contents cookie))
+    (format *output-stream* "<li>~S~%" i))
+  (format *output-stream* "</ul>~%"))
+
+
 
 (defstruct htmlbl forms tables)
 
@@ -692,6 +746,7 @@
   (let (form target th html)
     (setq form (find-form formname))
     (setq target (form-target form))
+    (setq data (del-namespace (contents data) (find-form-signaturename formname)))
     (setq th (prep-plato-theory formname target data))
     (push `(constraints 'nil) th)
     (setq html (compile-websheet th))
@@ -704,14 +759,16 @@
       (output-htmlform-form s html)
       (format s "</p>"))))
 
-; TODO: have plato's output be wrapped in namespaces so that it actually works.  
-;   Need to Init for each of the forms.
+; TODO: have plato's output be wrapped in a JS namespace so that it actually works.  
+;   Need to call a version of JS init() for each of the forms.
 ;   Should only have 1 copy of the basic functions (e.g. spreadsheet.js), but then cellvalue needs to be specific to a form.
 ; TODO: need to analyze guards to figure out which fields are unique, which are required, etc.
-; TODO: need to initialize with form data
 (defun prep-plato-theory (formname target data)
   "(PREP-PLATO-THEORY FORMNAME DATA) builds a theory for Plato describing FORMNAME, except constraints."
-  (let (th name req init desc style incundef unique type)
+  (let (th name req init desc style incundef unique type formdata)
+    (print (contents data))
+    (setq formdata (extract-form-data formname data))
+    (print formdata)
     ; create basic Plato theory 
     (push `(formname ,formname) th)
     (push `(definitions 'nil) th)
@@ -725,7 +782,8 @@
 	      (format nil "All symbols used during form generation must have arity 1; ~A has arity ~A" (parameter-symbol p) (parameter-arity p)))
       (setq name (parameter-symbol p))
       (setq req nil)
-      (setq init (cons 'listof (viewfinds '?x `(,name ?x) data)))
+      (setq init (viewfinds '?x `(,name ?x) formdata))
+      (when init (setq init (cons 'listof init)))
       (setq desc (tostring name))
       (setq style 'textbox)
       (setq incundef t)
@@ -735,6 +793,25 @@
     ; providing all the fields for this widget since otherwise load-formstructure does something stupid
     (push `(widget :name servlet :init (listof ,target) :style hidden :desc "" :req nil :incundef nil :unique t :typename string) th)
     (nreverse th)))
+
+(defun extract-form-data (formname data)
+  "(EXTRACT-FORM-DATA FORMNAME DATA) finds the portion of DATA appropriate for form FORMNAME
+   and drops the namespace from that data."
+  (let (newdata sig sigl p preds)
+    (setq sig (find-form-signaturename formname))
+    (setq preds (find-signature sig))
+    (setq sig (tostring sig "."))
+    (setq sigl (length sig))
+    (dolist (d (contents data))
+      (setq p (tostring (relation d)))
+      (when (eq (search sig p) 0)
+	(setq p (tosymbol (subseq p sigl)))
+	(when (member p preds :key #'parameter-symbol)
+	  (if (atom d)
+	      (push p newdata)
+	      (push (cons p (cdr d)) newdata)))))
+    (nreverse newdata)))
+	
 
 (defun generate-table (tablename data)
   (declare (ignore tablename data))

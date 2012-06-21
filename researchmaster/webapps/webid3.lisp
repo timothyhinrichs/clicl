@@ -25,7 +25,7 @@
 (defsignature3 status msg)
 (defschema status :signature status)
 
-(defsignature3 login id pass)
+(defsignature login id pass)
 (defschema login :signature login)
 
 (defsignature profile username name pass pass2 birthmonth birthday birthyear address city state country zip telephone newsletter accttype)
@@ -57,7 +57,7 @@
 
 (defguard profile-basic
   (=> (profile.pass2 ?x) (exists ?y (and (profile.pass ?y) (same ?x ?y))))
-  (=> (profile.accttype ?accttype) (or (= ?accttype "buyer") (= ?accttype "buyertoseller"))))
+  (=> (profile.accttype ?accttype) (or (same ?accttype "buyer") (same ?accttype "buyertoseller"))))
 
 (defguard profile-loggedin
   (=> (profile.username ?x) (exists ?y (cookie.session ?y) (session.username ?y ?x))))
@@ -309,6 +309,7 @@
 (defform new-profile :schema profile :target register :guards (profile-basic))  
 (defform edit-profile :schema profile :target edit-profile :guards (profile-basic))   
 (deftable status :schema status)
+(defform login :schema login :target login)
 (defform search :schema search :target search :guards (search-basic))
 (deftable auction :schema auction-listing)
 (defform credentials :schema login :target login)
@@ -329,6 +330,10 @@
 ; To compute initial data for those forms and tables, the servlet runs the list of actions and populates the forms/tables with results
 ; Each form in the list is <form> :target <servlet> where :target <servlet> overrides the default :target of <form>
 
+; TODO: add error-handling.  Add :errorpage field that is the page to use when an error occurs; 
+;    probably also want :onerror to be a list of updates to apply to the data before the :errorpage is rendered with that data.    
+; TODO: allow user to interleave guards with updates arbitrarily.
+
 ; Registration creation
 (defservlet show-registration :page new-profile-page :entry t)
 ; Registration processing: store profile, convert profile username/pwd to login schema, login, return simple page saying "Registration saved"
@@ -336,7 +341,12 @@
 ; Profile lookup for editing
 (defservlet show-profile :updates (session2profile lookupprofile) :page edit-profile-page)
 ; Profile saving: store profile, login, repopulate profile page with profile and set status message to OK.
-(defservlet update-profile :guards (profile-loggedin profile-basic) :updates (session2profile saveprofile statusok) :page edit-profile-page)
+(defservlet edit-profile :guards (profile-loggedin profile-basic) :updates (session2profile saveprofile statusok) :page edit-profile)
+
+(defservlet show-login :page login-page :entry t)
+(defservlet login :updates (login) :page success :entry t)
+
+; STOPPED: edit-profile isn't working.
 
 ; Advanced search page: combine search fields and results onto single page 
 ;(defservlet search :guards (search-basic) :actions (runsearch) :page search :entry t)
@@ -353,25 +363,27 @@
 
 ; (defhtml <name> sequence of pages or HTML files to concatenate, where each page can be followed by substitutions )
 
-;(defhtml home header "3colsstart.html" categories empty home-extras "3colsend.html")
 (defhtml header "header.html") ;("header.html" :forms (("search" babysearch) ("category" category))))
+(defhtml footer "footer.html")
+
+;(defhtml home header "3colsstart.html" categories empty home-extras "3colsend.html")
 ;(defhtml categories ("categories.html" :forms (("category" category) ("allcategories" topcategory))))
 ;(defhtml home-extras login news)
-(defhtml login ("login.html" :forms (("login" login))))
 ;(defhtml news ("news.html" :tables (("news" news news))))   ;(<tablename> <schemaname> <data>)  if <data> is nil, use global data
 ;(defhtml empty "empty.html")
-(defhtml footer "footer.html")
 
 (defhtml new-profile-page header new-profile footer)
 (defhtml new-profile ("profile.html" :forms (("registration" new-profile)) :tables (("status" status))))
 
+(defhtml login-page header login footer)
+(defhtml login ("login.html" :forms (("login" login))))
+
 (defhtml edit-profile-page header edit-profile footer)
-(defhtml edit-profile ("profile.html" :forms (("profile" edit-profile)) :tables (("status" status))))
+(defhtml edit-profile ("profile.html" :forms (("registration" edit-profile)) :tables (("status" status))))
 
 (defhtml search-page header search footer)
 (defhtml search ("search.html" :forms (("search" search)) :tables (("auctions" auctions))))
 
 ; want ALL forms to be created by us, right?  Otherwise, who knows what would happen?  So we either drop or replace all <form>s appearing in HTML (after parsing).
 
-(defhtml success "success.html")
-(defhtml lostsession "lostsession.html")
+(defhtml success header "success.html" footer)
