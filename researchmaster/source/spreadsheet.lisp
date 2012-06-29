@@ -1845,8 +1845,10 @@ function addWidget (obj) {
     ; add unique value constraints as required
     (dolist (r (webform-widgets struct))
       (when (and (widget-name r) (widget-unique r)) ; (not (eq (widget-style r) 'checkbox)))  ???
-	(push `(<= (= ?x ?y) (,(widget-name r) ?x) (,(widget-name r) ?y)) n)))
+	(push (uva (widget-name r)) n)))
     (nconc n th)))
+
+(defun uva (p) `(=> (,p ?x) (,p ?y) (= ?x ?y)))
 
 (defun ws-sym2short (th webform)
   (nsublis (mapcar #'(lambda (x) (cons (value-symbol x) (value-shortname x))) 

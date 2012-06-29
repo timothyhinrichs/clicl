@@ -1,4 +1,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; To Do
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Security (parameter tampering, see journal for list)
+; Error-handling (allow each guard to have its own error handling; allow errors and updates to be interleaved) 
+; Workflows (e.g. show-profile should redirect to login and back to show-profile, unless already logged in)
+; Update language (constraints+malleable, views+frameaxioms, etc.)
+; Model Checking (testing, access control via implication, see journal for list)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Global variables
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -24,7 +33,6 @@
 (defun drop-cookie-session (cookie) (drop `(,*cookie-session-name* ?x) cookie #'matchp) cookie)
 
 ; internal globals
-(defvar *appdb* nil)
 (defvar *sessions* (make-hash-table))
 (defvar *output-stream* t)
 
@@ -149,6 +157,7 @@
     (multiple-value-setq (rules constraints) 
       (split #'(lambda (x) (or (atomicp (car x)) (and (listp (car x)) (eq (caar x) '<=)))) l))
     (setq constraints (mapcan #'(lambda (x) (to-canonical-datalog `(<= (__error ,(cdr x)) ,(maknot (quantify (car x)))))) constraints))
+    (setq constraints (mapcar #'order-datalog-rule constraints))
     (define-theory (make-instance 'prologtheory) "" (append constraints rules))))
 
 (defun extract-kif-plus-text (l)
@@ -162,6 +171,10 @@
 	    (t
 	     (push (cons (first ls) (format nil "constraint ~A" cnt)) th))))))
 
+(defvar *appdb* (make-instance 'prologtheory))
+(defmacro defdb (&rest l)
+  "(DEFDB &REST L)"
+  `(definemore *appdb* ',l))
 
 (defvar *updates* (make-hash-table))
 (defstruct update guards logic datalog)
@@ -273,6 +286,23 @@
 	    (t (error 'invalid-html :comment p))))
     (setf (gethash p *html*) (nreverse newl))))
     
+; Tests
+(defparameter *tests* nil)  ; gets reset to NIL every time loaded (defparameter)
+(defstruct wtest servlet input cookie error output dbchange sessionchange cookiechange)
+(define-condition invalid-test (error) ((comment :initarg :comment :accessor comment)))
+
+(defmacro deftest (&rest l)
+  "(DEFTEST &REST L)"
+  `(define-test ',l))
+
+(defun define-test (l)
+  (let (h)
+    (setq h (grab-keyvals l '(:servlet :input :output :cookie :error :dbchange :sessionchange :cookiechange) 'invalid-test))
+    (push (make-wtest :servlet (gethash :servlet h) :input (gethash :input h) :output (gethash :output h) 
+		      :cookie (gethash :cookie h) :error (gethash :error h) :dbchange (gethash :dbchange h)
+		      :sessionchange (gethash :sessionchange h) :cookiechange (gethash :cookiechange h))
+	  *tests*)))
+
 
 ;;; Helper functions
 (defun grab-keyvals (l keys error)
@@ -285,6 +315,8 @@
 	   (setf (gethash (first ys) h) (second ys))
 	   (setq ys (cdr ys)))
 	  (t (error error  :comment (format nil "Unknown option: ~A" ys))))))
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Builtin program elements
@@ -302,13 +334,68 @@
 (defguard cookie)
 (defguard session)
 
-; internal servlet: for when unknown servlet is chosen
-(defservlet __unknown :page "__unknown.html" :entry t)
-(defhtml __unknown ("__unknown.html" :tables (("message" status))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Program Analysis
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#|
+(defun test-all ()
+  (let (oldsession newsession oldcookie newcookie possession negsession poscookie negcookie posdb negdb)
+    (dolist (e *tests*)
+      (let ((olddb *appdb*) bl)
+	(setq oldsession (find-cookie-session (wtest-cookie e)))
+	(when oldsession 
+	  (setq oldsession (gethash oldsession *sessions*)))
+	(with-output-to-string (s)
+	    (setq newcookie (serve (wtest-input e) (wtest-cookie e) (wtest-servlet e) s)))
+	(setq newsession (find-cookie-session newcookie))
+	(when newsession
+	  (setq newsession (gethash newsession *sessions*)))
+	(setq oldcookie (wtest-cookie e))
+	
+	(setq possession (set-difference newsession oldsession :test #'equal))
+	(setq negsession (set-difference oldsession newsession :test #'equal))
+	(setq poscookie (set-difference newcookie oldcookie :test #'equal))
+	(setq negcookie (set-difference oldcookie newcookie :test #'equal))
+	(setq posdb (set-difference (contents *appdb*) (contents olddb) :test #'equal))
+	(setq negdb (set-difference (contents olddb) (contents *appdb*) :test #'equal))
+
+#|     ; Don't really know what the output is: the whole bloody database is included currently
+	(unless (setequal out (wtest-output e) :test #'equal)
+	  (format t "Output error~%")
+	  (format t "Actual output: ~%~S~%" out)
+	  (format t "Spec: ~%~S~%" (wtest-sessionchange e)))
+|#
+	(setq bl '((t . t)))
+	(unless (test-one possession negsession (wtest-sessionchange e) bl)
+	  (format t "Session error~%")
+	  (format t "Added session elements: ~%~S~%" (plug possession bl))
+	  (format t "Deleted session elements: ~%~S~%" (plug negsession bl))
+	  (format t "Spec: ~%~S~%" (plug (wtest-sessionchange e) bl)))
+
+	(unless (test-one poscookie negcookie (wtest-cookiechange e) bl)
+	  (format t "Cookie error~%")
+	  (format t "Added cookie elements: ~%~S~%" (plug poscookie bl))
+	  (format t "Deleted cookie elements: ~%~S~%" (plug negcookie bl))
+	  (format t "Spec: ~%~S~%" (plug (wtest-cookiechange e) bl)))
+
+	(unless (test-one posdb negdb (wtest-dbchange e) bl)
+	  (format t "DB error~%")
+	  (format t "Added DB elements: ~%~S~%" (plug posdb bl))
+	  (format t "Deleted DB elements: ~%~S~%" (plug negdb bl))
+	  (format t "Spec: ~%~S~%" (plug (wtest-dbchange e) bl)))))))
+
+(defun test-one (pos neg spec bl)
+  (multiple-value-bind (specpos specneg) 
+      (split #'(lambda (x) (eq (relation x) 'neg)) spec)
+    (setq specpos (mapcar #'drop-posneg specpos))
+    (setq specneg (mapcar #'drop-posneg specneg))
+    (and (setequal pos specpos) (setequal neg specneg))))
+
+;(defstruct wtest servlet input cookie error output dbchange sessionchange cookiechange)
+|#	    
+      
+      
+
 (defun check () (and (check-servlets) (check-html)))
 (defun check-servlets (&optional (s nil))
   (let (errors)
@@ -393,20 +480,22 @@
 (defvar *debug-webapps* nil)
 (define-condition guard-violation (error) ((comment :initarg :comment :accessor comment)))
 (define-condition lost-session (error) ((comment :initarg :comment :accessor comment)))
+(define-condition internal-error (error) ((comment :initarg :comment :accessor comment)))
 ; internal servlet
 
 ; TODO: parameter tampering defense so we don't need formname as data
 (defmethod process-cookies ((file (eql 'scwa)) postlines)  
   (let (servletname formname cookies in)
+  (handler-case (progn
 
     ; grab target (only necessary b/c deployed using interpreter)
     (setq servletname (read-user-string (getf-post "servlet" postlines)))
-    (unless (gethash servletname *servlets*) 
+    (unless (gethash servletname *servlets*)
       (setq *content* 
 	    (with-output-to-string (s)
 	      (let ((*output-stream* s))
 		(showerror in (pairs2data *cookies*) servletname (make-instance 'unknown-servlet)))))
-      (return-from process-cookies))
+      (return-from process-cookies *cookies*))
 
     ; grab source and correct for namespace
     (setq formname (read-user-string (getf-post "formname" postlines)))
@@ -424,7 +513,13 @@
 	  (with-output-to-string (stream)
 	    (setq cookies (serve in cookies servletname stream))))
     ; turn cookies database back to pairs
-    (data2pairs cookies)))
+    (data2pairs cookies))
+    (condition () 
+      (setq *content* 
+	    (with-output-to-string (s) 
+	      (let ((*output-stream* s))					       
+		(showerror in (pairs2data *cookies*) servletname (make-instance 'internal-error)))))
+      *cookies*))))
 
 (defun add-namespace (l prefix)
   "(ADD-NAMESPACE L PREFIX) takes a postlines L and a string PREFIX."
@@ -463,7 +558,7 @@
   "(SERVE IN COOKIE SERVLETNAME) executes the servlet with name SERVLETNAME on data IN and COOKIE
    and prints the resulting HTML page to stream S and returns new cookie data.  All data is represented
    as lists of KIF atoms."
-  (let (servlet sessionid session present (*attachments* nil) (*output-stream* s))
+  (let (sessionid session present (*attachments* t) (*output-stream* s))
     ; look up session if necessary
     (setq sessionid (find-cookie-session cookie))
     (setq session nil)
@@ -472,11 +567,11 @@
       (when (listp cookie) (setq cookie (define-theory (make-instance 'prologtheory) "" cookie)))
       ; ensure no cookie session pollution
       (handler-case (guard-check '__single-cookie-session cookie)
-	(guard-violation (e) (showerror in cookie servlet e) (return-from serve)))
+	(guard-violation (e) (showerror in cookie servletname e) (return-from serve (contents cookie))))
       ; check if we have the session
       (multiple-value-setq (session present) (gethash sessionid *sessions*))
       (handler-case (unless present (error 'lost-session :comment (list sessionid nil)))
-	(lost-session (e) (showerror in cookie servlet e) (return-from serve))))
+	(lost-session (e) (showerror in cookie servletname e) (return-from serve (contents (drop-cookie-session cookie))))))
     ; serve
     (drop-cookie-session cookie)
     (serve-session in cookie session sessionid servletname)))
@@ -485,7 +580,8 @@
 (defun serve-session (in cookie session sessionid servletname)
   "(SERVE-NORMAL IN COOKIE SESSION SERVLETNAME S) takes theories for IN, COOKIE, SESSION, a SERVLETNAME, and a stream S.
    It outputs the result of the servlet to stream S and returns the new cookie data as a list. "
-  (let (th servlet)
+  (let (th servlet oldcookie)
+    (setq oldcookie (contents cookie))
     ; lookup servlet
     (setq servlet (find-servlet servletname))
     ; create data structure (a theory) representing the server's global state and including in, cookie, and session
@@ -498,7 +594,7 @@
 		    (transduce-all-data (servlet-updates servlet) th)
 		    ; check integrity constraints for all our data stores
 		    (guard-check '__globalstate th))
-      (condition (e) (showerror in cookie servlet e) (return-from serve-session)))
+      (condition (e) (showerror in cookie servlet e) (return-from serve-session oldcookie)))
     ; set server's state using results of transduction
     (setq cookie (set-server-state th sessionid))
     ; render the page to the user  
@@ -607,6 +703,14 @@
     (when errs (error 'guard-violation :comment (list guard errs)))))
 
 ;(class-name (class-of err))
+(defmethod showerror (in cookie servlet err)
+  (setq err (class-name (class-of err)))
+  (format *output-stream* "<html><head><title>~A</title></head><body>" err)
+  (format *output-stream* "~&<P>Error in servlet ~A: ~A.~%" servlet err)
+  (showerror-in in)
+  (showerror-cookie cookie)
+  (format *output-stream* "</body></html>"))
+
 (defmethod showerror (in cookie servlet (err unknown-servlet))
   (format *output-stream* "<html><head><title>Unknown servlet</title></head><body>")
   (format *output-stream* "~&<P>Unknown servlet: ~A.~%" servlet)
@@ -765,38 +869,103 @@
 ; TODO: need to analyze guards to figure out which fields are unique, which are required, etc.
 (defun prep-plato-theory (formname target data)
   "(PREP-PLATO-THEORY FORMNAME DATA) builds a theory for Plato describing FORMNAME, except constraints."
-  (let (th name req init desc style incundef unique type formdata)
-    (print (contents data))
+  (let (th signame name req init desc style incundef unique type formdata values)
+    ;(print (contents data))
     (setq formdata (extract-form-data formname data))
-    (print formdata)
+    ;(print formdata)
     ; create basic Plato theory 
     (push `(formname ,formname) th)
-    (push `(definitions 'nil) th)
     (push `(option completep t) th)
     (push `(option casesensitive t) th)
     (push `(option allowconflicts t) th)
     (push `(option debug nil) th)
+    (push `(definitions ',nil) th)
     ; add widgets
-    (dolist (p (find-signature (schema-signature (find-schema (form-schema (find-form formname))))))
+    (setq signame (schema-signature (find-schema (form-schema (find-form formname)))))
+    (dolist (p (find-signature signame))
       (assert (= (parameter-arity p) 1) nil 
 	      (format nil "All symbols used during form generation must have arity 1; ~A has arity ~A" (parameter-symbol p) (parameter-arity p)))
       (setq name (parameter-symbol p))
-      (setq req nil)
-      (setq init (viewfinds '?x `(,name ?x) formdata))
+      (setq init (viewfinds '?x `(,(tosymbol (tostring signame ".") name) ?x) formdata))
       (when init (setq init (cons 'listof init)))
       (setq desc (tostring name))
-      (setq style 'textbox)
       (setq incundef t)
-      (setq unique t)
-      (setq type (first (parameter-type p)))
+      (multiple-value-setq (style unique req type values) (extract-widget-info formname p))
+      (when values (push `(type ,type ,values) th))
       (push `(widget :name ,name :req ,req :init ,init :desc ,desc :style ,style :incundef ,incundef :unique ,unique :typename ,type) th))
     ; providing all the fields for this widget since otherwise load-formstructure does something stupid
     (push `(widget :name servlet :init (listof ,target) :style hidden :desc "" :req nil :incundef nil :unique t :typename string) th)
     (nreverse th)))
 
+(defun extract-widget-info (formname param)
+  "(EXTRACT-WIDGET-INFO FORMNAME PARAM) analyzes the guards for FORMNAME to figure out the properties
+  for the widget PARAM and returns (i) style, (ii) unique, (iii) required, (iv) typename, (v) list of datalog defining typename.
+  Here we're just looking for some simple syntactic patterns; if instead we were to do this at
+  compilation time, we could see what statements were entailed."
+  (let (sig style unique required values typename paramsymbol form schema)
+    ; prefix the parameter name by the signature
+    (setq sig (schema-signature (find-schema (form-schema (find-form formname)))))
+    (setq paramsymbol (tosymbol (tostring sig ".") (parameter-symbol param)))
+    ; analyze logic
+    (setq values t)
+    (setq form (find-form formname))
+    (setq schema (find-schema (form-schema form)))
+    (dolist (g (union (form-guards form) (schema-guards schema)))
+      (dolist (p (guard-logic (find-guard g)))
+	(unless (stringp p)
+	; required
+	  (when (samep p `(exists ?x (,paramsymbol ?x))) (setq required t))
+	; convert to clausal and check each clause
+	  (dolist (q (clauses p))
+	  ; uniqueness
+	    (when (sentequal q `(or (not (,paramsymbol ?x)) (not (,paramsymbol ?y)) (= ?x ?y)) :test #'samep)
+	      (setq unique t))
+	  ; enumeration of values: last one wins
+	    (multiple-value-bind (list isenum) (enumerated-type q paramsymbol)
+	      (when isenum (setq values list)))))))
+    ; figure out info to return
+    (cond ((listp values)  ; found an enumerator
+	   (setq style 'selector)
+	   (setq typename (tosymbol (gentemp "type")))
+	   (setq values (cons 'listof values)))
+	  (t
+	   (setq style 'textbox)
+	   (setq typename (first (parameter-type param)))
+	   (setq values nil)))
+    (values style unique required typename values)))
+	    
+(defun enumerated-type (p sym)
+  "(ENUMERATED-TYPE P SYM) checks if clause P is equivalent to (or (not (p ?x)) (= ?x a1) (= ?x a2) ...)
+   Returns 2 values: the list of (a1 a2 ...) and whether or not the sentence is of the desired form (
+  to handle the case (not (p ?x))."
+  (cond ((not (listp p)) (values nil nil))
+	((and (atomicp p) (samep p `(not (,sym ?x)))) (values nil t))
+	((not (eq (car p) 'or)) (values nil nil))
+	(t
+	 (setq p (cdr p))
+	 (let (v vals)
+           ; check only one occurrence of (not (p ?x)), grab var.
+	   (multiple-value-bind (notps rest) (split #'(lambda (x) (samep x `(not (,sym ?x)))) p)
+	     (when (or (not notps) (cdr notps)) (return-from enumerated-type (values nil nil)))
+	     (setq notps (first notps))
+	     (setq v (first (vars notps)))
+	     (setq p rest))
+           ; check that remainder are all of the form (= ,var string)
+	   (dolist (a p (values (nreverse vals) t))
+	     (if (eq (first a) '=)
+		 (if (eq (second a) v)
+		     (if (atom (third a))
+			 (push (third a) vals)
+			 (return (values nil nil)))
+		     (if (eq (third a) v)
+			 (if (atom (second a))
+			     (push (second a) vals)
+			     (return (values nil nil)))))
+		 (return (values nil nil))))))))
+
 (defun extract-form-data (formname data)
   "(EXTRACT-FORM-DATA FORMNAME DATA) finds the portion of DATA appropriate for form FORMNAME
-   and drops the namespace from that data."
+   and returns it (leaving the namespace in tact to avoid hitting Epilog's builtin functions)."
   (let (newdata sig sigl p preds)
     (setq sig (find-form-signaturename formname))
     (setq preds (find-signature sig))
@@ -807,9 +976,10 @@
       (when (eq (search sig p) 0)
 	(setq p (tosymbol (subseq p sigl)))
 	(when (member p preds :key #'parameter-symbol)
-	  (if (atom d)
-	      (push p newdata)
-	      (push (cons p (cdr d)) newdata)))))
+	  (push d newdata))))
+;	  (if (atom d)
+;	      (push p newdata)
+;	      (push (cons p (cdr d)) newdata)))))
     (nreverse newdata)))
 	
 

@@ -535,7 +535,7 @@
     (ifffindp q (cons `(<=> ,q p) (contents th)))))
 |#
 
-
+#|
 (deftheory constraints
   (=> (class-reqs ?class ?hoursperweek ?daysperweek ?proj ?wetlab)
       (and (onetoten ?hoursperweek) (onetofive ?daysperweek) (yn ?proj) (yn ?wetlab)))
@@ -707,5 +707,6 @@
 
 )
 
+|#
 
 

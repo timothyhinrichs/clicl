@@ -482,8 +482,8 @@ rest of the given `string', if any."
 ;;;;;;;;;;;;;; Files ;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; Read a lisp file's contents and return list
 (defun read-file (filename)
+  "(READ-FILE FILENAME) reads a Lisp file's contents and returns it as a list."
   (with-open-file (ifile (string filename) 
 			 :direction :input :if-does-not-exist :error)
     (do ((result nil (cons next result))

@@ -153,6 +153,11 @@
 	((eq (car p) 'forall) (third p))
 	(t p)))
 
+(defun drop-posneg (p)
+  (cond ((atom p) p)
+	((member (car p) '(pos neg)) (second p))
+	(t p)))
+
 (defun drop-things (p thing &key (test #'eq))
   (cond ((atom p) (list p))
 	((funcall test (car p) thing) 
@@ -483,8 +488,11 @@
    NEG is true iff the entry is to be used inside a negation -- used internally just to simplify output a bit.
    Returns two values: a conjunction of literals (often just an entry point) and the set of rules."
   (cond ((atomicp p) (values p nil))
-	((eq (car p) 'not) (multiple-value-bind (entry defs) (lloyd-topor (second p) t)
-			     (values (if neg entry (maknot entry)) defs)))
+	((eq (car p) 'not)
+	 (cond ((and (listp (second p)) (eq (car (second p)) 'not)) ; double negation
+		(lloyd-topor (second (second p)) neg))
+	       (t (multiple-value-bind (entry defs) (lloyd-topor (second p) t)
+			     (values (if neg entry (maknot entry)) defs)))))
 	((eq (car p) 'forall) (lloyd-topor `(not (exists ,(second p) (not ,(third p)))) neg)) 
 	((eq (car p) 'exists) 
 	 (multiple-value-bind (entry defs) (lloyd-topor (third p))
