@@ -211,6 +211,15 @@
       `(define-foltheory ',x ,(car l) ',(cdr l))
       `(define-foltheory ',x nil ',l)))
 
+(defmacro deffoltheory* (x &rest l)
+  "(DEFFOLTHEORY X L) takes a theory name X and a list L and
+   converts all the sentences in L to rule form (including contrapositives)
+   before defining a model elimination theory."
+  (if (stringp (car l))
+      `(define-foltheory ',x ,(car l) ',(cdr l) #'contrapositives)
+      `(define-foltheory ',x nil ',l #'contrapositives)))
+
+
 #|
 (defmacro defcontratheory (x &rest l)
   "(DEFCONTRATHEORY X L) takes a theory name X and a list L and

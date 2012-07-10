@@ -19,33 +19,18 @@
 
 (defun predicate-completion (th)
   "(PREDICATE-COMPLETION TH) returns TH after having applied predicate completion.
-   Ignores included theories."
-
-  (let ((newth nil)
-        (vocab (get-vocabulary (maksand (contents th)))))
-
-    ; walk over all the relations
-    (do ((rs (remove-if-not #'isrelation vocab) (cdr rs))
-         (es) (tmplist) (vs) (newhead))
-        ((null rs) newth)
-
-      ; find all the rules in th with (car rs) as the head relation--we assume they are all positive.  
-      (setq tmplist (remove-if-not #'(lambda (x) (eq (relation x) (parameter-symbol (car rs)))) 
-                                   (indexps (parameter-symbol (car rs)) th)))
-
-      (when tmplist
-        ; generate the variables for the head of the completed rule
-        (setq vs (maptimes #'newindvar (parameter-arity (car rs))))
-
-        ; turn each rule into an existentialized version, using vs as the  variables in the head of the rule
-        (setq es (mapcar #'(lambda (x) (existentialize-rule x vs)) tmplist))
-
-        ; create the new head
-        (cond (vs (setq newhead (cons (parameter-symbol (car rs)) vs)))
-              (t (setq newhead (head (car tmplist)))))
-
-        ; create <=> rule and store in newth
-        (setq newth (cons `(<=> ,newhead ,(maksor (mapcar #'caddr es))) newth))))))
+   Ignores included theories.  If two rules fail to have unifiable heads, returns NIL;
+   otherwise, returns the completed theory."
+  (let (newth newhead vs body)
+    (dolist (r (relns (maksand (contents th))))
+      (setq body (remove-if-not #'(lambda (x) (eq (relation (head x)) r)) (indexps r th)))
+      (when body
+	(multiple-value-setq (newhead body) (heads-same-bodies-diff body))
+	(unless newhead (return nil))
+	(setq vs (vars newhead))
+	(setq body (mapcar #'(lambda (x) (equantify-except (maksand (body x)) vs)) body)) 
+        (push `(<=> ,newhead ,(maksor body)) newth)))
+    newth))
 
 (defun predicate-completion-th (th)
   "(PREDICATE-COMPLETION TH) returns a new theory after having applied predicate completion."
@@ -59,7 +44,6 @@
     (setq rules (mapcar #'(lambda (x) (caddr (existentialize-rule x vs))) rules))
     (cond (vs `(<=> ,(cons r vs) ,(maksor rules)))
           (t  `(<=> ,r ,(maksor rules))))))
-
 
 (defun rewrite-fol (p)
   "(REWRITE-FOL P) applies some rewritings to the first-order formula P."
@@ -86,6 +70,58 @@
        (v nil))
       ((= i n) (nreverse v))
     (push (tosymbol (format nil "~A~A" prefix i)) v)))
+
+(defun heads-same-bodies-diff (th)
+  "(HEADS-SAME-BODIES-DIFF TH) takes a theory of rules and ensures all the heads have the same arguments and all the bodies
+   have distinct variables from all other rules (other than those occurring in the head).  Treats pos/neg specially.
+   Returns (i) the unifying head and (ii) the new list of rules.  Ignores included theories."
+  (let (newhead newth h equality bl posneg)
+    (setq th (contents th))
+    (setq th (mapcar #'stdize th))  ; all bodies now differ
+    (setq newhead nil)
+    (dolist (p th)
+      (setq posneg nil)
+      (setq h (head p))
+      ; adjust H for pos/neg
+      (when (and (listp h) (member (car h) '(pos neg)))
+	(setq posneg (car h))
+	(setq h (second h)))
+      ; compute new head, if not already done
+      (unless newhead (setq newhead (variablize h)))
+      (multiple-value-setq (h equality) (variablize h))
+      (setq bl (mgu h newhead))  ; order of h and newhead matters
+      (unless bl (return nil))
+      (setq equality (mapcar #'(lambda (x) `(= ,(car x) ,(cdr x))) equality))
+      (setq p (list* '<= (if posneg (list posneg h) h) (append equality (body p))))
+      (push (plug p bl) newth))
+    (values newhead (nreverse newth))))
+
+(defun variablize (p)
+  "(VARIABLIZE P) takes a sentence P and replaces all occurrences of object constants
+   with fresh variables.  Returns new sentence and binding list, which when applied
+   to the new sentence gives back the original."
+  (cond ((atom p) (values p nil))
+	((member (car p) '(and or not => <= <=>)) 
+	 (multiple-value-bind (new bl) (mapcaraccum #'variablize (cdr p))
+	   (values (cons (car p) new) bl)))
+	((member (car p) '(forall exists))
+	 (multiple-value-bind (new bl) (variablize (third p))
+	   (values (list (first p) (second p) new) bl)))
+	(t (multiple-value-bind (new bl) (mapcaraccum #'variablize-term (cdr p))
+	     (values (cons (car p) new) bl)))))
+
+(defun variablize-term (e)
+  (cond ((varp e) (values e nil))
+	((atom e)
+	 (let (v)
+	   (setq v (newindvar)) 
+	   (values v `((,v . ,e)))))
+	(t (multiple-value-bind (new bl) (mapcaraccum #'variablize-term (cdr e))
+	     (values (cons (car e) new) bl)))))
+		 
+	 
+
+	    
 
 (defun similarize-head (r vars)
   "(SIMILARIZE-HEAD R VARS) takes any sentence of the forms (Op Lit p1 ... pn) or Lit and a list of variables VARS.

@@ -311,7 +311,7 @@
 
 (defun subrel (alist p &key (test #'eq))
   "(SUBFUN ALIST P) applies the substitution list ALIST to all of the
-   function constants (but not object constants) in the sentence P.  Returns the new sentence."
+   relation constants (but not object constants) in the sentence P.  Returns the new sentence."
   (mapopands #'(lambda (x) (if (atom x) (sublis alist x :test test) (cons (sublis alist (car x) :test test) (cdr x))))
 	     p))
 
@@ -1367,6 +1367,7 @@
       (setq res nil)
       (multiple-value-setq (neg pos) (split #'needsguardp p))
       (multiple-value-setq (equality pos) (split #'(lambda (x) (eq (relation x) '=)) pos))
+      (setq pos (remove 'true pos))
       ; don't have all positive = literals--only those where at least one arg is a variable.
       ;   Orient them all so that the first arg is a variable. 
       (setq equality (mapcar #'(lambda (x) (if (varp (second x)) x `(= ,(third x) ,(second x)))) equality))

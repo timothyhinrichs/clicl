@@ -1612,9 +1612,9 @@
 ;   the answer we're about to add is subsumed by something in *answers*
 (defun fullresiduesassumption (p pl al depth cont)
   (setq p (plugstdexp p al))
-  (cond ((find p *residue* :test #'equalp) (fullresidueslast pl al depth cont))
+  (cond ((find p *residue* :test #'equalp) (fullresidueslast pl al depth cont))  ; already exists
 	((or (not *consistency*)
-	     (not (or (rebuttalp p *residue*) (rebuttheoryp p *theory*)))
+	     (not (or (rebuttalp p *residue*) (rebuttheoryp p *theory*))) ; ensure negation of p's relation appears somewhere in residue/theory
 	     (consistentp p *residue*))
          (cond ((and *check-answers* (residue-subsumedp p)) 
                 ;(format t "residue ~A subsumed by ~A~%" (augment-residue) *answers*) 
@@ -1629,7 +1629,8 @@
   (cond ((and *ancestry* (fullresiduesancestor p al cont)) (fullfail (car pl) al depth))
 	((and (numberp *ancestry*) (fullresiduesnumber p al cont 0))
 	 (fullresiduesassumption p pl al depth cont))
-	((and *reduction* *ifreductionnoextension* (reducible p pl al depth cont)) (if (fullresiduesreduce p pl al depth cont) t (fullfail (car pl) al depth)))
+	((and *reduction* *ifreductionnoextension* (reducible p pl al depth cont)) 
+	 (if (fullresiduesreduce p pl al depth cont) t (fullfail (car pl) al depth)))
         ((and *reduction* (fullresiduesreduce p pl al depth cont)))
         ((and *ignore-goal-rules* (equal *goal* (signed-relation p))) (fullfail (car pl) al depth))
 	((fullresiduesdb p pl al depth cont *theory*))

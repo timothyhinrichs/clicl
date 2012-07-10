@@ -60,6 +60,16 @@
 
 (defun datap (p) (and (null (body p)) (groundp p)))
 
+(defun posp (p)
+  (cond ((atom p) nil)
+	((and (listp p) (eq (relation p) 'pos)) t)
+	(t nil)))
+
+(defun negp (p)
+  (cond ((atom p) nil)
+	((and (listp p) (eq (relation p) 'neg)) t)
+	(t nil)))
+
 (defun disjunctionp (p)
   (cond ((atom p) nil)
         ((and (listp p) (eq (car p) 'or)) t)
@@ -627,7 +637,7 @@
    Ignores included theories.  IGNORELIST is a list of symbols that are 
    not included in the graph, according to TEST."
   (let ((graph (make-agraph)) (preds) h)
-    (setq ignorelist (adjoin '= ignorelist))
+    (setq ignorelist (union '(= true false) ignorelist))
 
     ; build dependency graph from rules
     (dolist (r (contents th) graph)

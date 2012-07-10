@@ -34,9 +34,6 @@
 (defsignature search titdesc keywords closed category lowprice highprice buyitnow buyitnowonly ending)
 (defschema search :signature search)
 
-(defsignature3 auctionlisting id title description closingdate category price buyitnow payments seller country zip ending auctiontype)
-(defschema auctionlisting :signature auctionlisting)
-
 (defsignature item id category title subtitle description type quantity startprice shippingfee reserveprice buynow bidinc startdate_day startdate_month startdate_year startdate_time duration shipping_conditions shipping_international shipping_terms payment options relists)
 (defschema item :signature item :guards (item))
 
@@ -134,8 +131,8 @@
   (=> (search.country ?x) (db.country ?x)))
 
 (defguard login-entry
-  (=> (login.id ?x) (login.id ?y) (= ?x ?y))
-  (=> (login.pass ?x) (login.pass ?y) (= ?x ?y))
+  (=> (login.id ?x) (login.id ?y) (= ?x ?y)) "Can only provide 1 login ID"
+  (=> (login.pass ?x) (login.pass ?y) (= ?x ?y)) "Can only provide 1 password"
 )
 
 (defguard login-basic 
@@ -389,6 +386,7 @@
 (defupdate lookupprofile ()
   ; data constraints (note these are not datalog)
   (<= (pos (profile.name ?y)) (profile.username ?x) (db.user.name ?x ?y))
+#|
   (<= (pos (profile.pass ?y)) (profile.username ?x) (db.user.pass ?x ?y))
   (<= (pos (profile.birthmonth ?y)) (profile.username ?x) (db.user.birthmonth ?x ?y))
   (<= (pos (profile.birthday ?y)) (profile.username ?x) (db.user.birthday ?x ?y))
@@ -401,6 +399,7 @@
   (<= (pos (profile.telephone ?y)) (profile.username ?x) (db.user.telephone ?x ?y))
   (<= (pos (profile.newsletter ?y)) (profile.username ?x) (db.user.newsletter ?x ?y))
   (<= (pos (profile.accttype ?y)) (profile.username ?x) (db.user.accttype ?x ?y))
+|#
 )
 (defupdate session2profile ()
   (<= (pos (profile.username ?x)) (session.username ?x))
@@ -496,14 +495,14 @@
 (defform edit-profile :schema profile :target save-profile :guards (profile-basic profile-entry))   
 (deftable status :schema status)
 (defform login :schema login :target login :guards (login-entry))
-(defform search :schema search :target search :guards (search-basic))
+;(defform search :schema search :target search :guards (search-basic))
 (defform edit-auction :schema item :target save-auction)
 
-(deftable auction :schema auction-listing)
+;(deftable auction :schema auction-listing)
 (defform credentials :schema login :target login)
-(defform babysearch :schema babysearch :target search)
-(defform category :schema categoryid :target browse-categories :guards (category))
-(defform topcategory :schema categoryid :target browse-categories :guards (topcategory))
+;(defform babysearch :schema babysearch :target search)
+;(defform category :schema categoryid :target browse-categories :guards (category))
+;(defform topcategory :schema categoryid :target browse-categories :guards (topcategory))
 (deftable news :schema news)
 
 
@@ -632,7 +631,76 @@
 ; suspended is a field maintained by the app itself; only admins can change it, though the system can change it too
 ;   e.g. when the auction is created it is not suspended
 
+; read rights
+
+(defaccesscontrol
+    (<= (deny ?user (?y) read)
+	(db.user.name ?x ?y)
+	(session.username ?user)
+	(distinct ?x ?user))
+#|
+    (<= (deny ?user (db.user.pass ?x ?y) read)
+	(not (= ?x ?user)))
+
+    (<= (deny ?user (db.user.newsletter ?x ?y) read)
+	(not (= ?x ?user)))
+
+    (<= (deny ?user (db.user.regdate ?x ?y) read)
+	(not (= ?x ?user)))
+
+    (<= (deny ?user (db.user.birthmonth ?x ?y) read)
+	(not (= ?x ?user)))
+
+    (<= (deny ?user (db.user.birthday ?x ?y) read)
+	(not (= ?x ?user)))
+
+    (<= (deny ?user (db.user.birthyear ?x ?y) read)
+	(not (= ?x ?user)))
+
+    (<= (deny ?user (db.user.address ?x ?y) read)
+	(not (= ?x ?user)))
+
+    (<= (deny ?user (db.user.city ?x ?y) read)
+	(not (= ?x ?user)))
+
+    (<= (deny ?user (db.user.state ?x ?y) read)
+	(not (= ?x ?user)))
+
+    (<= (deny ?user (db.user.zip ?x ?y) read)
+	(not (= ?x ?user)))
+
+    (<= (deny ?user (db.user.country ?x ?y) read)
+	(not (= ?x ?user)))
+
+    (<= (deny ?user (db.user.telephone ?x ?y) read)
+	(not (= ?x ?user)))
+
+    (<= (deny ?user (db.auction.relists ?x ?y) read)
+	(db.auction.owner ?x ?z)
+	(not (= ?z ?user)))
+|#
+)
 
 
+(deffoltheory* test ""
+;    (<= (PROFILE.USERNAME1 ?7226)
+;	(OR (SESSION.USERNAME ?7226)
+;	    (PROFILE.USERNAME ?7226)))
 
+  (<=> (PROFILE.USERNAME1 ?7226)
+       (SESSION.USERNAME ?7226))
 
+;  (<= (PROFILE.NAME2 ?7227)
+;      (OR (AND (PROFILE.USERNAME1 ?7228) (DB.USER.NAME ?7228 ?7227))
+;	  (PROFILE.NAME ?7227)))
+
+  (<=> (PROFILE.NAME2 ?7227)
+       (exists ?7228 (and (PROFILE.USERNAME1 ?7228) 
+			  (DB.USER.NAME ?7228 ?7227))))
+
+  (<= (p ?y)
+      (exists (?x ?user) 
+	      (and (DB.USER.NAME ?X ?Y) 
+		   (SESSION.USERNAME ?USER) 
+		   (DISTINCT ?X ?USER))))
+)

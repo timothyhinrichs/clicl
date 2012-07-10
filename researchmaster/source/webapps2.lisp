@@ -43,6 +43,8 @@
 (defvar *signatures* (make-hash-table))
 (define-condition invalid-signature (error) ((comment :initarg :comment :accessor comment)))
 (define-condition unknown-signature (error) ((comment :initarg :comment :accessor comment)))
+(defun signaturep (x) (nth-value 1 (gethash x *signatures*)))
+
 (defun find-signature (x)
   (multiple-value-bind (y present) (gethash x *signatures*)
     (unless present (error 'unknown-signature :comment x))
@@ -110,6 +112,7 @@
 (defstruct schema name guards signature)
 (define-condition invalid-schema (error) ((comment :initarg :comment :accessor comment)))
 (define-condition unknown-schema (error) ((comment :initarg :comment :accessor comment)))
+(defun schemap (x) (nth-value 1 (gethash x *schemas*)))
 (defun find-schema (x)
   (multiple-value-bind (y present) (gethash x *schemas*)
     (unless present (error 'unknown-schema :comment x))
@@ -130,6 +133,7 @@
 (defstruct guard name logic supers datalog)  ; datalog is the version *we* use--keep both around for debugging
 (define-condition invalid-guard (error) ((comment :initarg :comment :accessor comment)))
 (define-condition unknown-guard (error) ((comment :initarg :comment :accessor comment)))
+(defun guardp (x) (nth-value 1 (gethash x *signatures*)))
 (defun find-guard (x)
   (multiple-value-bind (y present) (gethash x *guards*)
     (unless present (error 'unknown-guard :comment x))
@@ -180,6 +184,7 @@
 (defstruct update guards logic datalog)
 (define-condition invalid-update (error) ((comment :initarg :comment :accessor comment)))
 (define-condition unknown-update (error) ((comment :initarg :comment :accessor comment)))
+(defun updatep (x) (nth-value 1 (gethash x *updates*)))
 (defun find-update (x)
   (multiple-value-bind (y present) (gethash x *updates*)
     (unless present (error 'unknown-update :comment x))
@@ -205,6 +210,7 @@
 (defstruct form schema target guards)
 (define-condition invalid-form (error) ((comment :initarg :comment :accessor comment)))
 (define-condition unknown-form (error) ((comment :initarg :comment :accessor comment)))
+(defun formp (x) (nth-value 1 (gethash x *forms*)))
 (defun find-form (x)
   (multiple-value-bind (y present) (gethash x *forms*)
     (unless present (error 'unknown-form :comment x))
@@ -224,6 +230,7 @@
 (defvar *tables* (make-hash-table))
 (define-condition invalid-table (error) ((comment :initarg :comment :accessor comment)))
 (define-condition unknown-table (error) ((comment :initarg :comment :accessor comment)))
+(defun tablep (x) (nth-value 1 (gethash x *tables*)))
 (defun find-table (x)
   (multiple-value-bind (y present) (gethash x *tables*)
     (unless present (error 'unknown-table :comment x))
@@ -244,10 +251,21 @@
 (defstruct servlet name page updates guards entry)
 (define-condition invalid-servlet (error) ((comment :initarg :comment :accessor comment)))
 (define-condition unknown-servlet (error) ((comment :initarg :comment :accessor comment)))
+(defun servletp (x) (nth-value 1 (gethash x *servlets*)))
 (defun find-servlet (x)
   (multiple-value-bind (y present) (gethash x *servlets*)
     (unless present (error 'unknown-servlet :comment x))
     y))
+(defun copy-servlet (name newname)
+  (let (s new)
+    (setq s (find-servlet name))
+    (setq new (make-servlet :name newname
+			    :page (servlet-page s)
+			    :guards (copy-list (servlet-guards s))
+			    :updates (copy-list (servlet-updates s))
+			    :entry (servlet-entry s)))
+    (setf (gethash newname *servlets*) new)))
+    
 
 (defmacro defservlet (p &rest l)
   "(DEFSERVLET P &REST L)"
@@ -265,6 +283,7 @@
 (defstruct htmlrepl target forms tables)
 (define-condition invalid-html (error) ((comment :initarg :comment :accessor comment)))
 (define-condition unknown-html (error) ((comment :initarg :comment :accessor comment)))
+(defun htmlp (x) (nth-value 1 (gethash x *html*)))
 (defun find-html (x)
   (multiple-value-bind (y present) (gethash x *html*)
     (unless present (error 'unknown-html :comment x))
@@ -302,6 +321,15 @@
 		      :cookie (gethash :cookie h) :error (gethash :error h) :dbchange (gethash :dbchange h)
 		      :sessionchange (gethash :sessionchange h) :cookiechange (gethash :cookiechange h))
 	  *tests*)))
+
+; Access control policies
+(defparameter *accesscontrol* nil) ; gets reset to NIL every time loaded (defparameter)
+(define-condition invalid-accesscontrol (error) ((comment :initarg :comment :accessor comment)))
+(defmacro defaccesscontrol (&rest l)
+  "(DEFACCESSCONTROL &REST L)"
+  `(define-accesscontrol ',l))
+
+(defun define-accesscontrol (l) (setq *accesscontrol* l)) ;(append l *accesscontrol*)))
 
 
 ;;; Helper functions
@@ -425,12 +453,159 @@
       (format t ";~A~%" v))
     (not errors)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Compiler
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun flatten-html (thing)
+  "(FLATTEN-HTML THING) takes an HTML descriptor (string, symbol, htmlrepl) and returns a list
+   of strings and htmlrepls representing that descriptor, i.e. it eliminates all symbol references
+   and in so doing flattens the description."
+  (cond ((stringp thing) (list thing))
+	((symbolp thing) (mapcan #'flatten-html (find-html thing)))
+	((htmlrepl-p thing) (mapcar #'(lambda (x) (flatten-html-add-repl x thing)) (flatten-html (htmlrepl-target thing))))
+	(t (error 'invalid-html :comment thing))))
 
-; right now we're throwing away results, but we ought to be storing them and making this an
-;   actual compilation step
+(defun flatten-html-add-repl (thing repl)
+  "(FLATTEN-HTML-ADD-REPL THING REPL) Helper for flatten-html.  Adds the replacements from htmlrepl REPL
+   to the thing, always returning an htmlrepl."
+  (cond ((or (stringp thing) (symbolp thing)) 
+	 (make-htmlrepl :target thing :forms (htmlrepl-forms repl) :tables (htmlrepl-tables repl)))
+	((htmlrepl-p thing)
+	 (make-htmlrepl :target (htmlrepl-target thing)
+			:forms (append (htmlrepl-forms repl) (htmlrepl-forms thing))
+			:tables (append (htmlrepl-tables repl) (htmlrepl-tables thing))))
+	(t (error 'invalid-html :comment thing))))
+
+(defun html-output-signatures (thing)
+  "(HTML-OUTPUT-SIGNATURES THING) takes an html descriptor (string, symbol, htmlrepl) 
+   and returns the list of signature names that are output by that thing.  Assumes no forms/tables are
+   replaced more than once and that every form/table occurs in the HTML.  If THING is both a servlet
+   and an html page, returns"
+  (cond ((stringp thing) nil)
+	((symbolp thing) (remove-duplicates (mapcan #'html-output-signatures (flatten-html thing))))
+	((htmlrepl-p thing) 
+	 (mapcar #'(lambda (x) (schema-signature (find-schema x)))
+		 (union 
+		  (mapcar #'(lambda (x) (form-schema (find-form (second x)))) (htmlrepl-forms thing)) 
+		  (mapcar #'(lambda (x) (find-table (second x))) (htmlrepl-tables thing)))))	
+	(t (error 'invalid-html :comment thing))))    
+
+; two issues
+;   1) abducibles should be all those the user *knows*: session.username, input database, output database, cookies.  
+;      What about other session vars?
+;   2) if we have (deny (db.user ?x ?y)) and (db.user ?x ?y) is updated for a given servlet, which version 
+;      of db.user are we checking against?  The result of the update, right?  But then what if the 
+;      query is computed from the original db.user?  Then we're going to leak information, right?  Hmmm.  But maybe not
+;      because whatever tuples were in the original db.user are moved over to the new db too, right?
+(defun access-control-read-check (servletname)
+  (let (updates views bl crelns phi latest th outputsig res violations fol newth newhead thing)
+    ; compute the signature of data that the user sees for this servlet
+    (setq outputsig (html-output-signatures (servlet-page (find-servlet servletname))))
+    (setq outputsig (mapcan #'(lambda (x) (mapcar #'(lambda (y) (withnamespace (parameter-symbol y) x)) (find-signature x))) outputsig))
+    (setq outputsig (cons 'session.username outputsig))
+    (setq outputsig (remove-duplicates outputsig))
+    (when outputsig
+      ; represent update sequence as a single set of views
+      (setq updates (mapcar #'(lambda (x) (update-datalog (find-update x))) (servlet-updates (find-servlet servletname))))
+      (multiple-value-setq (views latest) (flatten-updates updates))
+      ; convert views to fol, partition, compute contrapositives, create theories, and index theories
+      (when *debug-webapps* (format t "~&Flattened updates:~%") (pcontents views))
+      (setq fol (views-to-fol views))
+      (setq crelns (list (make-parameter :symbol '=) (make-parameter :symbol 'true) (make-parameter :symbol 'false)))
+      (setq th (define-theory (make-instance 'prologtheory) "" (contrapositives* (maksand fol) crelns)))
+      (when *debug-webapps* (format t "~&Contrapositives:~%") (pcontents th))
+      ; for now forget partitioning; shouldn't really matter anyway except for complete predicates
+      ;(setq partitions (partition-by-independence fol crelns))
+      ;(setq partitions (mapcar #'(lambda (x) (define-theory (make-instance 'prologtheory) "" (contrapositives* (maksand x) crelns)))
+      ;   partitions))
+      ;(setq h (make-hash-table))
+      ;(mapc #'(lambda (ps) (dolist (r (relns (maksand (contents ps)))) (setf (gethash r h) ps))) partitions)
+      ; analyze each access control command independently of all the others; just READ for now
+      ; output output signature relation names so they reference the output of the view definitions
+      (setq outputsig (mapcar #'(lambda (x) (let ((base (gethash x latest))) (if base (tosymbol x (car base)) x))) outputsig))
+      (dolist (ac (contents *accesscontrol*))
+        ; assuming all access control are (deny <sub> <obj> <right>)
+	(when (eq (fourth (head ac)) 'read)
+	  ; change phi to reflect any updates to its relations
+	  (setq thing (third (head ac)))
+	  (when (atom thing) (setq thing (list thing))) ; ensure thing is a list
+	  (setq phi (maksand (body ac)))
+	  (setq bl (mapcarnot #'(lambda (x) (let ((base (gethash x latest))) (if base (cons x (tosymbol x (car base))) nil))) 
+			      (relns phi)))
+	  (setq phi (subrel bl phi))
+	  
+	  ; see if we can recompute the DENIED query from its computation in terms of output signature
+	  (setq newhead (cons '__tlh thing))  ; thing must be a list of variables
+	  (setq phi (list '<= newhead phi))
+	  (setq newth (define-theory (make-instance 'prologtheory) "" (brfs phi)))
+	  (includes newth th)									       
+	  (when *debug-webapps* (format t "Trying to infer ~A from ~A~%" phi outputsig))
+	  (setq *tmp* newth)
+	  (setq res (fullresidues newhead newth #'(lambda (x) (member x outputsig))))
+	  ;(break)
+	  (decludes newth)
+	  (when res (push (list ac res) violations))))
+      violations)))
+
+(defun views-to-fol (views) (predicate-completion views))
+
+(defun flatten-updates (l)
+  "(FLATTEN-UPDATES L) takes a list of datalog theories and returns a single update logically equivalent
+   to that sequence of updates.  The second return value (a hash table from 
+   a predicate p to a positive integer n ensures that the result of applying the updates at the end is 
+   contained in predicate pn.  (Any predicate not updated will have value NIL.)"
+  (setq l (append l '(nil)))
+  (do ((ls (cdr l) (cdr ls))
+       (up (contents (car l)))
+       (h (make-hash-table))
+       (i 1 (1+ i)))
+      ((null ls) (values up h))
+    (setq up (flatten-updates-aux up (contents (first ls)) i h))))
+
+(defun flatten-updates-aux (up1 up2 base latest)
+  "(UP1 UP2 BASE LATEST) takes 2 lists of datalog updates UP1 and UP2.  UP2 is to be applied after
+   UP1.  Also takes BASE, a positive integer dictating where in the sequence of updates UP1 lies.
+   Also takes and updates LATEST, a hash table from relations to the greatest BASE wherein
+   each relation was last updated via a POS/NEG rule.  Returns a single update equivalent to
+   updating UP1 and then UP2 (and modifies LATEST)."
+  (let (newth newps h pbase pos neg f p oldp arity bl head th oldhead)
+    ; split up1 into pos/neg (hashed on relation) and remainder
+    (setq h (make-hash-table))
+    (dolist (phi up1)
+      (cond ((member (relation phi) '(pos neg))
+	     (setq p (relation (second (second phi))))
+	     (setf (gethash p h) (cons phi (gethash p h))))
+	    (t
+	     (push phi newth))))
+    ; add pbase definitions for every p with a pos/neg
+    (dolist (pposneg (hash2bl h))
+      ; figure out what relation to use, and update LATEST as needed
+      (setq p (car pposneg))
+      (setq oldp (gethash p latest))
+      (if oldp (setq oldp (tosymbol p (car oldp))) (setq oldp p))
+      (setq pbase (tosymbol p base))
+      (push base (gethash p latest))
+      (push (cons p pbase) bl)
+      ; prepare to combine pos and neg sentences
+      (setq arity (length (cdr (second (head (first (cdr pposneg)))))))
+      ; ensure combining bodies of pos/neg into a single sentence does not capture variables improperly
+      (multiple-value-setq (head th) (heads-same-bodies-diff (cdr pposneg)))
+      (setq head (subrel `((,p . ,pbase)) head))
+      ; predicate complete bodies of pos and neg sentences
+      (multiple-value-setq (pos neg) (split #'posp th))
+      (setq f #'(lambda (x) (maksand (body x))))
+      (setq pos (maksor (mapcar f pos)))
+      (setq neg (maksor (mapcar f neg)))
+      ; create sentence
+      (setq oldhead (if (> arity 0) (cons oldp (cdr head)) oldp))
+      (push `(<= ,head (or ,pos (and ,oldhead (not ,(equantify-except neg (vars head)))))) newps))
+    ; convert new sentences to datalog
+    ;(setq newps (mapcan #'to-canonical-datalog newps))
+    ;;(setq newps (mapcar #'(lambda (x) (if (and (listp x) (eq (car x) '<=)) (cons '<= (delete= (cdr x))) x)) newps))
+    ;(setq newps (mapcar #'order-datalog-conjuncts newps))
+    ; apply substitutions to up2
+    (setq bl (mapcar #'(lambda (x) (cons (car x) (tosymbol (car x) (car (cdr x))))) (hash2list latest)))
+    (setq up2 (mapcar #'(lambda (x) (subrel bl x)) up2))
+    ; return combination of new up2, newth, newps
+    (append newth newps up2)))
+
 (defun guard-logic-full (guard)
   "(GUARD-LOGIC-FULL GUARD) returns the list of all sentences in the guard named GUARD or in 
    one of the guards inherited from GUARD (recursively).  Memoized."
@@ -446,6 +621,43 @@
 	     (setf (gethash guardname done) 
 		   (append (apply #'append (mapcar #'(lambda (x) (guard-logic-full-aux x done)) (guard-supers guard)))
 			   (guard-logic guard)))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Program Reformulation
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun uniquify-form-servlet-combinations ()
+  "(UNIQUIFY-FORM-SERVLET-COMBINATIONS) ensures that each form has a unique servlet target."
+  (let (forms counter fs servletname newname)
+    (setq forms (group-by (hash2bl *forms*) #'form-target :key #'cdr))
+    (dolist (f forms)
+      (setq servletname (car f))
+      (setq fs (cdr f))  ; a list of (formname . <form-struct>)
+      (setq counter 0)
+      (dolist (g (cdr fs)) ; walk over all but the first form
+	; create a new servlet that is identical to the original but with a different name
+	(setq newname (tosymbol "__" servletname counter))
+	(copy-servlet servletname newname)
+	(setq counter (1+ counter))
+	; change the form so it points to that servlet
+	(setf (form-target (cdr g)) newname)))))
+
+(defun eliminate-parameter-tampering ()
+  "(ELIMINATE-PARAMETER-TAMPERING) transforms a web application so that every guard checked on a form is also checked
+   by its target servlet."
+  (let (s form)
+    ; first ensure every servlet is the target of at most 1 form.
+    (uniquify-form-servlet-combinations)
+    ; walk over forms and add the guards of each form to the guards of its target
+    (dolist (f (hash2bl *forms*))
+      (setq form (cdr f))
+      (setq s (find-servlet (form-target form)))
+      (setf (servlet-guards s) (union (servlet-guards s) (form-guards form))))))
+    
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Compiler
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; TODO: figure out uniqueness from constraints; more generally, do something smarter than dropping quantified constraints
 (defun compile-form (formname &key (html nil) (js t))
@@ -475,7 +687,7 @@
     'done))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Execution Engine
+;; Interpreter
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defvar *debug-webapps* nil)
 (define-condition guard-violation (error) ((comment :initarg :comment :accessor comment)))
@@ -521,14 +733,25 @@
 		(showerror in (pairs2data *cookies*) servletname (make-instance 'internal-error)))))
       *cookies*))))
 
+(defun withnamespace (pred signame) (tosymbol (stringappend signame "." pred)))
+
 (defun add-namespace (l prefix)
   "(ADD-NAMESPACE L PREFIX) takes a postlines L and a string PREFIX."
   (assert (and (stringp prefix) (every #'(lambda (x) (stringp (car x))) l)) nil 
 	  (format nil "ADD-NAMESPACE requires strings as arguments"))
   (mapcar #'(lambda (x) (if (atom x)
-			    (tosymbol (stringappend prefix "." x))
-			    (cons (stringappend prefix "." (car x)) (cdr x))))
+			    (withnamespace x prefix)
+			    (cons (withnamespace (car x) prefix) (cdr x))))
 		    l))
+
+(defun withoutnamespace (pred signame) 
+  (let (pre lpre p)
+    (setq pre (tostring signame "."))
+    (setq lpre (length pre))
+    (setq p (tostring pred))
+    (if (and (>= (length p) lpre) (string= pre p :end2 lpre))
+	(tosymbol (subseq p lpre))
+	pred)))
 
 (defun del-namespace (l prefix)
   (let* (pre lpre)
@@ -554,11 +777,22 @@
 (defun data2pairs (data)
   (mapcar #'(lambda (x) (cons (first x) (second x))) data))
 
+(defstruct webapp-timings servestart renderstart renderend serveend)
+(defvar *timings* (make-webapp-timings))
+(defun showtimings ()
+  (let (serve render)
+    (setq render (- (webapp-timings-renderend *timings*) (webapp-timings-renderstart *timings*)))
+    (setq serve (- (webapp-timings-serveend *timings*) (webapp-timings-servestart *timings*)))
+    (format t "Serve: total = ~A sec; w/o render = ~A sec~%" serve (- serve render))
+    (format t "Render: total = ~A sec~%" render)))
+
+
 (defun serve (in cookie servletname s)
   "(SERVE IN COOKIE SERVLETNAME) executes the servlet with name SERVLETNAME on data IN and COOKIE
    and prints the resulting HTML page to stream S and returns new cookie data.  All data is represented
    as lists of KIF atoms."
   (let (sessionid session present (*attachments* t) (*output-stream* s))
+    (when *timings* (setf (webapp-timings-servestart *timings*) (get-universal-time)))
     ; look up session if necessary
     (setq sessionid (find-cookie-session cookie))
     (setq session nil)
@@ -574,7 +808,9 @@
 	(lost-session (e) (showerror in cookie servletname e) (return-from serve (contents (drop-cookie-session cookie))))))
     ; serve
     (drop-cookie-session cookie)
-    (serve-session in cookie session sessionid servletname)))
+    (setq cookie (serve-session in cookie session sessionid servletname))
+    (when *timings* (setf (webapp-timings-serveend *timings*) (get-universal-time)))
+    cookie))
 
 
 (defun serve-session (in cookie session sessionid servletname)
@@ -598,15 +834,11 @@
     ; set server's state using results of transduction
     (setq cookie (set-server-state th sessionid))
     ; render the page to the user  
-    (render (servlet-page servlet) th)
+    (render2 (servlet-page servlet) th)
     ; free memory by unincluding all theories so that when TH goes out of scope, the memory is freed
     (decludes th)
     ; return the cookie
     cookie))
-
-(defun serve-lost-session (in cookie servletname)
-  (declare (ignore servletname))
-  (render 'lostsession (append in cookie)))
 
 (defun get-server-state (in cookie session)
   "(GET-SERVER-STATE IN COOKIE SESSION) returns a theory (possibly with includees) that contains 
@@ -766,12 +998,10 @@
    files (in a non-lossy way).  For pages with multiple forms/tables that have the same name,
    this implementation is incorrect.  Also, assuming that formname.widgetname gives a unique ID,
    which is again incorrect for pages with multiple forms."
+  (when *timings* (setf (webapp-timings-renderstart *timings*) (get-universal-time)))
   (multiple-value-bind (s repls) (render-to-string htmlname)
-    (princ (html-subst s (htmlrepls2htmlbl repls) data) *output-stream*)))
-
-(defun htmlrepls2htmlbl (repls) 
-  (make-htmlbl :forms (mapcan #'(lambda (x) (copy-list (htmlrepl-forms x))) repls)
-	       :tables (mapcan #'(lambda (x) (copy-list (htmlrepl-tables x))) repls)))
+    (princ (html-subst s (htmlrepls2htmlbl repls) data) *output-stream*))
+  (when *timings* (setf (webapp-timings-renderend *timings*) (get-universal-time))))
 
 (defun render-to-string (thing)
   "(RENDER-TO-STRING THING) returns a string representing the html file named HTMLFILE
@@ -791,6 +1021,27 @@
 	     (setq out s) (setq bl (cons thing b))))
 	  (t (error 'invalid-html :comment thing)))
     (values out bl)))
+
+(defun render2 (htmlname data)
+  (when *timings* (setf (webapp-timings-renderstart *timings*) (get-universal-time)))
+  (multiple-value-bind (s repls) (render-to-string2 htmlname)
+    (princ (html-subst s (htmlrepls2htmlbl repls) data) *output-stream*))
+  (when *timings* (setf (webapp-timings-renderend *timings*) (get-universal-time))))
+
+(defun render-to-string2 (thing)
+  (let (repls)
+    (values (with-output-to-string (s)
+	      (dolist (h (flatten-html thing))
+		(cond ((stringp h) (princ (read-static-file h) s))
+		      ((and (htmlrepl-p h) (stringp (htmlrepl-target h)))
+		       (push h repls)
+		       (princ (read-static-file (htmlrepl-target h)) s))
+		      (t (error 'invalid-html :comment thing)))))
+	    repls)))
+
+(defun htmlrepls2htmlbl (repls) 
+  (make-htmlbl :forms (mapcan #'(lambda (x) (copy-list (htmlrepl-forms x))) repls)
+	       :tables (mapcan #'(lambda (x) (copy-list (htmlrepl-tables x))) repls)))
 
 (defun read-static-file (name) (read-any-file (fspath :html name)))
 

@@ -189,29 +189,29 @@
       (setq pos (cons (car ls) pos))
       (setq neg (cons (car ls) neg)))))
 
-(defun group-by (list func &key (test #'eq))
+(defun group-by (list func &key (test #'eq) (key #'identity))
   (if (or (eq test #'eq) (eq test #'equal) (eq test #'equalp))
-      (hash2bl (group-by-hash list func :test test))
-      (group-by-list list func :test test)))
+      (hash2bl (group-by-hash list func :test test :key key))
+      (group-by-list list func :test test :key key)))
 
-(defun group-by-list (list func &key (test #'eq))
+(defun group-by-list (list func &key (test #'eq) (key #'identity))
   (let (map v entry)
     ; group list elements by function
     (setq map nil)
     (dolist (l list)
-      (setq v (funcall func l))
+      (setq v (funcall func (funcall key l)))
       (setq entry (assoc v map :test test))
       (if entry
 	  (push l (cdr entry))
 	  (push (cons v (list l)) map)))
     map))
 
-(defun group-by-hash (list func &key (test #'eq))
+(defun group-by-hash (list func &key (test #'eq) (key #'identity))
   (let (h v)
     ; group list elements by function
     (setq h (make-hash-table :test test))
     (dolist (l list)
-      (setq v (funcall func l))
+      (setq v (funcall func (funcall key l)))
       (setf (gethash v h) (cons l (gethash v h))))
     h))
 
