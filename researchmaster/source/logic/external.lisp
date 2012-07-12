@@ -151,17 +151,15 @@
   (format s ").~%"))
 
 (defun kif2tptp-formula (p s)
-  (cond ((atom p) (format s "~A" p))
+  (cond ((atom p) (kif2tptp-constant p s))
         ((eq (car p) 'not) 
          (format s "( ~A " (tptp-logic 'not))
          (kif2tptp-formula (second p) s)
          (format s ")~%"))
-
         ((member (car p) '(and or))
          (format s "(")
          (list2infix (cdr p) (tptp-logic (car p)) #'kif2tptp-formula s)
          (format s ")"))
-
         ((eq (car p) '<=)
          (cond ((cdddr p) (kif2tptp-formula `(<= ,(cadr p) ,(maksand (cddr p))) s))
                ((not (cddr p)) (kif2tptp-formula (second p) s))
@@ -171,7 +169,6 @@
                 (format s " ~A " (tptp-logic '<=))
                 (kif2tptp-formula (third p) s)
                 (format s ")"))))
-
         ((eq (car p) '=>)
          (cond ((cdddr p) (kif2tptp-formula `(=> ,(maksand (cdr (butlast p))) ,(car (last p))) s))
                (t
@@ -180,21 +177,18 @@
                 (format s " ~A " (tptp-logic '=>))
                 (kif2tptp-formula (third p) s)
                 (format s ")"))))
-
         ((eq (car p) '<=>)
          (format s "(")
          (kif2tptp-formula (second p) s)
          (format s " ~A " (tptp-logic '<=>))
          (kif2tptp-formula (third p) s)
          (format s ")"))
-
         ((member (car p) '(forall exists))
          (format s "( ~A [" (tptp-logic (car p)))
          (list2infix (second p) "," #'kif2tptp-var s)
          (format s "] : ")
          (kif2tptp-formula (third p) s)
          (format s ")~%"))
-
         (t
          (kif2tptp-term p s))))
 
@@ -218,15 +212,11 @@
                   (format s ")")))))))
 
 (defun kif2tptp-constant (p s)
-  (when (numberp p)
-    (setq p (stringappend "tlh" (tostring p))))
-  (setq p (format nil "~A" p))
-  (when (stringposition "-" p)
-    ;(format t "~&Warning: collapsing symbol ~A to " p)
-    (setq p (coerce (remove (coerce "-" 'character) (coerce p 'list) :test #'char=) 'string))
-    ;(format t "~A.~%" p)
-    )
-
+  (cond ((numberp p)
+	 (setq p (stringappend "tlh" (tostring p))))
+	(t (setq p (tostring p))))
+  (nsubstitute #\_ #\- p)
+  (nsubstitute #\_ #\. p)
   (format s "~(~A~)" p))
 
 (defun tptp-logic (op)

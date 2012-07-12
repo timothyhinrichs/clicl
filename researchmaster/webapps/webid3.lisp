@@ -633,11 +633,20 @@
 
 ; read rights
 
-(defaccesscontrol
-    (<= (deny ?user (?y) read)
+(defaccesscontrol 
+    (<= (deny ?user (?x ?y) read)
 	(db.user.name ?x ?y)
-	(session.username ?user)
-	(distinct ?x ?user))
+	(or (not (exists ?user (session.username ?user)))
+	    (exists ?user (and (session.username ?user) (not (= ?user ?x))))))
+
+    (<= (allow ?user (?x) read)
+	(db.user.name ?x ?y))
+    
+    (<= (allow ?user (?y) read)
+	(db.user.name ?x ?y))
+
+    (<= (allow ?user (?user) read)
+	(session.username ?user))
 #|
     (<= (deny ?user (db.user.pass ?x ?y) read)
 	(not (= ?x ?user)))
@@ -681,26 +690,3 @@
 |#
 )
 
-
-(deffoltheory* test ""
-;    (<= (PROFILE.USERNAME1 ?7226)
-;	(OR (SESSION.USERNAME ?7226)
-;	    (PROFILE.USERNAME ?7226)))
-
-  (<=> (PROFILE.USERNAME1 ?7226)
-       (SESSION.USERNAME ?7226))
-
-;  (<= (PROFILE.NAME2 ?7227)
-;      (OR (AND (PROFILE.USERNAME1 ?7228) (DB.USER.NAME ?7228 ?7227))
-;	  (PROFILE.NAME ?7227)))
-
-  (<=> (PROFILE.NAME2 ?7227)
-       (exists ?7228 (and (PROFILE.USERNAME1 ?7228) 
-			  (DB.USER.NAME ?7228 ?7227))))
-
-  (<= (p ?y)
-      (exists (?x ?user) 
-	      (and (DB.USER.NAME ?X ?Y) 
-		   (SESSION.USERNAME ?USER) 
-		   (DISTINCT ?X ?USER))))
-)

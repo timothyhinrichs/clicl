@@ -1317,6 +1317,7 @@
     (fullresiduesdepth *thing* (list *thing*) alist 0 nil)
     (nreverse (simplify-residues *thing* *answers*))))
 
+#|
 (defun fullresidues (p *theory* &optional (*filter* #'basep) (*test* #'success))
   (let (alist *variables* *residue* *answers* tracecalls)
     (setq *unifications* 0)
@@ -1326,6 +1327,7 @@
     (setq *variables* p)
     (fullresiduesdepth p (list p) alist 0 nil)
     (nreverse *answers*)))
+|#
 
 ; UPDATED
 ; added tautology-elim branch in cond

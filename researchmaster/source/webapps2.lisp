@@ -487,64 +487,175 @@
 		  (mapcar #'(lambda (x) (find-table (second x))) (htmlrepl-tables thing)))))	
 	(t (error 'invalid-html :comment thing))))    
 
-; two issues
+; issues
 ;   1) abducibles should be all those the user *knows*: session.username, input database, output database, cookies.  
 ;      What about other session vars?
 ;   2) if we have (deny (db.user ?x ?y)) and (db.user ?x ?y) is updated for a given servlet, which version 
 ;      of db.user are we checking against?  The result of the update, right?  But then what if the 
 ;      query is computed from the original db.user?  Then we're going to leak information, right?  Hmmm.  But maybe not
 ;      because whatever tuples were in the original db.user are moved over to the new db too, right?
-(defun access-control-read-check (servletname)
-  (let (updates views bl crelns phi latest th outputsig res violations fol newth newhead thing)
+;   3) may be output signatures not included below: errors
+(defun access-control-check (servletname &optional (openclosed nil))
+  "(ACCESS-CONTROL-CHECK SERVLETNAME OPENCLOSED) checks the servlet named SERVLETNAME against the access control policy.
+  OPENCLOSED controls whether the policy is an OPEN policy, a CLOSED policy, or both." 
+  (let (updates views bl crelns phi latest th head  outputsig res violations allowrelns denyrelns allow deny newhead)
     ; compute the signature of data that the user sees for this servlet
     (setq outputsig (html-output-signatures (servlet-page (find-servlet servletname))))
-    (setq outputsig (mapcan #'(lambda (x) (mapcar #'(lambda (y) (withnamespace (parameter-symbol y) x)) (find-signature x))) outputsig))
-    (setq outputsig (cons 'session.username outputsig))
-    (setq outputsig (remove-duplicates outputsig))
+    (setq outputsig (mapcan #'(lambda (x) (mapcar #'(lambda (y) (cons (withnamespace (parameter-symbol y) x) 
+								      (maptimes #'newindvar (parameter-arity y)))) 
+						  (find-signature x))) outputsig))
+    (setq outputsig (remove-duplicates outputsig :key #'relation))
     (when outputsig
       ; represent update sequence as a single set of views
       (setq updates (mapcar #'(lambda (x) (update-datalog (find-update x))) (servlet-updates (find-servlet servletname))))
       (multiple-value-setq (views latest) (flatten-updates updates))
-      ; convert views to fol, partition, compute contrapositives, create theories, and index theories
       (when *debug-webapps* (format t "~&Flattened updates:~%") (pcontents views))
-      (setq fol (views-to-fol views))
-      (setq crelns (list (make-parameter :symbol '=) (make-parameter :symbol 'true) (make-parameter :symbol 'false)))
-      (setq th (define-theory (make-instance 'prologtheory) "" (contrapositives* (maksand fol) crelns)))
-      (when *debug-webapps* (format t "~&Contrapositives:~%") (pcontents th))
-      ; for now forget partitioning; shouldn't really matter anyway except for complete predicates
-      ;(setq partitions (partition-by-independence fol crelns))
-      ;(setq partitions (mapcar #'(lambda (x) (define-theory (make-instance 'prologtheory) "" (contrapositives* (maksand x) crelns)))
-      ;   partitions))
-      ;(setq h (make-hash-table))
-      ;(mapc #'(lambda (ps) (dolist (r (relns (maksand (contents ps)))) (setf (gethash r h) ps))) partitions)
-      ; analyze each access control command independently of all the others; just READ for now
-      ; output output signature relation names so they reference the output of the view definitions
-      (setq outputsig (mapcar #'(lambda (x) (let ((base (gethash x latest))) (if base (tosymbol x (car base)) x))) outputsig))
+      (setq th (views-to-fol views))
+      ; compute binding list to reflect servlet updates
+      (setq bl (mapcar #'(lambda (x) (cons (car x) (tosymbol (car x) (first (cdr x))))) (hash2bl latest))) 
+      ;(print bl)
+      ; create one relation for each statement that is allowed or denied.
       (dolist (ac (contents *accesscontrol*))
-        ; assuming all access control are (deny <sub> <obj> <right>)
-	(when (eq (fourth (head ac)) 'read)
-	  ; change phi to reflect any updates to its relations
-	  (setq thing (third (head ac)))
-	  (when (atom thing) (setq thing (list thing))) ; ensure thing is a list
-	  (setq phi (maksand (body ac)))
-	  (setq bl (mapcarnot #'(lambda (x) (let ((base (gethash x latest))) (if base (cons x (tosymbol x (car base))) nil))) 
-			      (relns phi)))
-	  (setq phi (subrel bl phi))
-	  
-	  ; see if we can recompute the DENIED query from its computation in terms of output signature
-	  (setq newhead (cons '__tlh thing))  ; thing must be a list of variables
-	  (setq phi (list '<= newhead phi))
-	  (setq newth (define-theory (make-instance 'prologtheory) "" (brfs phi)))
-	  (includes newth th)									       
-	  (when *debug-webapps* (format t "Trying to infer ~A from ~A~%" phi outputsig))
-	  (setq *tmp* newth)
-	  (setq res (fullresidues newhead newth #'(lambda (x) (member x outputsig))))
-	  ;(break)
-	  (decludes newth)
-	  (when res (push (list ac res) violations))))
+	;(print ac)
+        ; assuming all access control are (allow/deny <sub> <obj> <right>)
+	(setq head (head ac))
+	(when (eq (fourth head) 'read)
+	  (multiple-value-setq (newhead phi) (access-control-check-query ac bl))
+	  (cond ((eq (first head) 'deny) (push (cons newhead phi) deny))
+		((eq (first head) 'allow) (push (cons newhead phi) allow))
+		(t (error 'invalid-accesscontrol :comment ac)))))      
+      ; grab list of built-in relations (just a few for now)
+      (setq crelns '(= true false))
+      ; check if any of the deny relations are definable in terms of the output and built-in relations
+      (unless (eq openclosed :closed)
+	(format t ";;;;; DENY ;;;;;~%")
+	(format t "; Checking that user cannot compute any DENIED tuples from outputs, inputs, and source code~%")
+	(setq denyrelns (adjoin 'session.username (mapcar #'relation outputsig)))
+	(setq denyrelns (union (and2list (subrel bl (maksand denyrelns))) crelns))
+	;(print deny)
+	(dolist (d deny)  ; a list of (atom . definition)
+	  (setq res (inferrable (car d) (cons (cdr d) th) denyrelns))
+	  (cond (res
+		 (format t "; VIOLATION: Inferred denied view from outputs: ~A~%" (third (cdr d)))
+		 (push `(deny-definable ,d ,res) violations))
+		(t (format t "; SAFE: Failed to infer denied view from outputs: ~A~%" (car d))))))
+      ; check that all of the output relations are definable in terms of the allowed relations 
+      (unless (eq openclosed :open)
+	;(format t "~&Allow datastructure: ~%~A~%" allow)
+	(format t ";;;;; ALLOW ;;;;;~%")
+	(format t "; Checking that all user outputs can be computed from ALLOWED views, inputs, and source code~%")
+	(format t ";   Only checking inferrability (part of the output can be computed from legal views)~%")
+	(format t ";   Should be checking definability (entire output can be computed from legal views)~%")
+	(setq outputsig (and2list (subrel bl (maksand outputsig))))
+	(setq th (append (mapcar #'cdr allow) th))
+	;(format t "~&Theory:~%~A~%" th)
+	(setq allowrelns (union (mapcar #'(lambda (x) (relation (car x))) allow) crelns))
+	(dolist (o outputsig)
+	  (setq res (inferrable o th allowrelns))
+	  (cond ((not res) 
+		 (format t "; VIOLATION: Failed to find definition of output view ~A using allowed views~%" o)
+		 (push `(output-notdefinable-byallow ,o ,th ,allowrelns) violations))
+		(t (format t "; SAFE: Found definition of output view ~A using allowed views~%" o)))))
       violations)))
 
+(defun access-control-check-query (ac bl)
+  (let (head phi vs newhead)
+    (setq head (head ac))
+    (setq phi (maksand (body ac)))
+;	  (if (eq (second head) 'anyone) 
+;	      (setq phi (makand '(not (exists ?x (session.username ?x))) phi))
+;	      (setq phi (makand `(session.username ,(second head)) phi)))
+    (setq phi (subrel bl phi))
+    (setq vs (freevars (third head)))
+    (setq phi (equantify-except phi vs))
+    (setq newhead (cons (gentemp "r") vs))
+    (setq phi `(<=> ,newhead ,phi))
+    (values newhead phi)))
+
 (defun views-to-fol (views) (predicate-completion views))
+
+
+(defun guard-logic-full (guard)
+  "(GUARD-LOGIC-FULL GUARD) returns the list of all sentences in the guard named GUARD or in 
+   one of the guards inherited from GUARD (recursively).  Memoized."
+  (remove-duplicates (guard-logic-full-aux guard (make-hash-table)) :test #'equal))
+
+(defun guard-logic-full-aux (guardname done)
+  "(GUARD-LOGIC-FULL-AUX GUARDNAME DONE) takes a guard name GUARDNAME and a hash table DONE.
+   Returns the guard-logic for GUARD and memoizes results in DONE."
+  (let (logic guard)
+    (setq logic (gethash guardname done))
+    (cond (logic logic)
+	  (t (setq guard (find-guard guardname))
+	     (setf (gethash guardname done) 
+		   (append (apply #'append (mapcar #'(lambda (x) (guard-logic-full-aux x done)) (guard-supers guard)))
+			   (guard-logic guard)))))))
+
+(defun definability-to-interpolation (p th preds)
+  "(DEFINABILITY-TO-INTERPOLATION P TH PREDS) returns 2 values P' and TH' such that
+   TH U TH' implies P <=> P' and the only symbols in the intersection of P and P'
+   (including TH and TH') are PREDS.  
+   Thus, P is definable in terms of PREDS iff there is an interpolant of P => P'."
+  (let (allpreds predstoelim bl th2 p2)
+    (setq allpreds (relns (makand p (maksand (contents th)))))
+    (setq predstoelim (set-difference allpreds preds))
+    (setq bl (mapcar #'(lambda (x) (cons x (gentemp (tostring x)))) predstoelim))
+    (setq th2 (and2list (subrel bl (maksand (contents th)))))
+    (setq p2 (subrel bl p))
+    (values p2 th2)))
+
+(defun definable (p th preds) (definable-epilog p th preds))
+
+(defun definable-vampire-file (p th preds filename)
+  (let (p2 th2 leftpreds rightpreds)
+    (multiple-value-setq (p2 th2) (definability-to-interpolation p th preds))
+    (setq preds (mapcar #'(lambda (x) (if (symbolp x) (make-parameter :symbol x) x)) preds))
+    (setq leftpreds (set-difference (preds (makand p (maksand (contents th)))) preds :key #'parameter-symbol))
+    (setq rightpreds (set-difference (preds (makand p2 (maksand (contents th2)))) preds :key #'parameter-symbol))
+    (with-open-file (f filename :direction :output :if-does-not-exist :create :if-exists :supersede)
+      ; options
+      (format f "vampire(option,show_interpolant,on).~%")
+      (format f "vampire(option,time_limit,10).~%")
+      ; right and left symbols
+      (dolist (s leftpreds)
+	(format f "vampire(symbol,predicate,")
+	(kif2tptp-constant (parameter-symbol s) f)
+	(format f ",~A,left).~%" (parameter-arity s)))
+      (dolist (s rightpreds)
+	(format f "vampire(symbol,predicate,")
+	(kif2tptp-constant (parameter-symbol s) f)
+	(format f ",~A,right).~%" (parameter-arity s)))
+      ; right and left formulas
+      (format f "vampire(left_formula).~%")
+      (kif2tptp p 'axiom f t)
+      (format f "vampire(end_formula).~%")
+      (format f "vampire(right_formula).~%")
+      (kif2tptp p2 'conjecture f t)
+      (format f "vampire(end_formula).~%")
+      ; theory
+      (dolist (q th) (kif2tptp q 'axiom f t))
+      (dolist (q th2) (kif2tptp q 'axiom f t)))))
+
+(defun inferrable (p th preds) (inferrable-epilog p th preds))
+(defun inferrable-epilog (p th preds)
+  (let (head newth res (*depth* 10))
+    (cond ((atomicp p) (setq head p))
+	  (t 
+	   (setq head (cons '__tlh (freevars p)))
+	   (setq p (list '<= head p))
+	   (setq th (cons p (contents th)))))
+    ;(pcontents th)
+    (setq newth (define-theory (make-instance 'metheory) "" (contrapositives (maksand (contents th)))))
+    ;(when *debug-webapps* (format t "Trying to define ~A from ~A~%" p preds))
+    (setq *tmp* newth)
+    (setq res (fullresidues head newth #'(lambda (x) (member x preds))))
+    ;(break)
+    res))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Program Reformulation
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun flatten-updates (l)
   "(FLATTEN-UPDATES L) takes a list of datalog theories and returns a single update logically equivalent
@@ -605,26 +716,6 @@
     (setq up2 (mapcar #'(lambda (x) (subrel bl x)) up2))
     ; return combination of new up2, newth, newps
     (append newth newps up2)))
-
-(defun guard-logic-full (guard)
-  "(GUARD-LOGIC-FULL GUARD) returns the list of all sentences in the guard named GUARD or in 
-   one of the guards inherited from GUARD (recursively).  Memoized."
-  (remove-duplicates (guard-logic-full-aux guard (make-hash-table)) :test #'equal))
-
-(defun guard-logic-full-aux (guardname done)
-  "(GUARD-LOGIC-FULL-AUX GUARDNAME DONE) takes a guard name GUARDNAME and a hash table DONE.
-   Returns the guard-logic for GUARD and memoizes results in DONE."
-  (let (logic guard)
-    (setq logic (gethash guardname done))
-    (cond (logic logic)
-	  (t (setq guard (find-guard guardname))
-	     (setf (gethash guardname done) 
-		   (append (apply #'append (mapcar #'(lambda (x) (guard-logic-full-aux x done)) (guard-supers guard)))
-			   (guard-logic guard)))))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Program Reformulation
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun uniquify-form-servlet-combinations ()
   "(UNIQUIFY-FORM-SERVLET-COMBINATIONS) ensures that each form has a unique servlet target."

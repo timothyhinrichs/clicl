@@ -1525,11 +1525,14 @@
 
 (defun consistentp (p res)
   (let (traceexpressions)
-    (cond ((basep (operator p)))
-          ((null (setq res (remove-if #'(lambda (x) (basep (operator x))) res))))
-          ((consisp `(<= ,(maknot p) . ,res) *theory*) nil)
-          (t t))))
+    (cond ((basep (operator p)) t)
+          ((null (setq res (remove-if #'(lambda (x) (basep (operator x))) res))) t)
+	  ((consisp `(exists ,(vars (maksand (cons p res))) ,(maksand (cons p res))) *theory*) t)
+	  ;((consisp `(<= ,(maknot p) . ,res) *theory*) nil)
+          ;(t t))))
+	  (t nil))))
 
+#|  Mike's version --- don't know what is going on here.
 (defun consisp (p th)
   (let ((cs (clausesets (maknot `(forall ,(vars p) ,p)))))
     (decludes 'epitheory)
@@ -1537,7 +1540,23 @@
     (includes 'epitheory th)
     (mapc #'(lambda (x) (save (car x) 'epitheory)) (cdr cs))
     (findp (maknot (caar cs)) 'epitheory)))
+|#
 
+; return that p is consistent with th if we fail to prove that TH |= ~Ax.p
+(defun consisp (p th)
+  (let (head phi vs)
+    (setq vs (freevars p))
+    (setq head (gentemp "tlh"))
+    (if vs 
+	(setq phi `(<=> ,head (not (forall ,vs ,p)))) 
+	(setq phi `(<=> ,head (not ,p))))
+    (decludes 'epitheory)
+    (empty 'epitheory)
+    (includes 'epitheory th)
+    (mapc #'(lambda (x) (save x 'epitheory)) (contrapositives phi))
+    (not (fullfindp head 'epitheory))))
+    
+	   
 (defun residuenext (ans next)
   (setq *residue* (cdr *residue*))
   (profail ans next))
