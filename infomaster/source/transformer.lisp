@@ -92,6 +92,9 @@
     (empty temp)
     answers))
 
+(defun materialp (r)
+  (and (groundp r) (findp `(material ?a ,r) *manager*)))
+
 (defmethod materializations (p (receiver transformer))
   (let (*agent* *library* *target* ruleserver temp pat pos neg answers)
     (setq *agent* (name receiver))

@@ -436,7 +436,7 @@
                      (cond ((eq (car l) (car m)))
                            ((setq bl (collapser (car l) (car m) al))
                             (setq al bl)
-                            (delete (car m) l)))))))
+                            (setq l (delete (car m) l))))))))  ; TLH: didn't used to (setq l ...) to result of delete
     (do ((l al (cdr l)) (vl (vars x)) (dum) (bl truth))
         ((null (cdr l)) (setq al bl))
         (cond ((find (caar l) vl)
@@ -1114,6 +1114,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; flat all-at-once execution using oneof but all alists
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun economize (aspect)
+  (cond ((null aspect) '(1))
+        ((atom aspect) (list aspect))
+        (t aspect)))
 
 (defun yankemone (x p)
   (let ((nl (yankem (newvars x p) (list truth))))

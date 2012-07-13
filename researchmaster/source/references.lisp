@@ -1410,6 +1410,7 @@ function hideDetails(divID) {
 (defun trimwhite (s) (string-trim '(#\Space #\Tab #\Newline) s))
 |#
 
+#| Defined in lisp-enhance.lisp
 (defun split-on (string items)
   (setq items (mapcar #'(lambda (x) (cons x (length x))) items))
   (nreverse
@@ -1475,3 +1476,4 @@ rest of the given `string', if any."
           (setf word '()))
       (setf word (cons (elt str i) word)))))
 
+|#

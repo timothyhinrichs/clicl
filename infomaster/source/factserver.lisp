@@ -286,7 +286,7 @@
 
 (defmethod options (attribute class (source factserver))
   (factoptions attribute class source))
-
+#|
 (defun factoptions (attribute class source)
   (let (predicate)
     (setq predicate (find-predicate class))
@@ -295,7 +295,7 @@
         (when (and (eq (caar l) attribute)
                    (doublep predicate (cadar l) source))
           (setq nl (cons (caddar l) nl))))))
-
+|#
 (defun factoptions (slot class source)
   (do ((l (factitems (find-predicate class) source) (cdr l)) (nl))
       ((null l) (nreverse nl))

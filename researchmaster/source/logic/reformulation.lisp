@@ -2,6 +2,9 @@
 ;;; reformulation.lisp: hodgepodge logical reformulation routines
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(eval-when (compile load eval)
+  (proclaim '(special *SUBSUMPTION-CLOSURE* *RESOLUTION-CLOSURE*)))
+
 (defun makevariable (sym)
   "(MAKEVARIABLE SYM) returns ?SYM as a symbol."
   (read-from-string (format nil "?~A" sym)))
@@ -1045,6 +1048,23 @@
   (cond ((literalp p) `(and true ,p))
 	((eq (car p) 'and) p)
 	(t `(and true ,p))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Definability and interpolation 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun definability-to-interpolation (p th preds)
+  "(DEFINABILITY-TO-INTERPOLATION P TH PREDS) returns 2 values P' and TH' such that
+   TH U TH' implies P <=> P' and the only symbols in the intersection of P and P'
+   (including TH and TH') are PREDS.  
+   Thus, P is definable in terms of PREDS iff there is an interpolant of P => P'."
+  (let (allpreds predstoelim bl th2 p2)
+    (setq allpreds (relns (makand p (maksand (contents th)))))
+    (setq predstoelim (set-difference allpreds preds))
+    (setq bl (mapcar #'(lambda (x) (cons x (gentemp (tostring x)))) predstoelim))
+    (setq th2 (and2list (subrel bl (maksand (contents th)))))
+    (setq p2 (subrel bl p))
+    (values p2 th2)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Simplification by a complete theory 

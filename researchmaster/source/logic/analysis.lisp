@@ -4,7 +4,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (eval-when (compile load eval)
-  (proclaim '(special *real-ops*)))
+  (proclaim '(special *real-ops* *TRACE-REFORM2IFFS*)))
 
 (defun truthvaluep (thing) (or (eq thing 'true) (eq thing 'false)))
 

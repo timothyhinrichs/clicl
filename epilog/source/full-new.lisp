@@ -145,7 +145,7 @@
         (t (do ((l (includees th) (cdr l)))
                ((null l) nil)
                (fullassumedb p al depth (car l))))))
-
+#|
 (defun fullassumeth (p al depth th)
   (do ((l (envindexps p al th) (cdr l)) (ol) (bl (environment)) (*thing*) (*answers*) (dum))
       ((null l))
@@ -160,6 +160,7 @@
                 (fullassumedepth q alist (1+ depth)))
               (backup ol))
             (setq om (cons (car m) om))))))
+|#
 
 (defun fullallknownspecials (dum bl depth)
   (cond ((eq dum 'true) (list (plugstdexp *thing* bl)))
@@ -1143,7 +1144,7 @@
                 (not (setq ol (matchify `(listof . ,(cddr p)) al `(listof . ,(mapcar #'quotify values)) al)))
            (fullresiduelast pl al depth cont)))
           (t (backup ol) (fullfail (car pl) al depth)))))          
-
+#|
 (defun fullresidueevaluate (p pl al depth cont)
   (let (values ol)
     (setq p (plug p al))
@@ -1155,7 +1156,7 @@
                 (setq ol (matchify `(listof . ,(cddr p)) al `(listof . ,values) al)))
            (prog1 (fullresiduelast pl al depth cont) (backup ol)))
           (t (fullfail (car pl) al depth)))))
-
+|#
 (defun fullresidueevaluate (p pl al depth cont)
   (setq p (plugstdexp p al))
   (let ((*residue* (cons p *residue*))) (fullresiduelast pl al depth cont)))
@@ -1339,8 +1340,10 @@
         ((and *tautology-elim* (epilog-tautologyp p pl al cont)) (fullstop (car pl) al depth))
 	(t (fullresiduesexp p pl al depth cont))))
 
+#|
 ; UPDATED
 ; changed so that even if = is assumable, uses x=x to simplify when possible
+; Seems to be untested since it was redefined just below.
 (defun fullresiduesexp (p pl al depth cont)
   (cond ((atom p) (fullresiduesconstant p pl al depth cont))
         ((eq (car p) 'not) (fullresiduesnot (cadr p) pl al depth cont))
@@ -1363,15 +1366,7 @@
         ((and *equality* *una* (ground=distinctp p al)) (fullfail (car pl) al depth))
         ((funcall *filter* (car p)) (fullresiduesassumption p pl al depth cont))
         (t (fullresiduesrs p pl al depth cont))))
-
-; whether p is an equality predicate
-(defun ground=samep (p al)
-  (setq p (plugstdexp p al))
-  (and (eq (car p) *equality*) (groundp p) (eq (second p) (third p))))
-
-(defun ground=distinctp (p al)
-  (setq p (plugstdexp p al))
-  (and (eq (car p) '=) (groundp p) (not (eq (second p) (third p)))))
+|#
 
 (defun fullresiduesexp (p pl al depth cont)
   (cond ((atom p) (fullresiduesconstant p pl al depth cont))
@@ -1393,6 +1388,15 @@
         ((get (car p) 'basic) (fullresiduesbasic p pl al depth cont))
         ((funcall *filter* (car p)) (fullresiduesassumption p pl al depth cont))
         (t (fullresiduesrs p pl al depth cont))))
+
+; whether p is an equality predicate
+(defun ground=samep (p al)
+  (setq p (plugstdexp p al))
+  (and (eq (car p) *equality*) (groundp p) (eq (second p) (third p))))
+
+(defun ground=distinctp (p al)
+  (setq p (plugstdexp p al))
+  (and (eq (car p) '=) (groundp p) (not (eq (second p) (third p)))))
 
 ; UPDATED
 ; changed so that even if = is assumable, uses x=x to simplify when possible
@@ -1535,7 +1539,7 @@
                 (not (setq ol (matchify `(listof . ,(cddr p)) al `(listof . ,(mapcar #'quotify values)) al)))
            (fullresidueslast pl al depth cont)))
           (t (backup ol) (fullfail (car pl) al depth)))))          
-
+#|
 (defun fullresiduesevaluate (p pl al depth cont)
   (let (values ol)
     (setq p (plug p al))
@@ -1546,6 +1550,7 @@
                 (setq ol (matchify `(listof . ,(cddr p)) al `(listof . ,values) al)))
            (prog1 (fullresidueslast pl al depth cont) (backup ol)))
           (t (fullfail (car pl) al depth)))))
+|#
 
 (defun fullresiduesevaluate (p pl al depth cont)
   (setq p (plugstdexp p al))
@@ -1847,7 +1852,7 @@
 
 
 (defparameter *delta* (make-instance 'theory))
-
+#|
 (defmethod indexps (p (th (eql *delta*)))
   (cond ((varp p) (contents th))
         ((atom p) (indexees p th))
@@ -1856,7 +1861,7 @@
                ((null l) (indexps (car p) th))
                (cond ((varp (car l)))
                      ((atom (car l)) (return (indexees (car l) th))))))))
-
+|#
 (defmethod indexps (p (th (eql *delta*)))
   (cond ((varp p) (contents th))
         ((atom p) (indexees p th))

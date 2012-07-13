@@ -83,7 +83,7 @@
     (setq temp (make-instance 'theory))
     (insertplusminus p temp)
     (includes temp ruleserver)
-    (dolist (r (basetables p ruleserver))
+    (dolist (r (supports p ruleserver)) ; TLH: (basetables p ruleserver))
       (setq pat `(,r @l))
       (setq neg (maksor (viewresidues `(minus ,pat) temp #'nonviewp)))
       (setq answers (nconc answers (asks `(not ,pat) neg receiver *target*)))

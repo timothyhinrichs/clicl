@@ -534,24 +534,22 @@
 	(setq denyrelns (union (and2list (subrel bl (maksand denyrelns))) crelns))
 	;(print deny)
 	(dolist (d deny)  ; a list of (atom . definition)
-	  (setq res (inferrable (car d) (cons (cdr d) th) denyrelns))
+	  (setq res (abduction (car d) (cons (cdr d) th) denyrelns))
 	  (cond (res
 		 (format t "; VIOLATION: Inferred denied view from outputs: ~A~%" (third (cdr d)))
-		 (push `(deny-definable ,d ,res) violations))
+		 (push `(deny-inferrable ,d ,res) violations))
 		(t (format t "; SAFE: Failed to infer denied view from outputs: ~A~%" (car d))))))
       ; check that all of the output relations are definable in terms of the allowed relations 
       (unless (eq openclosed :open)
 	;(format t "~&Allow datastructure: ~%~A~%" allow)
 	(format t ";;;;; ALLOW ;;;;;~%")
 	(format t "; Checking that all user outputs can be computed from ALLOWED views, inputs, and source code~%")
-	(format t ";   Only checking inferrability (part of the output can be computed from legal views)~%")
-	(format t ";   Should be checking definability (entire output can be computed from legal views)~%")
 	(setq outputsig (and2list (subrel bl (maksand outputsig))))
 	(setq th (append (mapcar #'cdr allow) th))
 	;(format t "~&Theory:~%~A~%" th)
 	(setq allowrelns (union (mapcar #'(lambda (x) (relation (car x))) allow) crelns))
 	(dolist (o outputsig)
-	  (setq res (inferrable o th allowrelns))
+	  (setq res (abduction o th allowrelns))
 	  (cond ((not res) 
 		 (format t "; VIOLATION: Failed to find definition of output view ~A using allowed views~%" o)
 		 (push `(output-notdefinable-byallow ,o ,th ,allowrelns) violations))
@@ -590,67 +588,6 @@
 	     (setf (gethash guardname done) 
 		   (append (apply #'append (mapcar #'(lambda (x) (guard-logic-full-aux x done)) (guard-supers guard)))
 			   (guard-logic guard)))))))
-
-(defun definability-to-interpolation (p th preds)
-  "(DEFINABILITY-TO-INTERPOLATION P TH PREDS) returns 2 values P' and TH' such that
-   TH U TH' implies P <=> P' and the only symbols in the intersection of P and P'
-   (including TH and TH') are PREDS.  
-   Thus, P is definable in terms of PREDS iff there is an interpolant of P => P'."
-  (let (allpreds predstoelim bl th2 p2)
-    (setq allpreds (relns (makand p (maksand (contents th)))))
-    (setq predstoelim (set-difference allpreds preds))
-    (setq bl (mapcar #'(lambda (x) (cons x (gentemp (tostring x)))) predstoelim))
-    (setq th2 (and2list (subrel bl (maksand (contents th)))))
-    (setq p2 (subrel bl p))
-    (values p2 th2)))
-
-(defun definable (p th preds) (definable-epilog p th preds))
-
-(defun definable-vampire-file (p th preds filename)
-  (let (p2 th2 leftpreds rightpreds)
-    (multiple-value-setq (p2 th2) (definability-to-interpolation p th preds))
-    (setq preds (mapcar #'(lambda (x) (if (symbolp x) (make-parameter :symbol x) x)) preds))
-    (setq leftpreds (set-difference (preds (makand p (maksand (contents th)))) preds :key #'parameter-symbol))
-    (setq rightpreds (set-difference (preds (makand p2 (maksand (contents th2)))) preds :key #'parameter-symbol))
-    (with-open-file (f filename :direction :output :if-does-not-exist :create :if-exists :supersede)
-      ; options
-      (format f "vampire(option,show_interpolant,on).~%")
-      (format f "vampire(option,time_limit,10).~%")
-      ; right and left symbols
-      (dolist (s leftpreds)
-	(format f "vampire(symbol,predicate,")
-	(kif2tptp-constant (parameter-symbol s) f)
-	(format f ",~A,left).~%" (parameter-arity s)))
-      (dolist (s rightpreds)
-	(format f "vampire(symbol,predicate,")
-	(kif2tptp-constant (parameter-symbol s) f)
-	(format f ",~A,right).~%" (parameter-arity s)))
-      ; right and left formulas
-      (format f "vampire(left_formula).~%")
-      (kif2tptp p 'axiom f t)
-      (format f "vampire(end_formula).~%")
-      (format f "vampire(right_formula).~%")
-      (kif2tptp p2 'conjecture f t)
-      (format f "vampire(end_formula).~%")
-      ; theory
-      (dolist (q th) (kif2tptp q 'axiom f t))
-      (dolist (q th2) (kif2tptp q 'axiom f t)))))
-
-(defun inferrable (p th preds) (inferrable-epilog p th preds))
-(defun inferrable-epilog (p th preds)
-  (let (head newth res (*depth* 10))
-    (cond ((atomicp p) (setq head p))
-	  (t 
-	   (setq head (cons '__tlh (freevars p)))
-	   (setq p (list '<= head p))
-	   (setq th (cons p (contents th)))))
-    ;(pcontents th)
-    (setq newth (define-theory (make-instance 'metheory) "" (contrapositives (maksand (contents th)))))
-    ;(when *debug-webapps* (format t "Trying to define ~A from ~A~%" p preds))
-    (setq *tmp* newth)
-    (setq res (fullresidues head newth #'(lambda (x) (member x preds))))
-    ;(break)
-    res))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

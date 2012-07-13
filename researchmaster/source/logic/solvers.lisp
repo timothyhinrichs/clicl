@@ -6,7 +6,7 @@
 ; global variables for controlling which implementation of basic algs we use
 
 (eval-when (compile load eval)
-  (proclaim '(special *resolution-closure* *subsumption-closure*)))
+  (proclaim '(special *resolution-closure* *subsumption-closure* *TMP* *TRACEDATALOGSEARCH* *PROLOGENTRY* *LOGICQUERY*)))
 
 (defparameter *resolution-closure* 
   #'(lambda (clauses limit &optional (ignorelist nil)) 
@@ -14,6 +14,9 @@
       (resolution-closure-snark clauses limit)))
 
 (defparameter *subsumption-closure* #'subsumption-elimination)
+
+(defparameter *prologtheory* nil)
+(defparameter *logictheory* nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;; Leveraging complete subtheories (Extensional Reasoning) ;;;;;;;;;;;;;;;;;

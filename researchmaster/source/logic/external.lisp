@@ -246,6 +246,39 @@
     (format s "~:@(TLH~A~)" v)
     (format s "~:@(~A~)" v)))
 
+; vampire takes as input a superset of TPTP
+(defun definable-vampire-file (p th preds filename)
+  "(DEFINABLE-VAMPIRE-FILE P TH PREDS FILENAME) outputs a vampire input file which 
+   computes whether or not P is definable using PREDS modulo theory TH."
+  (let (p2 th2 leftpreds rightpreds)
+    (multiple-value-setq (p2 th2) (definability-to-interpolation p th preds))
+    (setq preds (mapcar #'(lambda (x) (if (symbolp x) (make-parameter :symbol x) x)) preds))
+    (setq leftpreds (set-difference (preds (makand p (maksand (contents th)))) preds :key #'parameter-symbol))
+    (setq rightpreds (set-difference (preds (makand p2 (maksand (contents th2)))) preds :key #'parameter-symbol))
+    (with-open-file (f filename :direction :output :if-does-not-exist :create :if-exists :supersede)
+      ; options
+      (format f "vampire(option,show_interpolant,on).~%")
+      (format f "vampire(option,time_limit,10).~%")
+      ; right and left symbols
+      (dolist (s leftpreds)
+	(format f "vampire(symbol,predicate,")
+	(kif2tptp-constant (parameter-symbol s) f)
+	(format f ",~A,left).~%" (parameter-arity s)))
+      (dolist (s rightpreds)
+	(format f "vampire(symbol,predicate,")
+	(kif2tptp-constant (parameter-symbol s) f)
+	(format f ",~A,right).~%" (parameter-arity s)))
+      ; right and left formulas
+      (format f "vampire(left_formula).~%")
+      (kif2tptp p 'axiom f t)
+      (format f "vampire(end_formula).~%")
+      (format f "vampire(right_formula).~%")
+      (kif2tptp p2 'conjecture f t)
+      (format f "vampire(end_formula).~%")
+      ; theory
+      (dolist (q th) (kif2tptp q 'axiom f t))
+      (dolist (q th2) (kif2tptp q 'axiom f t)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; XCSP ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

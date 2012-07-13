@@ -12,7 +12,6 @@
 (compile-file (loadfn "grounding" :dir '("source" "logic")))
 (compile-file (loadfn "interpolation" :dir '("source" "logic")))
 (compile-file (loadfn "reformulation" :dir '("source" "logic")))
-(compile-file (loadfn "fhlc" :dir '("source" "logic")))
 (compile-file (loadfn "solvers" :dir '("source" "logic")))
 (compile-file (loadfn "fhlc" :dir '("source" "logic")))
 (compile-file (loadfn "external" :dir '("source" "logic")))
@@ -22,6 +21,7 @@
 
 (compile-file (loadfn "educational" :dir '("source" "logic")))
 (compile-file (loadfn "stringsolver" :dir '("source" "logic")))
+(compile-file (loadfn "stringsolverapps" :dir '("source" "logic")))
 (compile-file (loadfn "stringsolvertests" :dir '("source" "logic")))
 
 (compile-file (loadfn "jack" :dir "source"))
@@ -30,6 +30,7 @@
 (compile-file (loadfn "overloads" :dir "source"))
 (compile-file (loadfn "spreadsheet" :dir "source"))
 (compile-file (loadfn "spreadsheetserver" :dir "source"))
+(compile-file (loadfn "webapps2" :dir "source"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

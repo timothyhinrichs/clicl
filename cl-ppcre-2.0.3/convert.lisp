@@ -326,7 +326,8 @@ it.  Will also
 parse trees which are conses and dispatches on TOKEN which is the
 first element of the parse tree.")
   (:method ((token t) parse-tree &key)
-   (signal-syntax-error "Unknown token ~A in parse-tree." token)))
+    (declare (ignore parse-tree))
+    (signal-syntax-error "Unknown token ~A in parse-tree." token)))
 
 (defmethod convert-compound-parse-tree ((token (eql :sequence)) parse-tree &key)
   "The case for parse trees like \(:SEQUENCE {<regex>}*)."

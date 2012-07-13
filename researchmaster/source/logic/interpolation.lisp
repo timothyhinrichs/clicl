@@ -3,6 +3,10 @@
 ;;;     routines for computing interpolants
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(eval-when (compile load eval)
+  (proclaim '(special *SUBSUMPTION-CLOSURE* *RESOLUTION-CLOSURE* *tmp*)))
+
+
 (defun interpolate-datalog (sourcepreds constraints targetpreds rules)
   "(INTERPOLATE-DATALOG SOURCEPREDS CONSTRAINTS TARGETPREDS RULES) rewrites all of the FOL CONSTRAINTS
    so that all occurrences of SOURCEPREDS are replaced with occurrences of TARGETPREDS
@@ -317,6 +321,32 @@ s  (let (bottles remaining)
           (t
            newp))))
   
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Abduction ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Note that definability is a stronger version of abduction (requiring a sentence
+;  equivalent to the conclusion, not just one that implies the conclusion)
+;  Vampire implements interpolants, which can be used to implement definability
+; See definable-vampire-file
+
+(defun abduction (p th preds) (abduction-epilog p th preds))
+(defun abduction-epilog (p th preds)
+  (let (head newth res (*depth* 10))
+    (cond ((atomicp p) (setq head p))
+	  (t 
+	   (setq head (cons '__tlh (freevars p)))
+	   (setq p (list '<= head p))
+	   (setq th (cons p (contents th)))))
+    ;(pcontents th)
+    (setq newth (define-theory (make-instance 'metheory) "" (contrapositives (maksand (contents th)))))
+    ;(when *debug-webapps* (format t "Trying to define ~A from ~A~%" p preds))
+    (setq *tmp* newth)
+    (setq res (fullresidue head newth #'(lambda (x) (member x preds))))
+    ;(break)
+    res))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; C2D ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
