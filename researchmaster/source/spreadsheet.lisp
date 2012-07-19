@@ -32,6 +32,8 @@
 	       s)))
 
 (defvar *tmp*)
+(defvar *tmp2*)
+
 (defparameter *webformlog* nil)
 ; note: ought to make this a per-form option.  Just need to add it as an option and replace the global var with the form far.
 ;   On second thought, maybe not. It's a compiler option, not a form option.  Useful only when someone has access to the compiler under the hood.
@@ -1529,7 +1531,6 @@ function addWidget (obj) {
 (defparameter *prefixeq* 'tlheq)
 (defstruct datalog extensional intensional components completepreds)
 (defstruct intcode tp support objs)
-(defvar *tmp2*)
 
 ; wrap complex code with run-time
 (defun construct-websheet-intcode-safe (struct)

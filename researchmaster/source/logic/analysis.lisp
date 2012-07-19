@@ -478,6 +478,8 @@
 (defvar *real-ops* '(forall exists <= => <=> and or not))
 (defvar *propositions* nil 
   "Whether to differentiate propositions from relations of 0 arity.")
+(defvar *modals* nil
+  "A list of modal operators (a relation applied to a sentence) that are to be ignored.")
 (defstruct parameter symbol arity type (univ :unknown))
 
 
@@ -495,10 +497,8 @@
 (defun relns (p) (mapcar #'parameter-symbol (preds p)))
 (defun reln (p) (first (relns p)))
 (defun funcs (p) (if (member p '(true false)) nil (delete-if #'(lambda (x) (or (isobject x) (isrelation x))) (get-vocabulary p))))
-(defun objs (p) (if (member p '(true false)) 
-		    nil 
-		    (mapcar #'parameter-symbol 
-			    (delete-if-not #'isobject (get-vocabulary p)))))
+(defun objs (p) (if (member p '(true false)) nil (mapcar #'parameter-symbol (delete-if-not #'isobject (get-vocabulary p)))))
+(defun proppreds (p) (if (member p '(true false)) nil (delete-if-not #'(lambda (x) (or (isrelation x) (isproposition x))) (get-vocabulary p))))
 
 (defun arity (lit)
   (cond ((atom lit) 0)
@@ -557,11 +557,13 @@
         ((and (find (car p) '(forall exists))
               (find (car p) *real-ops*))
          (get-vocabulary (caddr p)))
-        (t
-         (cons (make-parameter :symbol (car p) 
-                               :arity (1- (length p)) 
-                               :type 'relation)
-               (mapunion #'get-functions (cdr p) :test #'equalp)))))
+        ((member (car p) *modals*)
+	 (mapunion #'get-vocabulary (cdr p) :test #'param-equal))
+	(t
+	 (cons (make-parameter :symbol (car p) 
+			       :arity (1- (length p)) 
+			       :type 'relation)
+	       (mapunion #'get-functions (cdr p) :test #'equalp)))))
  
 (defun get-functions (term)
   "(GET-FUNCTIONS TERM) returns a list of parameters, all of type function,
@@ -638,7 +640,6 @@
    not included in the graph, according to TEST."
   (let ((graph (make-agraph)) (preds) h)
     (setq ignorelist (union '(= true false) ignorelist))
-
     ; build dependency graph from rules
     (dolist (r (contents th) graph)
       (setq h (reln (head r)))
@@ -720,7 +721,7 @@
       (if a
         (setf (cdr a) (cons p (cdr a)))
         (setq partitions (acons comp (list p) partitions))))
-    (mapcar #'cdr partitions)))
+    (mapcar #'cdr partitions)))  
 
 (defun independentp (x y components crelns)
   "(INDEPENDENTP X Y COMPONENTS CRELNS) predicates X and Y are independent iff either one

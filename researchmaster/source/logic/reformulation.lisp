@@ -279,6 +279,12 @@
 	   (setq args (mapcar #'(lambda (x) (mapatomterm func x)) (cdr p)))
 	   (funcall func (cons (car p) args))))))
 
+(defun mapbody (func p) 
+  (cond ((atom p) p)
+	((and (listp p) (eq (car p) '<=) (cddr p))
+	 (list* '<= (second p) (mapcar func (cddr p))))
+	(t p)))
+
 (defun mapatoms (func p) (mapopands func p))
 (defun mapopands (func p)
   "(MAPOPANDS FUNC P) applies function FUNC to all of the operands of the sentence P and

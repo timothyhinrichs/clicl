@@ -884,11 +884,12 @@
       (format s "<p><div class='subtitle'>F<sub>client</sub></div>~%")
       (format s "~S~%" (fixvars (probfind 'phi prob) nil varnames))
 )))
-
+#|
 (defun ss-commandline-sat (bl)
   (let ((*ss-debug* nil))
     (setf (cdr (last bl)) '((t . t)))
     (ss-sat *ss-dcpportal-fclient* bl)))
+|#
 
 (defun white (&optional name &rest forms )
   (let (thehint thedbfile theunique)
@@ -2427,6 +2428,7 @@
   (apply #'stringappend s))
 
 ; borrowed from Mike
+#|
 (defun urlify (s)
   (unless (stringp s) (setq s (princ-to-string s)))
   (with-output-to-string (o)
@@ -2436,6 +2438,7 @@
         (cond ((alphanumericp c) (write-char c o))
               ((find c '(#\$ #\- #\_ #\. #\+) :test #'char=) (write-char c o))
               (t (format o "%~:@(~2,'0x~)" (char-code c)))))))
+|#
 
 (defun xmlify (s)
   "(XMLIFY S) HTML escapes the characters #\" #\& #\' #\< #\>"

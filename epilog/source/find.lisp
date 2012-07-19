@@ -32,6 +32,10 @@
  "*DEPTH* has as value a positive integer indicating the depth of search for
   iterative deepening.  Its default is 1000000.")
 
+(defvar *consistency-depth* 1000000
+ "*CONSISTENCY-DEPTH* has as value a positive integer indicating the depth of search 
+  when checking consistency.  Its default is 1000000.")
+
 (defvar *termination* nil
  "*TERMINATION* records whether the most recent depth-limited search attempt
   ended because of a depth cutoff.")
@@ -1544,7 +1548,7 @@
 
 ; return that p is consistent with th if we fail to prove that TH |= ~Ax.p
 (defun consisp (p th)
-  (let (head phi vs)
+  (let (head phi vs (*depth* *consistency-depth*))
     (setq vs (freevars p))
     (setq head (gentemp "tlh"))
     (if vs 
@@ -1553,7 +1557,7 @@
     (decludes 'epitheory)
     (empty 'epitheory)
     (includes 'epitheory th)
-    (mapc #'(lambda (x) (save x 'epitheory)) (contrapositives phi))
+    (mapc #'(lambda (x) (save x 'epitheory)) (contrapositives* phi '(=)))
     (not (fullfindp head 'epitheory))))
     
 	   

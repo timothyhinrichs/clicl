@@ -332,6 +332,7 @@
 		   (return)))))
 	res)))
 
+(defun hash2keys (hash) (mapcar #'car (hash2bl hash)))
 (defun hash2bl (hash)
   (if (not (hash-table-p hash)) 
       hash
@@ -924,10 +925,11 @@ rest of the given `string', if any."
     h))
 
 (defun agraph-connected-components (g &key (test #'eq))
-  "(CONNECTED-COMPONENTS G) returns a list of the components of graph G.  Each component
+  "(CONNECTED-COMPONENTS G) returns a list of the components of the undirected graph G.  Each component
    is represented as a list of the names of nodes in G."
   (let (comps comp n sofar)
-    (setq comps nil sofar nil)
+    (setq comps nil)
+    (setq sofar nil)
     (dolist (adj (agraph-adjacency-list g))
       (setq n (agraph-node-name (car adj)))
       (unless (member n sofar :test test)

@@ -329,8 +329,9 @@
 (defupdate saveprofile (:language posneg)
 
   ; dumb implementation: delete entire old profile and add entire new profile
-  (<= (pos (db.user ?x)) (profile.username ?x))
+;  (<= (pos (db.user ?x)) (profile.username ?x))
   (<= (pos (db.user.name ?x ?y)) (and (profile.username ?x) (profile.name ?y)) )
+#|
   (<= (pos (db.user.pass ?x ?y)) (and (profile.username ?x) (profile.pass ?y)) )
   (<= (pos (db.user.birthmonth ?x ?y)) (and (profile.username ?x) (profile.birthmonth ?y)) )
   (<= (pos (db.user.birthday ?x ?y)) (and (profile.username ?x) (profile.birthday ?y)) )
@@ -344,9 +345,10 @@
   (<= (pos (db.user.newsletter ?x ?y)) (and (profile.username ?x) (profile.newsletter ?y)) )
   (<= (pos (db.user.accttype ?x ?y)) (and (profile.username ?x) (profile.accttype ?y)) )
   ;(<= (db.user.regdate ?x ?now) (profile.username ?x) (builtin.now ?now) )
-
-  (<= (neg (db.user ?x)) (profile.username ?x))
+|#
+;  (<= (neg (db.user ?x)) (profile.username ?x))
   (<= (neg (db.user.name ?x ?y)) (and (profile.username ?x) (db.user.name ?x ?y)) )
+#|
   (<= (neg (db.user.pass ?x ?y)) (and (profile.username ?x) (db.user.pass ?x ?y)) )
   (<= (neg (db.user.birthmonth ?x ?y)) (and (profile.username ?x) (db.user.birthmonth ?x ?y)) )
   (<= (neg (db.user.birthday ?x ?y)) (and (profile.username ?x) (db.user.birthday ?x ?y)) )
@@ -359,6 +361,7 @@
   (<= (neg (db.user.telephone ?x ?y)) (and (profile.username ?x) (db.user.telephone ?x ?y)) )
   (<= (neg (db.user.newsletter ?x ?y)) (and (profile.username ?x) (db.user.newsletter ?x ?y)) )
   (<= (neg (db.user.accttype ?x ?y)) (and (profile.username ?x) (db.user.accttype ?x ?y)) )
+|#
     
 #|  Notice that the following is much easier to write than the above.
   (=> (profile.username ?x) (db.user ?x))
@@ -384,7 +387,6 @@
 ; defined with constraints
 ; note: could combine lookupprofile and saveprofile into 1 updater with a conditioned malleable and <=> instead of =>
 (defupdate lookupprofile ()
-  ; data constraints (note these are not datalog)
   (<= (pos (profile.name ?y)) (profile.username ?x) (db.user.name ?x ?y))
 #|
   (<= (pos (profile.pass ?y)) (profile.username ?x) (db.user.pass ?x ?y))
@@ -634,19 +636,25 @@
 ; read rights
 
 (defaccesscontrol 
-    (<= (deny ?user (?x ?y) read)
+    (<= (deny (tuple ?y) read)
+	(db.user.name ?x ?y))
+;	(or (not (exists ?user (session.username ?user)))
+;	    (exists ?user (and (session.username ?user) (not (= ?user ?x))))))
+
+    (<= (allow (tuple ?x) read)
+	(db.user.name ?x ?y))
+    
+    (<= (allow (tuple ?y) read)
+	(db.user.name ?x ?y))
+
+    (<= (allow (tuple ?user) read)
+	(session.username ?user))
+
+    (<= (deny (db.user.name ?x ?y) write)   ; write is insert or delete
 	(db.user.name ?x ?y)
 	(or (not (exists ?user (session.username ?user)))
 	    (exists ?user (and (session.username ?user) (not (= ?user ?x))))))
 
-    (<= (allow ?user (?x) read)
-	(db.user.name ?x ?y))
-    
-    (<= (allow ?user (?y) read)
-	(db.user.name ?x ?y))
-
-    (<= (allow ?user (?user) read)
-	(session.username ?user))
 #|
     (<= (deny ?user (db.user.pass ?x ?y) read)
 	(not (= ?x ?user)))

@@ -45,6 +45,31 @@
     (cond (vs `(<=> ,(cons r vs) ,(maksor rules)))
           (t  `(<=> ,r ,(maksor rules))))))
 
+(defun posneg-predicate-completion-bl (th &optional (existentialize t))
+  (multiple-value-bind (h newth) (posneg-predicate-completion-hash th existentialize)
+    (values (hash2bl h) newth)))
+
+(defun posneg-predicate-completion-hash (th &optional (existentialize t)) 
+  "(POSNEG-PREDICATE-COMPLETION-HASH TH) takes a theory and returns a hash table
+   keyed on relations in TH that appear in the head of a pos/neg rule where the value
+   is a list (<newhead> <pred-completion-pos> <pred-completion-neg>).
+   Also returns the elements of TH that are not pos/neg rules."
+  (let (pn rest h r rules newhead newrules pos neg posphi negphi)
+    (multiple-value-setq (pn rest) (split #'(lambda (x) (member (relation x) '(pos neg))) (contents th)))
+    (setq h (make-hash-table))
+    (dolist (x (group-by pn #'(lambda (x) (relation (second (head x))))))
+      (setq r (car x))
+      (setq rules (cdr x))
+      (multiple-value-setq (newhead newrules) (heads-same-bodies-diff rules))
+      (multiple-value-setq (pos neg) (split #'(lambda (x) (eq (relation x) 'pos)) newrules))
+      (setq posphi (maksor (mapcar #'(lambda (x) (maksand (body x))) pos)))
+      (setq negphi (maksor (mapcar #'(lambda (x) (maksand (body x))) neg)))
+      (when existentialize
+	(setq posphi (equantify-except posphi (vars newhead)))
+	(setq negphi (equantify-except negphi (vars newhead))))
+      (setf (gethash r h) (list newhead posphi negphi)))
+    (values h rest)))
+
 (defun rewrite-fol (p)
   "(REWRITE-FOL P) applies some rewritings to the first-order formula P."
   ; replace distinct with (not (= ...))
@@ -473,6 +498,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun contrapositives* (p &optional (ignorepreds nil))
+  (setq ignorepreds (mapcar #'(lambda (x) (if (parameter-p x) (parameter-symbol x) x)) ignorepreds))
   (mapcan #'(lambda (x) (contrapositivesexp* x ignorepreds)) (brfs p)))
 
 (defun contrapositivesexp* (rule ignorepreds)
@@ -480,10 +506,10 @@
 	((not (eq (car rule) '<=)) (list rule))
 	(t
 	 (do ((ls (body rule) (cdr ls))
-	      (result (if (member (relation (head rule)) ignorepreds :key #'parameter-symbol) nil (list rule)))
+	      (result (if (member (relation (head rule)) ignorepreds) nil (list rule)))
 	      (sofar (list (maknot (head rule)))))
 	     ((null ls) result)
-	   (when (not (member (relation (car ls)) ignorepreds :key #'parameter-symbol))
+	   (when (not (member (relation (car ls)) ignorepreds))
 	     (push (list* '<= (maknot (car ls)) (revappend sofar (cdr ls))) result))
 	   (push (car ls) sofar)))))
 
