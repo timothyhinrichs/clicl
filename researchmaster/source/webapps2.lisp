@@ -130,11 +130,12 @@
     (setf (gethash p *schemas*) (make-schema :name p :signature (gethash :signature h) :guards (gethash :guards h)))))
 
 (defvar *guards* (make-hash-table))
-(defconstant *kernel-guards* '(__single-cookie-session __globalstate))
+(defconstant *kernel-guards* '(__single-cookie-session __integrity))
 (defstruct guard name logic supers datalog)  ; datalog is the version *we* use--keep both around for debugging
 (define-condition invalid-guard (error) ((comment :initarg :comment :accessor comment)))
 (define-condition unknown-guard (error) ((comment :initarg :comment :accessor comment)))
 (defun guardp (x) (nth-value 1 (gethash x *signatures*)))
+(defun guard-fol (x) (remove-if #'stringp (guard-logic x)))
 (defun find-guard (x)
   (multiple-value-bind (y present) (gethash x *guards*)
     (unless present (error 'unknown-guard :comment x))
@@ -163,7 +164,7 @@
       (split #'(lambda (x) (or (atomicp (car x)) (and (listp (car x)) (eq (caar x) '<=)))) l))
     (setq constraints (mapcan #'(lambda (x) (to-canonical-datalog `(<= (__error ,(cdr x)) ,(maknot (quantify (car x)))))) constraints))
     (setq constraints (mapcar #'order-datalog-rule constraints))
-    (define-theory (make-instance 'prologtheory) "" (append constraints rules))))
+    (define-theory (make-instance 'prologtheory) "" (subrel '((= . same)) (append constraints rules)))))
 
 (defun extract-kif-plus-text (l)
   (let (th)
@@ -357,7 +358,7 @@
 (define-guard '__single-cookie-session `((=> (,*cookie-session-name* ?x) (,*cookie-session-name* ?y) (same ?x ?y))))
 
 ; internal guard to check against the global state
-(defguard __globalstate :inherits (db cookie session __single-cookie-session))
+(defguard __integrity :inherits (db cookie session __single-cookie-session))
 ; can all be re-defined by the app
 (defguard db)
 (defguard cookie)
@@ -400,36 +401,51 @@
       (format t ";~A~%" v))
     (not errors)))
 
-(defun guard-logic-full (guard)
-  "(GUARD-LOGIC-FULL GUARD) returns the list of all sentences in the guard named GUARD or in 
-   one of the guards inherited from GUARD (recursively).  Memoized."
-  (remove-duplicates (guard-logic-full-aux guard (make-hash-table)) :test #'equal))
+(defun guard-accum-logic (guard) (guard-accum guard :key #'guard-logic))
+(defun guard-accum-datalog (guard) (guard-accum guard :key #'guard-datalog))
+(defun guard-accum (guard &key (key #'guard-logic))
+  "(GUARD-ACCUM GUARD) walks all guards inherited by GUARD (recursively) and
+   accummulates the results of applying KEY to each guard.  Memoized."
+  (remove-duplicates (guard-accum-aux guard key (make-hash-table)) :test #'equal))
 
-(defun guard-logic-full-aux (guardname done)
-  "(GUARD-LOGIC-FULL-AUX GUARDNAME DONE) takes a guard name GUARDNAME and a hash table DONE.
-   Returns the guard-logic for GUARD and memoizes results in DONE."
+(defun guard-accum-aux (guardname key done)
+  "(GUARD-ACCUM-AUX GUARDNAME KEY DONE) takes a guard name GUARDNAME, a function KEY,
+   and a hash table DONE. Returns the results of applying KEY to each guard inherited
+   by GUARDNAME and memoizes results in DONE."
   (let (logic guard)
     (setq logic (gethash guardname done))
     (cond (logic logic)
 	  (t (setq guard (find-guard guardname))
 	     (setf (gethash guardname done) 
-		   (append (apply #'append (mapcar #'(lambda (x) (guard-logic-full-aux x done)) (guard-supers guard)))
-			   (guard-logic guard)))))))
+		   (append (apply #'append (mapcar #'(lambda (x) (guard-accum-aux x key done)) (guard-supers guard)))
+			   (funcall key guard)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Mid-level Analysis and Manipulation
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun servlet-guard-logic (servletname)
+  "(SERVLET-GUARD-LOGIC SERVLETNAME) returns a list of all the constraints guarding SERVLETNAME."
+  (apply #'append 
+	 (mapcar #'(lambda (x) (contents (guard-fol (find-guard x)))) 
+		 (servlet-guards (find-servlet servletname)))))
+
+(defun servlet-all-atoms (servletname)
+  "(SERVLET-WEBSTATE-ATOMS SERVLETNAME) extractes the webstate predicates used by SERVLET
+   and returns several values: 
+   (i) db predicates, (ii) cookie predicates, (iii) session predicates, (iv) builtins, (v) remaining predicates."
+  (let (updates all (*modals* '(pos neg)))
+    (setq updates (mapcar #'(lambda (x) (update-datalog (find-update x))) (servlet-updates (find-servlet servletname))))
+    (setq all (delete-duplicates (mapcan #'(lambda (x) (preds (maksand (contents x)))) updates) :test #'param-equal))
+    (setq all (mapcar #'(lambda (x) (cons (parameter-symbol x) (nunique (parameter-arity x) "?"))) all))
+    (setq all (group-by all #'in-what :key #'relation))
+    (values (cdr (assoc :db all)) (cdr (assoc :cookie all)) (cdr (assoc :session all)) 
+	    (cdr (assoc :builtin all)) (cdr (assoc :unknown all)))))
 
 (defun servlet-known-atoms (servletname)
   "(SERVLET-KNOWN-ATOMS SERVLETNAME) returns a list of atoms pertinent to SERVLETNAME and 
    known by the user before SERVLETNAME's updates are run.  That is, returns the cookie atoms appearing in the updates,
-   together with the servlet's inputs and session.username."  
-  (let (updates all cookies)
-    (setq updates (mapcar #'(lambda (x) (update-datalog (find-update x))) (servlet-updates (find-servlet servletname))))
-    (setq all (delete-duplicates (mapcan #'(lambda (x) (preds (maksand (contents x)))) updates) :test #'param-equal))
-    (setq cookies (delete-if-not #'in-cookie all :key #'parameter-symbol))
-    (setq cookies (mapcar #'(lambda (x) (cons (parameter-symbol x) (nunique (parameter-arity x) "?"))) cookies))
-    (nconc (cons '(session.username ?0) (servlet-input-atoms servletname)) cookies)))
+   together with the servlet's inputs."  
+  (nconc (servlet-input-atoms servletname) (nth-value 2 (servlet-all-atoms servletname))))
 
 (defun servlet-empty-tables (servletname)
   "(SERVLET-EMPTY-TABLES SERVLETNAME) returns a list of relations pertinent to SERVLETNAME that are known to always be empty when
@@ -711,6 +727,7 @@
 	  (push `(<= ,newneghead (and ,negphihead (not ,posphihead))) th)))
     th))
 
+(defun compose-posneg-prior-bl (pos neg) (hash2bl (compose-posneg-prior-hash pos neg)))
 (defun compose-posneg-prior-hash (pos neg)
   "(COMPOSE-POSNEG-PRIOR-HASH POS NEG) returns a hash table keyed on relations where each value is (<lastposrelation> <lastnegrelation>)." 
   (let (h)
@@ -747,6 +764,12 @@
 ;   form's namespace, which will be ignored by the code anyhow (right??).
 ; Need to fix the interpreter so that we first uniquify-form-servlet-combinations and then grab the signature prefix
 ;   by looking it up (not using a hidden field on the form).
+; This doesn't capture constraints appearing b/c of select boxes---because of the data used to fill out the form.
+;    e.g. if the form is generated by looking up all the user's credit card numbers and filling a drop-down list,
+;    the servlet should ensure that one of those values is submitted--or at least that the value submitted is in the results
+;    of the same SQL query---the DB may have changed from the time the form was generated to the time it was submitted.
+;    Could analyze/add-to the guards to ensure that if there is a drop-down then SQL query for generating those values
+;    is equivalent to one of the guards.
 (defun eliminate-parameter-tampering ()
   "(ELIMINATE-PARAMETER-TAMPERING) transforms a web application so that every guard checked on a form is also checked
    by its target servlet."
@@ -776,19 +799,19 @@
 	(setf (form-target (cdr g)) newname)))))
 
 
-; issues
-;   1) abducibles should be all those the user *knows*: session.username, input database, output database, cookies.  
-;      What about other session vars?
-(defun access-control-check (servletname &optional (onlycheck nil))
+(defvar *session.username* 'session.username)
+(defvar *session.username-uniqueness* `(=> (,*session.username* ?x) (,*session.username* ?y) (= ?x ?y)))
+
+(defun access-control (servletname &optional (onlycheck nil))
   "(ACCESS-CONTROL-CHECK SERVLETNAME ONLYCHECK) checks the servlet named SERVLETNAME against the access control policy.
    ONLYCHECK can be set to :allow or :deny to check only those statements."
-  (let (ac read write support extra updates raw posneg views bl)
-    ; alter AC so that each allow/deny rule body is a simple atom
-    (multiple-value-setq (ac extra) (mapcaraccum #'access-control-mod-allowdeny (contents *accesscontrol*)))
-    (setq ac (append ac extra))
+  (let (ac read write support updates raw posneg views bl input output db cookie session builtins appatoms useratoms)
+    ; alter AC so that each allow/deny rule has (i) an object atom with all distinct variable args and (ii) a body with a single atom
+    ;    whose arguments are exactly those of the object atom 
+    (setq ac (canonicalize-access-control *accesscontrol*))
     ; divide AC by rights; also keep all remaining rules around.
     (setq ac (group-by ac 
-		       #'(lambda (x) (if (not (member (relation x) '(allow deny))) 'support (third (head x)))) ;(list (first (head x)) (third (head x)))))
+		       #'(lambda (x) (if (not (member (relation x) '(allow deny))) 'support (third (head x))))
 		       :test #'equal))
     (setq read (cdr (assoc 'read ac)))
     (setq write (cdr (assoc 'write ac)))
@@ -797,129 +820,177 @@
     (setq updates (mapcar #'(lambda (x) (update-datalog (find-update x))) (servlet-updates (find-servlet servletname))))
     (multiple-value-setq (raw posneg views bl) (compose-posneg updates (servlet-empty-tables servletname)))
     (when *debug-webapps* (format t "~&Composed updates:~%") (pcontents raw))
-    (append (access-control-check-read servletname (append read support) (append views raw) bl onlycheck)
-	    (access-control-check-write (append write support) (append posneg raw) bl onlycheck))))    
+    ; assemble signatures of interest
+    (multiple-value-setq (db cookie session builtins) (servlet-all-atoms servletname))
+    (setq input (servlet-input-atoms servletname))
+    (setq output (servlet-output-atoms servletname))
+    (setq appatoms (append db cookie session input builtins))  ; the atoms the app is given before servlet runs
+    (setq useratoms (append output input cookie builtins `((,*session.username* ?0))))  ; the atoms the user knows after servlet runs
+    (append (access-control-read servletname (append read support) (append views raw) bl onlycheck appatoms useratoms)
+	    (access-control-write servletname (append write support) (append posneg raw) bl onlycheck appatoms))))   
 
-(defun access-control-check-write (ac updateviews bl onlycheck)
-  (let (allow deny support th allowh denyh)
-    (flet ((docheck (r rhead up mode doc)
-	     (let (al h)
-	       (if (eq mode 'allow) (setq h allowh) (setq h denyh))
-	       (setq ac (gethash r h))
-	       (when (and (not (eq up 'false)) ac)  ; only check when update is non-empty and there is a policy governing write
-		 (setq ac (stdize ac))
-		 (setq al (mgu (cdr rhead) (cdr ac)))
-		 (cond ((entailment (quantify `(=> ,(plug up al) ,(if (eq mode 'allow) (plug ac al) (maknot (plug ac al))))) th '(= true false))
-			(format t "; SAFE: Proved that for table ~A ~A~%" r doc))
-		       (t (format t "; VIOLATION: Could not prove that for table ~A ~A~%" r doc)))))))
-      (format t ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;~%")
-      (format t ";;;;; WRITE ACCESS CONTROL ;;;;;~%")
-      (format t ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;~%")
-      ; fix AC bodies to refer to updated preds
-      (setq ac (mapbody #'(lambda (x) (subrel bl x)) ac))
-      ; split AC into allow/deny/support and create joint updates+AC theory 
-      (setq ac (group-by ac #'(lambda (x) (if (member (relation x) '(allow deny)) (relation x) 'support))))
-      (setq allow (cdr (assoc 'allow ac))) ; a list of (<= (allow (table <vars>) write) (p <vars>))
-      (setq deny (cdr (assoc 'deny ac))) ; a list of (<= (deny (table <vars>) write) (p <vars>))
-      (setq support (cdr (assoc 'support ac)))
-      (setq th (append support updateviews))
-      (setq th (predicate-completion th))
-      (pcontents th)
-      ; create the permitted formula for each table
-      (setq allowh (group-by allow #'(lambda (x) (relation (second (second x))))))
-      (dolist (tr allowh)
-	(setf (cdr tr) (mapcar #'third (cdr tr)))
-	(setf (cdr tr) (maksor (cdr tr))))
-      (setq allowh (bl2hash allowh))
-      ; create the denied formula for each table
-      (setq denyh (group-by deny #'(lambda (x) (relation (second (second x))))))
-      (dolist (tr denyh)
-	(setf (cdr tr) (mapcar #'third (cdr tr)))
-	(setf (cdr tr) (maksor (cdr tr))))
-      (setq denyh (bl2hash denyh))
-      ; run tests
-      (format t "; Checking that every tuple inserted or deleted is allowed and not denied by the policy.~%")
-      (dolist (x (posneg-predicate-completion-bl updateviews)) ; list of (relation newhead posform negform))
-	(format t ";   Checking ~A~%" x)
-	(docheck (first x) (second x) (third x) 'allow "all tuples inserted are allowed")
-	(docheck (first x) (second x) (third x) 'deny "no inserted tuple is denied")
-	(docheck (first x) (second x) (fourth x) 'allow "all tuples deleted are allowed")
-	(docheck (first x) (second x) (fourth x) 'deny "no deleted tuple is denied")))))
+(defun webapp-builtins () '(= true false))
+(defun access-control-write (servletname ac updateviews bl onlycheck appatoms)
+  (let (support th pn rest ach)
+    (setq appatoms (mapcar #'relation appatoms)) 
+    (format t ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;~%")
+    (format t ";;;;; WRITE ACCESS CONTROL ;;;;;~%")
+    (format t ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;~%")
+    ; fix AC bodies to refer to updated preds
+    (setq ac (mapbody #'(lambda (x) (subrel bl x)) ac))
+    ; turn AC and updates into first-order logic, indexed by relation
+    (multiple-value-setq (ach support) (allowdeny-predicate-completion-hash ac))
+    (format t "~&AC hash: ~A~%" (hash2bl ach))
+    (multiple-value-setq (pn rest) (posneg-predicate-completion-bl updateviews))
+    (format t "~&Update hash: ~A~%" (hash2bl pn))
+    ; construct background first-order theory 
+    (setq th (predicate-completion (append rest support)))
+    ;(setq th (append th (mapcar #'quantify (guard-accum-logic '__integrity))))
+    (setq th (cons *session.username-uniqueness* (append (servlet-guard-logic servletname) th)))
+    (pcontents th)
+    ; run tests
+    (format t "; Checking that every tuple inserted or deleted is allowed and not denied by the policy.~%")
+    (dolist (x pn) ; list of (relation newhead posform negform))
+      (format t ";   Checking ~A~%" x)
+      (unless (eq onlycheck :deny) 
+	(access-control-write-aux (gethash (first x) ach) (cdr x) th appatoms :allow))
+      (unless (eq onlycheck :allow)
+	(access-control-write-aux (gethash (first x) ach) (cdr x) th appatoms :deny)))))
 
-(defun access-control-check-read (servletname ac views bl onlycheck)
+(defun access-control-write-aux (ac write th webstatepreds mode)
+  "(ACCESS-CONTROL-WRITE-AUX R AC WRITE MODE WEBSTATEPREDS) takes AC and WRITE, each of which are lists of the form
+   (<atom> <sent1> <sent2>), where the variables of ATOM are the same as in SENT1 and SENT2 (i.e. atom <=> sent1 and
+   atom <=> sent2 are predicate completions.  For AC <sent1> represents ALLOW and <sent2> represents DENY; for WRITE
+   <sent1> represents POS/INSERT and <sent2> represents NEG/DELETE.  MODE is either :ALLOW or :DENY, indicating which
+   one to check.  WEBSTATEPREDS is the list of predicates that are used to represent this servlet's web application state.  
+   This function checks if WRITE obeys AC for the prescribed MODE and if not attempts to find a formula defining all those 
+   cases for which WRITE disobeys AC in terms of WEBSTATEPREDS.
+   Prints results to stdout and returns the formula if found or NIL."
+  (let (acquery writequery bl p phi r doc)
+    (cond ((and ac write) ; if no ALLOW rules and no DENY rules or no WRITE rules for this relation, don't bother checking
+	   (setq ac (stdize ac))  ; ensure no variable conflicts for mgu
+	   (setq acquery (if (eq mode :allow) (second ac) (third ac)))
+	   (setq writequery (makor (second write) (third write)))
+	   (cond ((not (eq acquery 'false))  ; if no ALLOW/DENY rules for this relation, don't bother checking
+		  (setq r (relation (first write)))
+		  (setq doc (if (eq mode :allow) "all inserted and deleted tuples are ALLOWed" "no inserted or deleted tuple is DENYed"))
+		  (setq bl (mgu (first ac) (first write)))  ; should only bind AC vars, but doesn't hurt to plug into both
+		  (when (eq mode :deny) (setq acquery (maknot acquery)))
+		  (setq p (quantify `(=> ,(plug writequery bl) ,(plug acquery bl))))
+		  (cond ((entailment p th (webapp-builtins))
+			 (format t ";   SAFE: Proved that for table ~A ~A~%" r doc)
+			 nil)
+			((setq phi (definable (maknot p) th webstatepreds (webapp-builtins)))
+			 (format t ";   VIOLATION: Constructed witness formula for table ~A disproving that ~A~%" r doc)
+			 (format t "; ~A~%" phi)
+			 phi)
+			(t
+			 (format t ";   UNKNOWN: Failed to prove for table ~A that ~A; also failed to construct a witnessing formula~%" r doc)
+			 nil)))
+		 (t
+		  (format t ";   N/A: No ~A access control constraints~%" mode))))
+	  (t (format t ";   N/A: No writes or no ~A access control constraints~%" mode)))))
+
+(defun access-control-read (servletname ac views bl onlycheck appatoms useratoms)
   ; AC is the READ access control policy, where all bodies of allow/deny are atomic
   ; VIEWS are view definitions for servlet updates;
   ; BL gives the translation between original table names and tables used to define results of updates
   ; ONLYCHECK can be set to either :allow or :deny to ignore the other case
-  (let (outputatoms inputsyms builtins allow deny support th userknows res violations allowed doc p)
+  (let (th builtins userpreds allowrelns support)
     (format t ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;~%")
     (format t ";;;;; READ ACCESS CONTROL ;;;;;~%")
     (format t ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;~%")
-    ; compute the signature of data that the user sees for this servlet
-    (setq outputatoms (servlet-output-atoms servletname))
-    (setq outputatoms (and2list (subrel bl (maksand outputatoms))))
-    (when outputatoms
-      ; set known/builtin relations --- should include cookies as well as user-provided input
-      (setq inputsyms (mapcar #'relation (servlet-known-atoms servletname)))
-      (setq builtins '(= true false))
-      ; fix AC bodies to refer to updated preds
-      (setq ac (mapbody #'(lambda (x) (subrel bl x)) ac))
-      ; split AC into allow/deny/support and create joint updates+AC theory 
-      (setq ac (group-by ac #'(lambda (x) (if (member (relation x) '(allow deny)) (relation x) 'support))))
-      (setq allow (cdr (assoc 'allow ac)))
-      (setq deny (cdr (assoc 'deny ac)))
-      (setq support (cdr (assoc 'support ac)))
-      (setq th (append support views))
-      (setq th (predicate-completion th))
-      (pcontents th)
-      ; check if any of the deny relations are definable in terms of the output and built-in relations
-      (unless (eq onlycheck :allow)
-	(format t ";;;;; DENY ;;;;;~%")
-	(format t "; Checking that user cannot compute any DENIED tuples from outputs, inputs, and source code~%")
-	(setq userknows (union* (mapcar #'relation outputatoms) inputsyms builtins))
-	;(print deny)
-	(dolist (d deny)  ; a list of (<= (deny thing read) (p <vars>))
-	  (setq p (third d))
-	  (setq res (abduction p th userknows builtins))
-	  (setq doc (third (find p th :key #'second :test #'samep)))
-	  (cond (res
-		 (format t "; VIOLATION: Inferred denied view ~A from outputs: ~A~%" doc userknows)
-		 (push `(deny-inferrable ,res (abduction ,p ,th ,userknows)) violations))
-		(t (format t "; SAFE: Failed to infer denied view ~A~%;   ~A~%;  from outputs: ~A~%" p doc userknows)))))
-      ; check that all of the output relations are definable in terms of the allowed relations 
-      (unless (eq onlycheck :deny)
-	(format t ";;;;; ALLOW ;;;;;~%")
-	(format t "; Checking that all user outputs can be computed from ALLOWED views, inputs, and source code~%")
-	;(format t "~&Theory:~%~A~%" th)
-	(setq allowed (remove-duplicates (append (mapcar #'(lambda (x) (relation (third x))) allow) builtins)))
-	(dolist (o outputatoms)
-	  (setq res (abduction o th allowed builtins))
-	  (cond ((not res) 
-		 (format t "; VIOLATION: Failed to find definition of output view ~A using allowed views~%" o)
-		 (push `(output-notdefinable-byallow (abduction ,o ,th ,allowed)) violations))
-		(t (format t "; SAFE: Found definition of output view ~A using allowed views:~%~A~%" o res)))))
-      violations)))
+    (setq builtins (webapp-builtins))
+    ; fix AC bodies to refer to updated preds
+    (setq ac (mapbody #'(lambda (x) (subrel bl x)) ac))
+    ; turn AC into FOL, indexed by relation
+    (multiple-value-setq (ac support) (allowdeny-predicate-completion-bl ac))
+    (format t "~&AC hash: ~A~%" ac)
+    ; construct background theory
+    (setq th (append support views))
+    (setq th (predicate-completion th))
+    ;(setq th (append th (mapcar #'quantify (guard-accum-logic '__integrity))))
+    (setq th (cons *session.username-uniqueness* (append (servlet-guard-logic servletname) th)))
+    (pcontents th)
+    ; check if any of the deny relations are definable in terms of the output and built-in relations
+    (unless (eq onlycheck :allow)
+      (setq userpreds (append (mapcar #'relation useratoms) builtins))
+      (dolist (a ac)  ; a list of (relation relationatom allowsent denysent)
+	(access-control-read-deny (fourth a) (second a) th userpreds builtins)))
+    (unless (eq onlycheck :deny)
+      (setq allowrelns (mapcan #'(lambda (x) (relns (third x))) ac))
+      (setq allowrelns (remove-duplicates (append builtins allowrelns)))
+      (dolist (o (and2list (subrel bl (maksand (servlet-output-atoms servletname)))))
+	(access-control-read-allow o allowrelns th appatoms builtins)))))
+	
+(defun access-control-read-allow (outputatom allowrelns th appatoms builtins)
+  (declare (ignore appatoms))
+  (let (res)
+    (setq res (abduction outputatom th allowrelns builtins))
+    (cond ((not res) 
+	   (format t ";   VIOLATION: Failed to find definition of output view ~A using allowed views ~A~%" outputatom allowrelns))
+	  (t 
+	   (format t "; SAFE: Found definition of output view ~A using allowed views ~A:~%~A~%" outputatom allowrelns res)))))
 
-(defun access-control-mod-allowdeny (p)
-  "(ACCESS-CONTROL-MOD-ALLOWDENY P) ensures the body of the given allow/deny rule is atomic.
-   Returns a new P plus possibly a list of new sentences.  Is a noop for non-allow/deny rules."
-  (cond ((not (member (relation p) '(allow deny))) (values p nil))
-	(t (multiple-value-bind (newhead rest) (access-control-check-query p)
-	     (values `(<= ,(head p) ,newhead) rest)))))
-
-(defun access-control-check-query (ac)
-  (let (head phi vs newhead)
-    (setq head (head ac))
-    (setq phi (maksand (body ac)))
-    (setq vs (freevars (second head)))
-    (setq phi (equantify-except phi vs))
-    (cond ((atomicp phi)
-	   (setq newhead phi)
-	   (setq phi nil))
+(defun access-control-read-deny (deny doc th userpreds builtins)
+  (let (res)
+    (setq res (abduction deny th userpreds builtins))
+    (cond (res
+	   (format t ";   VIOLATION: Inferred denied view ~A from outputs: ~A~%~A~%" doc userpreds res)
+	   res)
 	  (t
-	   (setq newhead (cons (gentemp "r") vs))
-	   (setq phi `((<= ,newhead ,phi)))))
-    (values newhead phi)))
+	   (format t ";   UNKNOWN: Failed to infer denied view ~A from outputs: ~A~%~A~%" doc userpreds deny)))))
+
+(defun canonicalize-access-control (th)
+  (multiple-value-bind (x y) (mapcaraccum #'canon-access-control (contents th))
+    (append x y)))
+
+(defun canon-access-control (p)
+  "(CANON-ACCESS-CONTROL P) takes a rule P and if it is an access control rule ensures
+   it has the form (<= (allow/deny (q ?x1 ... ?xn) right) (r ?x1 ... ?xn)).
+   Returns two values: the new rule and a list of additional rules."
+  (cond ((not (member (relation p) '(allow deny))) (values p nil))
+	(t
+	 (let (orighead head phi vs newhead)
+	   (setq orighead (second p))
+           ; ensure the head has all unique variables
+	   (setq p (car (nth-value 1 (heads-same-bodies-diff (list (list* '<= (second (head p)) (body p)))))))
+           ; create symbol for body that has all the same args as the sentence in the head
+	   (setq head (list* (first orighead) (head p) (cddr orighead)))
+	   (setq phi (maksand (body p)))
+	   (setq vs (nreverse (freevars (second head)))) 
+	   (setq phi (equantify-except phi vs))
+	   (cond ((and (atomicp phi) (equal (vars phi) (vars (second head))))
+		  ; check above ensures variable order in phi is same as in head, since vars is deterministic
+		  (values `(<= ,head ,phi) nil))
+		 (t
+		  (setq newhead (cons (gentemp "r") vs))
+		  (values `(<= ,head ,newhead) (list `(<= ,newhead ,phi)))))))))
+    
+(defun posneg-predicate-completion-bl (th &optional (existentialize t))
+  (multiple-value-bind (h newth) (posneg-predicate-completion-hash th existentialize)
+    (values (hash2bl h) newth)))
+
+(defun posneg-predicate-completion-hash (th &optional (existentialize t)) 
+  "(POSNEG-PREDICATE-COMPLETION-HASH TH) takes a theory and returns a hash table
+   keyed on relations in TH that appear in the head of a pos/neg rule where the value
+   is a list (<newhead> <pred-completion-pos> <pred-completion-neg>).
+   Also returns the elements of TH that are not pos/neg rules."
+  (let ((*modals* '(pos neg)))
+    (modal-predicate-completion-hash th existentialize)))
+
+(defun allowdeny-predicate-completion-bl (th &optional (existentialize t))
+  (multiple-value-bind (h newth) (allowdeny-predicate-completion-hash th existentialize)
+    (values (hash2bl h) newth)))
+
+(defun allowdeny-predicate-completion-hash (th &optional (existentialize t)) 
+  "(ALLOWDENY-PREDICATE-COMPLETION-HASH TH) takes a theory and returns a hash table
+   keyed on relations in TH that appear in the head of an allow/deny rule where the value
+   is a list (<newhead> <pred-completion-allow> <pred-completion-deny>).
+   Also returns the elements of TH that are not allow/deny rules.  Assumes
+   the rules are of the form (<= (allow/deny <atom>) ...)."
+  (let ((*modals* '(allow deny)))
+    (modal-predicate-completion-hash th existentialize)))
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Model Checking
@@ -998,7 +1069,7 @@
     (setq schema (find-schema (form-schema form)))
     (setq guards nil)
     (setq guards (union (form-guards form) (schema-guards schema)))
-    (setq guards (remove-if-not #'quantifier-free-sentencep (remove-duplicates (mapcan #'guard-logic-full guards) :test #'equal)))
+    (setq guards (remove-if-not #'quantifier-free-sentencep (remove-duplicates (mapcan #'guard-accum-logic guards) :test #'equal)))
     (setq guards (and2list (del-namespace (maksand guards) (find-form-signaturename formname))))
     (setq th (prep-plato-theory formname target nil))
     (push `(constraints ',guards) th)
@@ -1155,7 +1226,7 @@
 		    ; run updates on theory TH
 		    (transduce-all-data (servlet-updates servlet) th)
 		    ; check integrity constraints for all our data stores
-		    (guard-check '__globalstate th))
+		    (guard-check '__integrity th))
       (condition (e) (showerror in cookie servlet e) (return-from serve-session oldcookie)))
     ; set server's state using results of transduction
     (setq cookie (set-server-state th sessionid))
@@ -1196,6 +1267,22 @@
 	   (when sessionid (remhash sessionid *sessions*))))
     cookie))
 
+(defun in-what (r) 
+  (let (index sub)
+    (cond ((member r (webapp-builtins)) :builtin)
+	  (t
+	   (setq r (tostring r))
+	   (setq index (search "." r))
+	   (cond ((not index) :unknown)
+		 (t
+		  (setq sub (tosymbol (subseq r 0 index)))
+		  (cond ((member sub (webapp-builtins)) :builtin)
+			(t
+			 (case sub
+			   (cookie :cookie)
+			   (session :session)
+			   (db :db)
+			   (otherwise :unknown))))))))))
 (defun in-reserved-namespace (r) (or (in-cookie r) (in-session r) (in-db r)))
 (defun in-cookie (r) (has-prefix (relation r) 'cookie.))
 (defun in-session (r) (has-prefix (relation r) 'session.))
@@ -1584,28 +1671,151 @@
 
 ; Note that definability is a stronger version of abduction (requiring a sentence
 ;  equivalent to the conclusion, not just one that implies the conclusion)
-;  Vampire implements interpolants, which can be used to implement definability
-; See definable-vampire-file
 
-(defun abduction (p th preds &optional (builtins nil)) (abduction-epilog p th preds builtins))
+(defun definable (p th preds &optional (builtins nil)) 
+  (definable-epilog p th preds builtins))
+
+(defun abduction (p th preds &optional (builtins nil)) 
+  (abduction-epilog p th preds builtins))
+
+(defun entailment (p th &optional (builtins nil)) 
+  (entailment-vampire p th builtins))
+
+;;;;;;;;;; Vampire ;;;;;;;;;; 
+
+(defun entailment-vampire (p th &optional (builtins nil))
+  (let (value)
+    (entailment-vampire-file p th "/tmp/vampire.ent" :builtins builtins)
+    (setq value (exec-commandline "vampirewrap /tmp/vampire.ent"))
+    (setq value (read-user-string value))
+    (if (= value 0) t nil)))
+
+
+; This doesn't currently work.
+; Suppose P is an atom with distinct variables, e.g. (p ?x ?y ?z).
+; What we want to do is run vampire in symbol-elimination mode to get
+;   all of the consequences of TH whose preds are in PREDS and p.
+; Then we want to run vampire on the results in consequence-elimination mode
+;   to find an axiomatization of that theory.
+; Then we want to use my iff detector algorithm to extract a definition of
+;   p from the results.
+; I'm currently having trouble getting vampire to run in symbol elimination mode. 
+; See http://www.cs.man.ac.uk/~hoderk/ for several slidesets and papers
+; See http://www.vprover.org/interpol.cgi for Vampire's page
+(defun definable-vampire (p th preds &optional (builtins nil))
+  ;(format t "~&Calling DEFINABLE~%")
+  ;(format t "Query: ~A~%" p)
+  ;(dolist (v th) (print v))
+  ;(format t "~&Preds: ~A~%~%" preds)
+  (definable-vampire-file p th preds "/tmp/vampire.def" :builtins builtins)
+  ;(break)
+  nil)
+
+; vampire takes as input a superset of TPTP
+(defun definable-vampire-file (p th preds filename &key (time 10) (builtins nil))
+  "(DEFINABLE-VAMPIRE-FILE P TH PREDS FILENAME) outputs a vampire input file which 
+   computes whether or not P is definable using PREDS modulo theory TH."
+  (let (p2 th2 leftpreds rightpreds)
+    (multiple-value-setq (p2 th2) (definability-to-interpolation p th preds builtins))
+    (setq preds (mapcar #'(lambda (x) (if (symbolp x) (make-parameter :symbol x) x)) preds))
+    (setq leftpreds (set-difference (preds (makand p (maksand (contents th)))) preds :key #'parameter-symbol))
+    (setq rightpreds (set-difference (preds (makand p2 (maksand (contents th2)))) preds :key #'parameter-symbol))
+    (setq leftpreds (delete '= leftpreds :key #'parameter-symbol))
+    (setq rightpreds (delete '= rightpreds :key #'parameter-symbol))
+    (format t "~&leftpreds: ~A~%" leftpreds)
+    (format t "~&rightpreds: ~A~%" rightpreds)
+    (with-open-file (f filename :direction :output :if-does-not-exist :create :if-exists :supersede)
+      ; options
+      (format f "vampire(option,show_interpolant,on).~%")
+      (when time (format f "vampire(option,time_limit,~A).~%" time))
+      ; right and left symbols
+      (dolist (s leftpreds)
+	(format f "vampire(symbol,predicate,")
+	(kif2tptp-constant (parameter-symbol s) f)
+	(format f ",~A,left).~%" (parameter-arity s)))
+      (dolist (s rightpreds)
+	(format f "vampire(symbol,predicate,")
+	(kif2tptp-constant (parameter-symbol s) f)
+	(format f ",~A,right).~%" (parameter-arity s)))
+      ; right and left formulas
+      (format f "vampire(left_formula).~%")
+      (kif2tptp p 'axiom f t)
+      (format f "vampire(end_formula).~%")
+      (format f "vampire(right_formula).~%")
+      (kif2tptp p2 'conjecture f t)
+      (format f "vampire(end_formula).~%")
+      ; theory
+      (print (append th th2))
+      (dolist (q th) (kif2tptp q 'axiom f t))
+      (dolist (q th2) (kif2tptp q 'axiom f t)))))
+
+(defun entailment-vampire-file (p th filename &key (time 10) (builtins nil))
+  (declare (ignore builtins))
+  (setq th (contents th))
+  (with-open-file (f filename :direction :output :if-does-not-exist :create :if-exists :supersede)
+      ; options
+    (when time (format f "vampire(option,time_limit,~A).~%" time))
+    (dolist (q th) (kif2tptp q 'axiom f f))
+    (kif2tptp p 'conjecture f)))
+
+(defun consistency-vampire-file (th filename &key (time 10) (builtins nil))
+  (declare (ignore builtins))
+  (with-open-file (f filename :direction :output :if-does-not-exist :create :if-exists :supersede)
+      ; options
+    (when time (format f "vampire(option,time_limit,~A).~%" time))
+    (dolist (q th) (kif2tptp q 'conjecture f t))))
+
+; This doesn't work. 
+;  The construction below is complete but unsound.  IF there is a definition,
+;  the construction ensures we will find an interpolant.  But not all interpolants
+;  of the construction below are definitions.
+(defun definability-to-interpolation (p th preds &optional (builtins nil))
+  "(DEFINABILITY-TO-INTERPOLATION P TH PREDS) returns 2 values P' and TH' such that
+   TH U TH' implies P <=> P' and the only symbols in the intersection of P and P'
+   (including TH and TH') are PREDS.  Does not change any BUILTINS.
+   Thus, P is definable in terms of PREDS iff there is an interpolant of P => P'."
+  (let (allpreds predstoelim bl th2 p2)
+    (setq allpreds (relns (makand p (maksand (contents th)))))
+    (setq predstoelim (set-difference (set-difference allpreds preds) builtins))
+    (setq bl (mapcar #'(lambda (x) (cons x (gentemp (tostring x)))) predstoelim))
+    (setq th2 (and2list (subrel bl (maksand (contents th)))))
+    (setq p2 (subrel bl p))
+    (values p2 th2)))
+
+
+;;;;;;;;;; Epilog ;;;;;;;;;; 
+
 (defun abduction-epilog (p th preds &optional (builtins nil))
-  (let (head newth res (*depth* 10) (*consistency-depth* 3) (*inferences* 1000))
+  (abduction-epilog-aux p th preds builtins #'fullresidue))
+
+; not really definability, but I can't seem to get vampire to work
+(defun definable-epilog (p th preds &optional (builtins nil))
+  (let (x)
+    (setq x (abduction-epilog-aux p th preds builtins #'fullresidues))
+    (if x (maksor x) x)))
+
+(defun abduction-epilog-aux (p th preds builtins func)
+  (let (res (*depth* 10) (*consistency-depth* 3))
+    (setq preds (mapcar #'paramsym preds))
+    (setq builtins (mapcar #'paramsym builtins))
+    (multiple-value-setq (p th) (make-literal-query p th))
+    (setq th (define-theory (make-instance 'metheory) "" (contrapositives* (maksand (contents th)) builtins)))
+    (setq res (funcall func p th #'(lambda (x) (member x preds))))
+    ;(break)
+    res))
+
+(defun make-literal-query (p th)
+  (let (head)
     (cond ((atomicp p) (setq head p))
 	  (t 
 	   (setq head (cons '__tlh (freevars p)))
 	   (setq p (list '<= head p))
 	   (setq th (cons p (contents th)))))
-    ;(pcontents th)
-    (setq newth (define-theory (make-instance 'metheory) "" (contrapositives* (maksand (contents th)) builtins)))
-    ;(when *debug-webapps* (format t "Trying to define ~A from ~A~%" p preds))
-    (setq *tmp* newth)
-    (setq res (fullresidue head newth #'(lambda (x) (member x preds))))
-    ;(break)
-    res))
+    (values head th)))
 
-(defun entailment (p th &optional (builtins nil)) (entailment-epilog p th builtins))
 (defun entailment-epilog (p th &optional (builtins nil))
-  (let (head newth res (*depth* 5))
+  (let (head newth res (*depth* 10))
+    (setq builtins (mapcar #'paramsym builtins))
     (cond ((atomicp p) (setq head p))
 	  (t 
 	   (setq head (cons '__tlh (freevars p)))
@@ -1618,3 +1828,4 @@
     (setq res (fullfindp head newth))
     ;(break)
     res))
+  

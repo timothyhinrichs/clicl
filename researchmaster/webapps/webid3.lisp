@@ -110,8 +110,8 @@
 )
 
 (defguard profile-basic
-  (=> (profile.pass2 ?x) (exists ?y (and (profile.pass ?y) (same ?x ?y)))) "Passwords must be the same"
-  (=> (profile.accttype ?accttype) (or (same ?accttype "buyer") (same ?accttype "buyertoseller"))) "Account type must be either buyer or buyertoseller"
+  (=> (profile.pass2 ?x) (exists ?y (and (profile.pass ?y) (= ?x ?y)))) "Passwords must be the same"
+  (=> (profile.accttype ?accttype) (or (= ?accttype "buyer") (= ?accttype "buyertoseller"))) "Account type must be either buyer or buyertoseller"
 )
 
 (defguard auction-owner
@@ -151,7 +151,7 @@
   (category.id 0)
   (=> (category.id ?x) (category.id ?y) (= ?x ?y)))
 
-(defguard db :inherits (db.user))
+;(defguard db :inherits (db.user))
 
 (defguard db.user :inherits (db.user-basic db.user-misc))
 
@@ -530,7 +530,7 @@
 ; Profile lookup for editing
 (defservlet show-profile :updates (session2profile lookupprofile) :page edit-profile-page)
 ; Profile saving: store profile, login, repopulate profile page with profile and set status message to OK.
-(defservlet save-profile :guards (profile-loggedin profile-basic) :updates (session2profile saveprofile) :page success)
+(defservlet save-profile :guards (profile-loggedin profile-basic) :updates (saveprofile) :page success)
 
 (defservlet show-login :page login-page :entry t)
 (defservlet login :updates (login) :page success :entry t)
@@ -636,10 +636,17 @@
 ; read rights
 
 (defaccesscontrol 
-    (<= (deny (tuple ?y) read)
-	(db.user.name ?x ?y))
+
+    (<= (deny (tuple ?x ?y) read)
+	(db.user.name ?x ?y)
+	(session.username ?user)
+	(not (= ?user ?x)))
 ;	(or (not (exists ?user (session.username ?user)))
 ;	    (exists ?user (and (session.username ?user) (not (= ?user ?x))))))
+#|
+    (<= (deny (tuple ?x ?y) read)
+	(db.user.name ?x ?y)
+	(not (exists ?user (session.username ?user))))
 
     (<= (allow (tuple ?x) read)
 	(db.user.name ?x ?y))
@@ -650,12 +657,18 @@
     (<= (allow (tuple ?user) read)
 	(session.username ?user))
 
+|#
+#|
     (<= (deny (db.user.name ?x ?y) write)   ; write is insert or delete
 	(db.user.name ?x ?y)
-	(or (not (exists ?user (session.username ?user)))
-	    (exists ?user (and (session.username ?user) (not (= ?user ?x))))))
+	(not (exists ?user (session.username ?user))))
 
+    (<= (deny (db.user.name ?x ?y) write)   ; write is insert or delete
+	(session.username ?user) 
+	(not (= ?user ?x)))
+|#
 #|
+
     (<= (deny ?user (db.user.pass ?x ?y) read)
 	(not (= ?x ?user)))
 

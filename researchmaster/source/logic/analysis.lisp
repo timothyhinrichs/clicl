@@ -482,7 +482,7 @@
   "A list of modal operators (a relation applied to a sentence) that are to be ignored.")
 (defstruct parameter symbol arity type (univ :unknown))
 
-
+(defun paramsym (x) (if (parameter-p x) (parameter-symbol x) x))
 (defun isfunction (param) (eq (parameter-type param) 'function))
 (defun isrelation (param) (eq (parameter-type param) 'relation))
 (defun isobject (param) (and (eq (parameter-type param) 'function)

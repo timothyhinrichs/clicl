@@ -45,15 +45,34 @@
     (cond (vs `(<=> ,(cons r vs) ,(maksor rules)))
           (t  `(<=> ,r ,(maksor rules))))))
 
-(defun posneg-predicate-completion-bl (th &optional (existentialize t))
-  (multiple-value-bind (h newth) (posneg-predicate-completion-hash th existentialize)
+(defun modal-predicate-completion-bl (th &optional (existentialize t))
+  (multiple-value-bind (h newth) (modal-predicate-completion-hash th existentialize)
     (values (hash2bl h) newth)))
 
-(defun posneg-predicate-completion-hash (th &optional (existentialize t)) 
-  "(POSNEG-PREDICATE-COMPLETION-HASH TH) takes a theory and returns a hash table
-   keyed on relations in TH that appear in the head of a pos/neg rule where the value
-   is a list (<newhead> <pred-completion-pos> <pred-completion-neg>).
-   Also returns the elements of TH that are not pos/neg rules."
+(defun modal-predicate-completion-hash (th &optional (existentialize t))
+  "(MODAL-PREDICATE-COMPLETION-HASH TH) takes a theory and returns a hash table
+   keyed on relations in TH that appear in the head of a modal rule where the value
+   is a list (<newhead> <pred-completion-modal1> ... <pred-completion-modaln>),
+   where the order of modals is the same as *modals*.
+   Also returns the elements of TH that are not modal rules."  
+  (let (pn rest h r rules newhead newrules subrules ans phi)
+    (multiple-value-setq (pn rest) (split #'(lambda (x) (member (relation x) *modals*)) (contents th)))
+    (setq h (make-hash-table))
+    ; split sentences up and predicate complete them
+    (dolist (x (group-by pn #'(lambda (x) (relation (second (head x))))))
+      (setq r (car x))
+      (setq rules (cdr x))
+      (multiple-value-setq (newhead newrules) (heads-same-bodies-diff rules))
+      (setq subrules (group-by newrules #'relation))
+      (setq ans nil)
+      (dolist (m *modals*)
+	(setq phi (maksor (mapcar #'(lambda (x) (maksand (body x))) (cdr (assoc m subrules)))))
+	(when existentialize (setq phi (equantify-except phi (vars newhead))))
+	(push phi ans))
+      (setf (gethash r h) (cons newhead (nreverse ans))))
+    (values h rest)))
+
+#|
   (let (pn rest h r rules newhead newrules pos neg posphi negphi)
     (multiple-value-setq (pn rest) (split #'(lambda (x) (member (relation x) '(pos neg))) (contents th)))
     (setq h (make-hash-table))
@@ -69,6 +88,7 @@
 	(setq negphi (equantify-except negphi (vars newhead))))
       (setf (gethash r h) (list newhead posphi negphi)))
     (values h rest)))
+|#
 
 (defun rewrite-fol (p)
   "(REWRITE-FOL P) applies some rewritings to the first-order formula P."
@@ -98,29 +118,48 @@
 
 (defun heads-same-bodies-diff (th)
   "(HEADS-SAME-BODIES-DIFF TH) takes a theory of rules and ensures all the heads have the same arguments and all the bodies
-   have distinct variables from all other rules (other than those occurring in the head).  Treats pos/neg specially.
+   have distinct variables from all other rules (other than those occurring in the head).  Treats *modals* specially
+   and assumes each modal takes a single argument.
    Returns (i) the unifying head and (ii) the new list of rules.  Ignores included theories."
-  (let (newhead newth h equality bl posneg)
+  (let (newhead newth h equality bl modal)
     (setq th (contents th))
     (setq th (mapcar #'stdize th))  ; all bodies now differ
     (setq newhead nil)
     (dolist (p th)
-      (setq posneg nil)
+      (setq modal nil)
       (setq h (head p))
       ; adjust H for pos/neg
-      (when (and (listp h) (member (car h) '(pos neg)))
-	(setq posneg (car h))
+      (when (and (listp h) (member (car h) *modals*))
+	(setq modal (car h))  ; track which modal
 	(setq h (second h)))
       ; compute new head, if not already done
-      (unless newhead (setq newhead (variablize h)))
-      (multiple-value-setq (h equality) (variablize h))
+      (unless newhead (setq newhead (free-atom h)))
+      (multiple-value-setq (h equality) (free-atom h))
       (setq bl (mgu h newhead))  ; order of h and newhead matters
       (unless bl (return nil))
       (setq equality (mapcar #'(lambda (x) `(= ,(car x) ,(cdr x))) equality))
-      (setq p (list* '<= (if posneg (list posneg h) h) (append equality (body p))))
+      (setq p (list* '<= (if modal (list modal h) h) (append equality (body p))))
       (push (plug p bl) newth))
     (values newhead (nreverse newth))))
 
+(defun free-atom (p)
+  "(FREE-ATOM P) removes all constraints from the atom P by removing all object constants
+   and ensuring that all variables are distinct.  Returns new atom and binding list that
+   when applied to the result gives back P."
+  (cond ((atom p) (values p nil))
+	(t
+	 (let (res bl newv varssofar)
+	   (setq res (list (car p)))
+	   (dolist (x (cdr p))
+	     (cond ((or (not (varp x)) (member x varssofar))
+		    (setq newv (newindvar))
+		    (push newv res)
+		    (push (cons newv x) bl))
+		   (t
+		    (push x res)
+		    (when (varp x) (push x varssofar)))))
+	   (values (nreverse res) bl)))))
+	     
 (defun variablize (p)
   "(VARIABLIZE P) takes a sentence P and replaces all occurrences of object constants
    with fresh variables.  Returns new sentence and binding list, which when applied
