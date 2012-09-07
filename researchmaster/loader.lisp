@@ -49,6 +49,10 @@
 (load (loadfn "spreadsheetserver" :dir "source"))
 (load (loadfn "webapps2" :dir "source"))
 
+; web apps
+(load (loadfn "webid3" :dir "webapps"))
+
+
 
 
 

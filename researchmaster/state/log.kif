@@ -1998,3 +1998,110 @@ analyze these broader types of security workloads.
 (POS (PAPER.TOPIC CHENG2012ABSTRACTIONS SECURITY))
 (POS (PAPER.DESCRIPTION CHENG2012ABSTRACTIONS "Aeolus is a library that supports information-flow (confidentiality and integrity) enforcement in distributed systems.  It uses tags to describe the semantics of data, and policies for information flow using  actsFor and grants to describe how principals delegate their rights to tags.  Aeolus controls I/O as well as messages sent between nodes as well as threads to ensure the information policy is obeyed.
 "))
+(POS (SYMPOSIUM.INSTANCE SYMPOSIUM.35556890451))
+(POS (PRETTYNAME SYMPOSIUM.35556890451 "Symposium on Foundations and Practice of Security"))
+(POS (SHORTNAME SYMPOSIUM.35556890451 "FPS"))
+(POS (PERSON.INSTANCE PERSON.35556891662))
+(POS (PERSON.FIRSTNAME PERSON.35556891662 "Sandro"))
+(POS (PERSON.LASTNAME PERSON.35556891662 "Etalle"))
+(POS (PERSON.INSTANCE PERSON.35556891663))
+(POS (PERSON.FIRSTNAME PERSON.35556891663 "Daniel"))
+(POS (PERSON.LASTNAME PERSON.35556891663 "Trivellato"))
+(POS (PERSON.INSTANCE PERSON.35556891664))
+(POS (PERSON.FIRSTNAME PERSON.35556891664 "Nicola"))
+(POS (PERSON.LASTNAME PERSON.35556891664 "Zannone"))
+(POS (PAPER.INSTANCE ETALLE2013POLICY))
+(POS (PAPER.BIBTEX ETALLE2013POLICY INPROCEEDINGS))
+(POS (PAPER.AUTHOR ETALLE2013POLICY PERSON.35556891662))
+(POS (PAPER.AUTHOR ETALLE2013POLICY TIMOTHYLHINRICHS))
+(POS (PAPER.AUTHOR ETALLE2013POLICY ADAM.J.LEE))
+(POS (PAPER.AUTHOR ETALLE2013POLICY PERSON.35556891663))
+(POS (PAPER.AUTHOR ETALLE2013POLICY PERSON.35556891664))
+(POS (PAPER.TITLE ETALLE2013POLICY "Policy Administration in Tag-Based Authorization"))
+(POS (PAPER.PUBLICATION ETALLE2013POLICY SYMPOSIUM.35556890451))
+(POS (PAPER.URL ETALLE2013POLICY "papers/etalle2013policy.pdf"))
+(POS (PAPER.YEAR ETALLE2013POLICY 2013))
+(POS (PAPER.TOPIC ETALLE2013POLICY AUTHORIZATION))
+(POS (PAPER.TOPIC ETALLE2013POLICY TOPIC.35167900183))
+(POS (PAPER.DESCRIPTION ETALLE2013POLICY "Tag-Based Authorization (TBA) is a hybrid access control model that
+combines the ease of use of extensional access control models with the expressivity of logic-based formalisms. The main limitation of TBA is that it lacks support for policy administration. More precisely, it does not allow policy-writers to specify administrative policies that constrain the tags that users can assign, and to verify the compliance of assigned tags with these policies. In this paper
+we introduce TBA2 (Tag-Based Authorization & Administration), an extension
+of TBA that enables policy administration in distributed systems. We show that
+TBA2 is more expressive than TBA and than two reference administrative models
+proposed in the literature, namely HRU and ARBAC97."))
+(NEG (PAPER.INSTANCE ETALLE2013POLICY))
+(NEG (PAPER.BIBTEX ETALLE2013POLICY INPROCEEDINGS))
+(NEG (PAPER.AUTHOR ETALLE2013POLICY PERSON.35556891662))
+(NEG (PAPER.AUTHOR ETALLE2013POLICY TIMOTHYLHINRICHS))
+(NEG (PAPER.AUTHOR ETALLE2013POLICY ADAM.J.LEE))
+(NEG (PAPER.AUTHOR ETALLE2013POLICY PERSON.35556891663))
+(NEG (PAPER.AUTHOR ETALLE2013POLICY PERSON.35556891664))
+(NEG (PAPER.TITLE ETALLE2013POLICY "Policy Administration in Tag-Based Authorization"))
+(NEG (PAPER.PUBLICATION ETALLE2013POLICY SYMPOSIUM.35556890451))
+(NEG (PAPER.URL ETALLE2013POLICY "papers/etalle2013policy.pdf"))
+(NEG (PAPER.YEAR ETALLE2013POLICY 2013))
+(NEG (PAPER.TOPIC ETALLE2013POLICY AUTHORIZATION))
+(NEG (PAPER.TOPIC ETALLE2013POLICY TOPIC.35167900183))
+(NEG (PAPER.DESCRIPTION ETALLE2013POLICY "Tag-Based Authorization (TBA) is a hybrid access control model that
+combines the ease of use of extensional access control models with the expressivity of logic-based formalisms. The main limitation of TBA is that it lacks support for policy administration. More precisely, it does not allow policy-writers to specify administrative policies that constrain the tags that users can assign, and to verify the compliance of assigned tags with these policies. In this paper
+we introduce TBA2 (Tag-Based Authorization & Administration), an extension
+of TBA that enables policy administration in distributed systems. We show that
+TBA2 is more expressive than TBA and than two reference administrative models
+proposed in the literature, namely HRU and ARBAC97."))
+(POS (PAPER.INSTANCE ETALLE2013POLICY))
+(POS (PAPER.BIBTEX ETALLE2013POLICY INPROCEEDINGS))
+(POS (PAPER.AUTHOR ETALLE2013POLICY PERSON.35556891662))
+(POS (PAPER.AUTHOR ETALLE2013POLICY TIMOTHYLHINRICHS))
+(POS (PAPER.AUTHOR ETALLE2013POLICY ADAM.J.LEE))
+(POS (PAPER.AUTHOR ETALLE2013POLICY PERSON.35556891663))
+(POS (PAPER.AUTHOR ETALLE2013POLICY PERSON.35556891664))
+(POS (PAPER.TITLE ETALLE2013POLICY "Policy Administration in Tag-Based Authorization"))
+(POS (PAPER.PUBLICATION ETALLE2013POLICY SYMPOSIUM.35556890451))
+(POS (PAPER.URL ETALLE2013POLICY "papers/etalle2013policy.pdf"))
+(POS (PAPER.YEAR ETALLE2013POLICY 2012))
+(POS (PAPER.TOPIC ETALLE2013POLICY AUTHORIZATION))
+(POS (PAPER.TOPIC ETALLE2013POLICY TOPIC.35167900183))
+(POS (PAPER.DESCRIPTION ETALLE2013POLICY "Tag-Based Authorization (TBA) is a hybrid access control model that
+combines the ease of use of extensional access control models with the expressivity of logic-based formalisms. The main limitation of TBA is that it lacks support for policy administration. More precisely, it does not allow policy-writers to specify administrative policies that constrain the tags that users can assign, and to verify the compliance of assigned tags with these policies. In this paper
+we introduce TBA2 (Tag-Based Authorization &amp; Administration), an extension
+of TBA that enables policy administration in distributed systems. We show that
+TBA2 is more expressive than TBA and than two reference administrative models
+proposed in the literature, namely HRU and ARBAC97."))
+(NEG (PAPER.INSTANCE ETALLE2013POLICY))
+(NEG (PAPER.BIBTEX ETALLE2013POLICY INPROCEEDINGS))
+(NEG (PAPER.AUTHOR ETALLE2013POLICY PERSON.35556891662))
+(NEG (PAPER.AUTHOR ETALLE2013POLICY TIMOTHYLHINRICHS))
+(NEG (PAPER.AUTHOR ETALLE2013POLICY ADAM.J.LEE))
+(NEG (PAPER.AUTHOR ETALLE2013POLICY PERSON.35556891663))
+(NEG (PAPER.AUTHOR ETALLE2013POLICY PERSON.35556891664))
+(NEG (PAPER.TITLE ETALLE2013POLICY "Policy Administration in Tag-Based Authorization"))
+(NEG (PAPER.PUBLICATION ETALLE2013POLICY SYMPOSIUM.35556890451))
+(NEG (PAPER.URL ETALLE2013POLICY "papers/etalle2013policy.pdf"))
+(NEG (PAPER.YEAR ETALLE2013POLICY 2012))
+(NEG (PAPER.TOPIC ETALLE2013POLICY AUTHORIZATION))
+(NEG (PAPER.TOPIC ETALLE2013POLICY TOPIC.35167900183))
+(NEG (PAPER.DESCRIPTION ETALLE2013POLICY "Tag-Based Authorization (TBA) is a hybrid access control model that
+combines the ease of use of extensional access control models with the expressivity of logic-based formalisms. The main limitation of TBA is that it lacks support for policy administration. More precisely, it does not allow policy-writers to specify administrative policies that constrain the tags that users can assign, and to verify the compliance of assigned tags with these policies. In this paper
+we introduce TBA2 (Tag-Based Authorization &amp; Administration), an extension
+of TBA that enables policy administration in distributed systems. We show that
+TBA2 is more expressive than TBA and than two reference administrative models
+proposed in the literature, namely HRU and ARBAC97."))
+(POS (PAPER.INSTANCE ETALLE2013POLICY))
+(POS (PAPER.BIBTEX ETALLE2013POLICY INPROCEEDINGS))
+(POS (PAPER.AUTHOR ETALLE2013POLICY PERSON.35556891662))
+(POS (PAPER.AUTHOR ETALLE2013POLICY TIMOTHYLHINRICHS))
+(POS (PAPER.AUTHOR ETALLE2013POLICY ADAM.J.LEE))
+(POS (PAPER.AUTHOR ETALLE2013POLICY PERSON.35556891663))
+(POS (PAPER.AUTHOR ETALLE2013POLICY PERSON.35556891664))
+(POS (PAPER.TITLE ETALLE2013POLICY "Policy Administration in Tag-Based Authorization"))
+(POS (PAPER.PUBLICATION ETALLE2013POLICY SYMPOSIUM.35556890451))
+(POS (PAPER.URL ETALLE2013POLICY "papers/etalle2012policy.pdf"))
+(POS (PAPER.YEAR ETALLE2013POLICY 2012))
+(POS (PAPER.TOPIC ETALLE2013POLICY AUTHORIZATION))
+(POS (PAPER.TOPIC ETALLE2013POLICY TOPIC.35167900183))
+(POS (PAPER.DESCRIPTION ETALLE2013POLICY "Tag-Based Authorization (TBA) is a hybrid access control model that
+combines the ease of use of extensional access control models with the expressivity of logic-based formalisms. The main limitation of TBA is that it lacks support for policy administration. More precisely, it does not allow policy-writers to specify administrative policies that constrain the tags that users can assign, and to verify the compliance of assigned tags with these policies. In this paper
+we introduce TBA2 (Tag-Based Authorization &amp;amp; Administration), an extension
+of TBA that enables policy administration in distributed systems. We show that
+TBA2 is more expressive than TBA and than two reference administrative models
+proposed in the literature, namely HRU and ARBAC97."))
