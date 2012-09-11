@@ -46,6 +46,13 @@
 	       (t (read-user-string (tostring (mapcar #'tosymbol p))))))
 	(t (read-user-string (tostring (mapcar #'tosymbol p))))))
 
+(defun tosymbol-atomic (p)
+  (cond ((stringp p) (ignore-errors (read-from-string p nil nil)))
+	((symbolp p) p)
+	((numberp p) p)
+	(t nil)))
+
+
 (defun tostring (&rest p)
   "(TOSTRING LIST) takes an object and returns the string made out of that
    object by coercing via format and concatenating, if necessary."

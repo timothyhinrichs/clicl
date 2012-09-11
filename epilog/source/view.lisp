@@ -467,6 +467,7 @@
     (setq *inferences* 0)
     (setq *termination* nil)
     (setq alist (environment))
+;    (dolist (v (sentences '? *theory*)) (print v))
     (viewsupps p (list p) alist 0 nil)
     (nreverse (uniquify *answers*))))
 

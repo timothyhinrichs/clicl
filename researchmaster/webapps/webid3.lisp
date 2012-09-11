@@ -110,7 +110,7 @@
 )
 
 (defguard profile-basic
-  (=> (profile.pass2 ?x) (exists ?y (and (profile.pass ?y) (= ?x ?y)))) "Passwords must be the same"
+  (=> (profile.pass2 ?x) (profile.pass ?y) (= ?x ?y))   "Passwords must be the same"  ; (exists ?y (and (profile.pass ?y) (= ?x ?y))))
   (=> (profile.accttype ?accttype) (or (= ?accttype "buyer") (= ?accttype "buyertoseller"))) "Account type must be either buyer or buyertoseller"
 )
 
@@ -329,9 +329,9 @@
 (defupdate saveprofile (:language posneg)
 
   ; dumb implementation: delete entire old profile and add entire new profile
-;  (<= (pos (db.user ?x)) (profile.username ?x))
+  (<= (pos (db.user ?x)) (profile.username ?x))
   (<= (pos (db.user.name ?x ?y)) (and (profile.username ?x) (profile.name ?y)) )
-#|
+
   (<= (pos (db.user.pass ?x ?y)) (and (profile.username ?x) (profile.pass ?y)) )
   (<= (pos (db.user.birthmonth ?x ?y)) (and (profile.username ?x) (profile.birthmonth ?y)) )
   (<= (pos (db.user.birthday ?x ?y)) (and (profile.username ?x) (profile.birthday ?y)) )
@@ -345,10 +345,10 @@
   (<= (pos (db.user.newsletter ?x ?y)) (and (profile.username ?x) (profile.newsletter ?y)) )
   (<= (pos (db.user.accttype ?x ?y)) (and (profile.username ?x) (profile.accttype ?y)) )
   ;(<= (db.user.regdate ?x ?now) (profile.username ?x) (builtin.now ?now) )
-|#
-;  (<= (neg (db.user ?x)) (profile.username ?x))
+
+  (<= (neg (db.user ?x)) (profile.username ?x))
   (<= (neg (db.user.name ?x ?y)) (and (profile.username ?x) (db.user.name ?x ?y)) )
-#|
+
   (<= (neg (db.user.pass ?x ?y)) (and (profile.username ?x) (db.user.pass ?x ?y)) )
   (<= (neg (db.user.birthmonth ?x ?y)) (and (profile.username ?x) (db.user.birthmonth ?x ?y)) )
   (<= (neg (db.user.birthday ?x ?y)) (and (profile.username ?x) (db.user.birthday ?x ?y)) )
@@ -361,7 +361,7 @@
   (<= (neg (db.user.telephone ?x ?y)) (and (profile.username ?x) (db.user.telephone ?x ?y)) )
   (<= (neg (db.user.newsletter ?x ?y)) (and (profile.username ?x) (db.user.newsletter ?x ?y)) )
   (<= (neg (db.user.accttype ?x ?y)) (and (profile.username ?x) (db.user.accttype ?x ?y)) )
-|#
+
     
 #|  Notice that the following is much easier to write than the above.
   (=> (profile.username ?x) (db.user ?x))
@@ -388,7 +388,7 @@
 ; note: could combine lookupprofile and saveprofile into 1 updater with a conditioned malleable and <=> instead of =>
 (defupdate lookupprofile ()
   (<= (pos (profile.name ?y)) (profile.username ?x) (db.user.name ?x ?y))
-#|
+
   (<= (pos (profile.pass ?y)) (profile.username ?x) (db.user.pass ?x ?y))
   (<= (pos (profile.birthmonth ?y)) (profile.username ?x) (db.user.birthmonth ?x ?y))
   (<= (pos (profile.birthday ?y)) (profile.username ?x) (db.user.birthday ?x ?y))
@@ -401,7 +401,7 @@
   (<= (pos (profile.telephone ?y)) (profile.username ?x) (db.user.telephone ?x ?y))
   (<= (pos (profile.newsletter ?y)) (profile.username ?x) (db.user.newsletter ?x ?y))
   (<= (pos (profile.accttype ?y)) (profile.username ?x) (db.user.accttype ?x ?y))
-|#
+
 )
 (defupdate session2profile ()
   (<= (pos (profile.username ?x)) (session.username ?x))

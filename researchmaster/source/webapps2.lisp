@@ -153,11 +153,14 @@
     (setf (gethash p *guards*) (make-guard :name p :supers supers :logic l :datalog (guard-to-datalog l)))))
 
 (defun guard-to-datalog (l)
-  "(GUARD-TO-DATALOG L) transforms a list of datalog constraints and rules (each of which may have)
+  "(GUARD-TO-DATALOG L) transforms a list of datalog constraints and rules L (each of which may have)
    a text snippet explaining the constraint) into a set of rules
    where each constraint becomes a rule whose head is (__error ?text).
    Rules are either (i) atomic or (ii) begin with <=.   Every other sentence is a constraint."
   (let (rules constraints)
+    ; transform = to SAME
+    (setq l (mapcar #'(lambda (x) (subrel '((= . same)) x)) l))
+    ; pull apart logic and text
     (setq l (extract-kif-plus-text l))   ; now l is a list of (kif . "explanation")
     ;  add errors to the heads of all constraints, convert to rules, and index everything 
     (multiple-value-setq (rules constraints) 
@@ -1095,8 +1098,9 @@
 ; TODO: parameter tampering defense so we don't need formname as data
 (defmethod process-cookies ((file (eql 'scwa)) postlines)  
   (let (servletname formname cookies in)
-  (handler-case (progn
-
+  (handler-case 
+      (progn
+	(print *cookies*)
     ; grab target (only necessary b/c deployed using interpreter)
     (setq servletname (read-user-string (getf-post "servlet" postlines)))
     (unless (gethash servletname *servlets*)
@@ -1111,13 +1115,11 @@
     (setq in (remove-if #'(lambda (x) (member (car x) '("servlet" "formname") :test #'equal)) postlines)) 
     (when formname
       (setq in (add-namespace in (tostring (schema-signature (find-schema (form-schema (find-form formname))))))))
-    (add-namespace cookies "cookie")
-
-    ; make relations symbols
-    (setq in (pairs2data in))
-    (setq cookies (pairs2data *cookies*))
+    (setq cookies (add-namespace cookies "cookie"))
 
     ; run the servlet and return its cookies
+    (setq in (pairs2data in))
+    (setq cookies (pairs2data cookies))
     (setq *content*
 	  (with-output-to-string (stream)
 	    (setq cookies (serve in cookies servletname stream))))
@@ -1168,8 +1170,8 @@
   (declare (ignore postlines))
   (princ *content* s))
 
-(defun pairs2data (postlines)
-  (mapcar #'(lambda (x) (list (read-user-string (car x)) (cdr x))) postlines))
+(defun pairs2data (pairs)
+  (mapcar #'(lambda (x) (list (tosymbol-atomic (car x)) (cdr x))) pairs))
 
 (defun data2pairs (data)
   (mapcar #'(lambda (x) (cons (first x) (second x))) data))
@@ -1246,7 +1248,7 @@
     (if (listp cookie) (setq th (nconc th cookie)) (push cookie theories))
     (if (listp session) (setq th (nconc th session)) (push session theories))
     (setq th (define-theory (make-instance 'prologtheory) "" th))
-    (mapc #'(lambda (x) (includes th x)) theories)  ; this ensures TH only gets deallocated if we declude it when we're done
+    (mapc #'(lambda (x) (includes th x)) theories)  ; unfortunately, this ensures TH only gets deallocated if we declude it when we're done
     th))
 
 (defun set-server-state (th sessionid)
@@ -1351,23 +1353,25 @@
    there might be datalog view definitions in GUARD."
   (assert (not (listp data)) nil (format nil "guard-check assumes DATA is a real theory, not a list"))
   (let (th preds errs)
-    ;(setq *tmp* th)
+    (setq *tmp* th)
     (setq th (guard-datalog (find-guard guard)))
     (includes th data)
     (setq preds (mapcar #'parameter-symbol (get-vocabulary (maksand (contents data)))))
-    ;(setq *tmp2* preds)
+    (setq *tmp2* preds)
     (setq errs (viewsupports '?text '(__error ?text) th #'(lambda (x) (member x preds))))
     (unincludes th data)
     (when errs (error 'guard-violation :comment (list guard errs)))))
 
 ;(class-name (class-of err))
 (defmethod showerror (in cookie servlet err)
-  (setq err (class-name (class-of err)))
-  (format *output-stream* "<html><head><title>~A</title></head><body>" err)
-  (format *output-stream* "~&<P>Error in servlet ~A: ~A.~%" servlet err)
-  (showerror-in in)
-  (showerror-cookie cookie)
-  (format *output-stream* "</body></html>"))
+  (let (class)
+    (setq class (class-name (class-of err)))
+    (format *output-stream* "<html><head><title>~A</title></head><body>" class)
+    (format *output-stream* "~&<P>Error in servlet ~A: ~A.~%" servlet class)
+    (format *output-stream* "~&<p>~A~%" err)
+    (showerror-in in)
+    (showerror-cookie cookie)
+    (format *output-stream* "</body></html>")))
 
 (defmethod showerror (in cookie servlet (err unknown-servlet))
   (format *output-stream* "<html><head><title>Unknown servlet</title></head><body>")
