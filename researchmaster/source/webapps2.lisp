@@ -28,7 +28,7 @@
     (stringappend *web-path* (cdr res) path)))
 
 
-(defconstant *cookie-session-name* '__cookie.session)
+(defconstant *cookie-session-name* '__session)
 (defun find-cookie-session (cookie) (viewfindx '?x `(,*cookie-session-name* ?x) cookie))
 (defun drop-cookie-session (cookie) (drop `(,*cookie-session-name* ?x) cookie #'matchp) cookie)
 
@@ -1115,16 +1115,15 @@
     (setq in (remove-if #'(lambda (x) (member (car x) '("servlet" "formname") :test #'equal)) postlines)) 
     (when formname
       (setq in (add-namespace in (tostring (schema-signature (find-schema (form-schema (find-form formname))))))))
-    (setq cookies (add-namespace cookies "cookie"))
 
     ; run the servlet and return its cookies
     (setq in (pairs2data in))
-    (setq cookies (pairs2data cookies))
+    (setq cookies (pairs2data *cookies*))  ; make sure not to add namespace to cookies so server gets raw data
     (setq *content*
 	  (with-output-to-string (stream)
 	    (setq cookies (serve in cookies servletname stream))))
     ; turn cookies database back to pairs
-    (data2pairs cookies))
+    (data2pairs (del-namespace cookies 'cookie)))
     (condition () 
       (setq *content* 
 	    (with-output-to-string (s) 
