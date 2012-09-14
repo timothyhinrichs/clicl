@@ -1,0 +1,60 @@
+Weblog
+--------------
+Probably the first thing is getting you set up with the code we have.
+
+It's in a git repository.  So if you're not familiar, look into that a
+bit.  We'll likely only need the basics: pushing, pulling, committing.
+http://git-scm.com/
+
+It's hosted on google code.  
+Once you have an account, send me your gmail address, and I'll give
+you rights to commit.
+
+Download instructions:
+http://code.google.com/p/clicl/source/checkout
+
+Once you download, there is a file INSTALL with instructions.  Only
+been tested with Mac/Unix.  You'll only need CCL (not Snark or
+minisat).  Give the install a try and let me know if you have
+problems.
+
+The code is all Common Lisp.  The new language we're designing also
+looks like Lisp (mainly so we don't need to write a parser).  If you
+haven't used Lisp/Scheme before, it would be good to go through a
+tutorial.  I don't know of any good ones off-hand, so Google is your
+friend here.  I can, however, recommend a free online book I've used
+as a reference several times:
+http://www.gigamonkeys.com/book/
+
+
+The other thing to do is to look at the app I've started porting over to our
+language and get familiar with it.
+
+http://herge.sisl.rites.uic.edu/notamper/WeBid/
+
+To see what we've ported so far, run clicl and start a tcp server on port 5000 ...
+
+hinrichs:clicl thinrich$ ./bin/clicl
+Welcome to Clozure Common Lisp Version 1.8-r15286M  (DarwinX8664)!
+? (starttcp 5000)
+#<PROCESS tcp-handlers(2) [Reset] #x302000BF671D>
+
+Then fix a bug where we're hardcoding a pathname by entering the following..
+
+? (setq *fs-path* "FULLPATH-TO-CLICL/researchmaster/")
+
+So for me, this is ....
+
+? (setq *fs-path* "/Users/thinrich/Research/code/clicl/researchmaster/")
+
+Then go to your browser and try the following urls.
+
+http://localhost:5000/scwa?servlet=new-registration
+http://localhost:5000/scwa?servlet=show-profile
+http://localhost:5000/scwa?servlet=show-login
+
+The links on the pages definitely don't work.  I don't remember what
+else works and what doesn't.  But poke around a little.  You should be
+able to register as a new user, login, and edit your profile (via
+show-profile).  To logout, you need to manually delete the cookie that gets set when you login.
+
