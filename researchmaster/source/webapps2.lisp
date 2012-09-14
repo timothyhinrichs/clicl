@@ -31,6 +31,7 @@
 (defconstant *cookie-session-name* '__session)
 (defun find-cookie-session (cookie) (viewfindx '?x `(,*cookie-session-name* ?x) cookie))
 (defun drop-cookie-session (cookie) (drop `(,*cookie-session-name* ?x) cookie #'matchp) cookie)
+(defun save-cookie-session (id cookie) (save `(,*cookie-session-name* ,id) cookie #'matchp) cookie)
 
 ; internal globals
 (defvar *sessions* (make-hash-table))
@@ -1206,7 +1207,11 @@
 	(lost-session (e) (showerror in cookie servletname e) (return-from serve (contents (drop-cookie-session cookie))))))
     ; serve
     (drop-cookie-session cookie)
-    (setq cookie (serve-session in cookie session sessionid servletname))
+    (handler-case (setq cookie (serve-session in cookie session sessionid servletname))
+      (condition (e) 
+	(showerror in cookie (find-servlet servletname) e) 
+	(when sessionid (save-cookie-session sessionid cookie))
+	(return-from serve (contents cookie))))
     (when *timings* (setf (webapp-timings-serveend *timings*) (get-universal-time)))
     cookie))
 
@@ -1221,14 +1226,14 @@
     ; create data structure (a theory) representing the server's global state and including in, cookie, and session
     (setq th (get-server-state in cookie session))
     ; process data according to servlet semantics
-    (handler-case (progn
+;    (handler-case (progn
                     ; check guards
 		    (mapc #'(lambda (x) (guard-check x th)) (servlet-guards servlet))
 		    ; run updates on theory TH
 		    (transduce-all-data (servlet-updates servlet) th)
 		    ; check integrity constraints for all our data stores
-		    (guard-check '__integrity th))
-      (condition (e) (showerror in cookie servlet e) (return-from serve-session oldcookie)))
+		    (guard-check '__integrity th)
+;      (condition (e) (showerror in cookie servlet e) (return-from serve-session oldcookie)))
     ; set server's state using results of transduction
     (setq cookie (set-server-state th sessionid))
     ; render the page to the user  
