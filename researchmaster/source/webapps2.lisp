@@ -59,7 +59,8 @@
   
 (defun define-signature (p l)
   "(DEFINE-SIGNATURE P L) walks over the symbol declarations in P, creates a list of them, and
-   indexes that list in *signatures* by the name in P.  Returns that list."
+   indexes that list in *signatures* by the name in P.  Also constructs a guard
+   checking the types.  Returns that list."
   (let ((arity nil) (h nil) (type nil) name (sig nil))
     ; walk over the symbol declarations and turn each into a parameter
     (dolist (x l)
@@ -86,8 +87,30 @@
 		 (error 'invalid-signature :comment (format nil "Type and arity incompatible in ~A" x)))))
       ; make the parameter
       (push (make-parameter :symbol name :arity arity :type type) sig))
-    ; store list of parameters *in the order the programmer declared them* and return that list
-    (setf (gethash p *signatures*) (nreverse sig))))
+    ; store list of parameters *in the order the programmer declared them*, create guards for types, return list
+    (setq sig (nreverse sig))
+    (setf (gethash p *signatures*) sig)
+    (create-signature-type-guard p)
+    sig))
+
+
+(defun signature-guard-name (signame) (tosymbol "__" signame "_types"))
+(defun create-signature-type-guard (signame)
+  (let (th guardname atom)
+    (setq guardname (signature-guard-name signame))
+    (setq th nil)
+    (dolist (p (find-signature signame))  ; a list of parameters
+      (setq atom (signature-parameter-to-atom signame p))
+      (do ((vs (cdr atom) (cdr vs))
+	   (typenames (parameter-type p) (cdr typenames))
+	   (i 1 (1+ i)))
+	  ((null typenames))
+	; push comment on and then sentence on so they appear in the right order
+	(push (format nil "~Ath argument to ~A must be of type ~A" i (car atom) (car typenames)) th)
+	(push (list '=> atom (list (tosymbol "to_" (car typenames) "_p") (car vs))) th)))
+    (when (in-db signame) (setq th (list* :inherits '(db) th)))
+    (when (in-session signame) (setq th (list* :inherits '(session) th)))
+    (define-guard guardname th)))	   
 
 (defmacro defsignature1 (p &rest l)
   "(DEFSIGNATURE1 P &REST L) takes a signature name and a list of symbol declarations.
@@ -110,8 +133,6 @@
   (setf (parameter-arity (car p)) 1)
   (mapc #'(lambda (x) (setf (parameter-arity x) 2)) (cdr p)))
 
-(defun signature-guard (sig) (tosymbol "__" sig "_guardtypes"))
-
 (defvar *schemas* (make-hash-table))
 (defstruct schema name guards signature)
 (define-condition invalid-schema (error) ((comment :initarg :comment :accessor comment)))
@@ -130,7 +151,8 @@
   (let (h)
     (setq h (grab-keyvals l '(:signature :guards) 'invalid-schema))
     ;(when (gethash p *schemas*) (warn (format nil "Redefining schema ~A" p)))
-    (setf (gethash p *schemas*) (make-schema :name p :signature (gethash :signature h) :guards (gethash :guards h)))))
+    (setf (gethash p *schemas*) 
+	  (make-schema :name p :signature (gethash :signature h) :guards (adjoin (signature-guard-name (gethash :signature h)) (gethash :guards h))))))
 
 (defvar *guards* (make-hash-table))
 (defconstant *kernel-guards* '(__single-cookie-session __integrity))
@@ -353,9 +375,61 @@
 	  (t (error error  :comment (format nil "Unknown option: ~A" ys))))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Builtins ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; a list of all the symbols that are built into weblog
+
+(defun to-string (x) (write-to-string x))
+(defun to-stringp (x) (declare (ignore x)) t)
+
+(defun to-integerp (x)  ; tries to parse and if error returns NIL
+  (handler-case (progn (parse-integer x) t)
+    (condition () nil)))
+(defun to-integer (x)
+  (handler-case
+      (cond ((symbolp x) x)
+	    ((stringp x) (parse-integer x))
+	    (t 0))
+    (condition () 0)))
+
+(defun to-booleanp (x)
+  (or (equalp x "true") (equalp x "false")))
+(defun to-boolean (x)
+  (handler-case
+      (cond ((equalp x "true") 'true)
+	    ((equalp x "false") 'false)
+	    (x 'true)
+	    (t 'false))))
+
+(defun to-htmlstringp (x) (declare (ignore x)) nil)
+
+
+(defvar *webapp-builtins* nil)
+(defun webapp-builtins () *webapp-builtins*)
+
+(setq *builtins* (make-hash-table))
+(defmacro defbuiltin (p code args returns) `(define-builtin ',p (function ,code) ',args ',returns))
+(defun define-builtin (p func args returns)
+  "(DEFINE-BUILTIN P FUNC RETURNS) sets up data structures so that the weblog symbol
+   P is defined as a builtin that causes code FUNC to run and return RETURNS values."
+  (push p *webapp-builtins*)
+  (setf (gethash p *builtins*) (list func args returns)))
+
+; weblog-name lisp-code number-of-arguments number-of-return-values
+;  Note that returning more than 1 value means returning a LIST with that many values
+(defbuiltin to_string to-string 1 1)
+(defbuiltin to_string_p to-stringp 1 0)
+(defbuiltin to_integer to-integer 1 1)
+(defbuiltin to_integer_p to-integerp 1 0)
+(defbuiltin to_boolean to-boolean 1 1)
+(defbuiltin to_boolean_p to-booleanp 1 0)
+(defbuiltin to_htmlstring_p to-htmlstringp 1 0)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Builtin program elements
+;; Common Weblog program elements
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun reset-weblog ()
@@ -372,7 +446,6 @@
   (setq *html* (make-hash-table))
   (setq *tests* nil)
   (setq *accesscontrol* nil)
-  
 
   ; internal guard ensuring each cookie has a single session key
   (define-guard '__single-cookie-session `((=> (,*cookie-session-name* ?x) (,*cookie-session-name* ?y) (same ?x ?y))))
@@ -506,11 +579,10 @@
 (defun signature-to-atoms (signame)
   "(SIGNATURE-TO-ATOMS SIG) takes a signature name and returns a list of atoms, one for each
    relation in that signature, properly prefixed.  All arguments to the atom are distinct variables."
-  (mapcar #'(lambda (x) 
-	      (cons (withnamespace (parameter-symbol x) signame) 
-		    (nunique (parameter-arity x) "?"))) 
-	  (find-signature signame)))
+  (mapcar #'(lambda (x) (signature-parameter-to-atom signame x)) (find-signature signame)))
 
+(defun signature-parameter-to-atom (signame param)
+  (cons (withnamespace (parameter-symbol param) signame) (nunique (parameter-arity param) "?")))
 
 (defun servlet-output-signatures (servletname) 
   "(SERVLET-OUTPUT-SIGNATURES SERVLETNAME) returns the list of signature names that this servlet outputs."
@@ -852,7 +924,6 @@
     (append (access-control-read servletname (append read support) (append views raw) bl onlycheck appatoms useratoms)
 	    (access-control-write servletname (append write support) (append posneg raw) bl onlycheck appatoms))))   
 
-(defun webapp-builtins () '(= true false))
 (defun access-control-write (servletname ac updateviews bl onlycheck appatoms)
   (let (support th pn rest ach)
     (setq appatoms (mapcar #'relation appatoms)) 
@@ -1234,7 +1305,6 @@
     (when *timings* (setf (webapp-timings-serveend *timings*) (get-universal-time)))
     cookie))
 
-
 (defun serve-session (in cookie session sessionid servletname)
   "(SERVE-NORMAL IN COOKIE SESSION SERVLETNAME S) takes theories for IN, COOKIE, SESSION, a SERVLETNAME, and a stream S.
    It outputs the result of the servlet to stream S and returns the new cookie data as a list. "
@@ -1442,6 +1512,7 @@
 
 (defstruct htmlbl forms tables)
 
+; old, slow version of renderer
 (defun render (htmlname data)
   "(RENDER HTMLNAME DATA) takes an HTMLNAME, DATA to populate that page (overwriting
    any data extracted by PAGENAME as a default), and outputs that page to the default stream.  
@@ -1474,6 +1545,7 @@
 	  (t (error 'invalid-html :comment thing)))
     (values out bl)))
 
+; current version of renderer
 (defun render2 (htmlname data)
   (when *timings* (setf (webapp-timings-renderstart *timings*) (get-universal-time)))
   (multiple-value-bind (s repls) (render-to-string2 htmlname)
@@ -1855,3 +1927,6 @@
     ;(break)
     res))
   
+
+
+

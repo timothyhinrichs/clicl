@@ -37,10 +37,13 @@
 (defsignature search titdesc keywords closed category lowprice highprice buyitnow buyitnowonly ending)
 (defschema search :signature search)
 
-(defsignature item id category title subtitle description type quantity startprice shippingfee reserveprice buynow bidinc startdate_day startdate_month startdate_year startdate_time duration shipping_conditions shipping_international shipping_terms payment options relists)
+; Really ought not to have to put the TYPE on this since we can infer it from the db.auction.  More precisely, once we ensure every servlet handles
+;   one form, we ought to be able to move constraints (and therefore types) back and forth between the form and the DB/Session/Cookies/etc.
+;  Call this the Constraint Inference Problem.  But until we have a solution in place, we need to copy types/constraints around.
+(defsignature item id category title subtitle (description :type htmlstring) type quantity startprice shippingfee reserveprice buynow bidinc startdate_day startdate_month startdate_year startdate_time duration shipping_conditions shipping_international shipping_terms payment options relists)
 (defschema item :signature item :guards (item))
 
-(defsignature3 db.auction id owner category title subtitle description type quantity startprice shippingfee reserveprice buynow bidinc startdate_day startdate_month startdate_year startdate_time duration shipping_conditions shipping_international shipping_terms payment options relists)
+(defsignature3 db.auction id owner category title subtitle (description :type (string htmlstring)) type quantity startprice shippingfee reserveprice buynow bidinc startdate_day startdate_month startdate_year startdate_time duration shipping_conditions shipping_international shipping_terms payment options relists)
 (defschema db.auction :signature db.auction :guards (item))
 
 (defsignature babysearch keywords)
