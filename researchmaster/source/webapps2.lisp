@@ -58,6 +58,8 @@
   `(define-signature ',p ',l))
   
 (defun define-signature (p l)
+  "(DEFINE-SIGNATURE P L) walks over the symbol declarations in P, creates a list of them, and
+   indexes that list in *signatures* by the name in P.  Returns that list."
   (let ((arity nil) (h nil) (type nil) name (sig nil))
     ; walk over the symbol declarations and turn each into a parameter
     (dolist (x l)
@@ -84,7 +86,7 @@
 		 (error 'invalid-signature :comment (format nil "Type and arity incompatible in ~A" x)))))
       ; make the parameter
       (push (make-parameter :symbol name :arity arity :type type) sig))
-    ; store list of parameters *in the order the programmer declared them*
+    ; store list of parameters *in the order the programmer declared them* and return that list
     (setf (gethash p *signatures*) (nreverse sig))))
 
 (defmacro defsignature1 (p &rest l)
@@ -108,7 +110,7 @@
   (setf (parameter-arity (car p)) 1)
   (mapc #'(lambda (x) (setf (parameter-arity x) 2)) (cdr p)))
 
-
+(defun signature-guard (sig) (tosymbol "__" sig "_guardtypes"))
 
 (defvar *schemas* (make-hash-table))
 (defstruct schema name guards signature)
@@ -356,17 +358,34 @@
 ;; Builtin program elements
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; must be defined *after* all of the above--they're macros, after all.
+(defun reset-weblog ()
+  (setq *sessions* (make-hash-table))
+  (empty *appdb*)
+  (decludes *appdb*)
+  (setq *signatures* (make-hash-table))
+  (setq *schemas* (make-hash-table))
+  (setq *guards* (make-hash-table))
+  (setq *updates* (make-hash-table))
+  (setq *forms* (make-hash-table))
+  (setq *tables* (make-hash-table))
+  (setq *servlets* (make-hash-table))
+  (setq *html* (make-hash-table))
+  (setq *tests* nil)
+  (setq *accesscontrol* nil)
+  
 
-; internal guard ensuring each cookie has a single session key
-(define-guard '__single-cookie-session `((=> (,*cookie-session-name* ?x) (,*cookie-session-name* ?y) (same ?x ?y))))
+  ; internal guard ensuring each cookie has a single session key
+  (define-guard '__single-cookie-session `((=> (,*cookie-session-name* ?x) (,*cookie-session-name* ?y) (same ?x ?y))))
 
-; internal guard to check against the global state
-(defguard __integrity :inherits (db cookie session __single-cookie-session))
-; can all be re-defined by the app
-(defguard db)
-(defguard cookie)
-(defguard session)
+  ; internal guard to check against the global state
+  (defguard __integrity :inherits (db cookie session __single-cookie-session))
+  ; can all be re-defined by the app
+  (defguard db)
+  (defguard cookie)
+  (defguard session))
+
+; must be called *after* all of the parsing macros are defined
+(reset-weblog)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Low-level Analysis and Manipulation
@@ -1191,7 +1210,7 @@
    and prints the resulting HTML page to stream S and returns new cookie data.  All data is represented
    as lists of KIF atoms."
   (let (sessionid session present (*attachments* t) (*output-stream* s))
-    (when *timings* (setf (webapp-timings-servestart *timings*) (get-universal-time)))
+    (when *timings* (setq *timings* (make-webapp-timings)) (setf (webapp-timings-servestart *timings*) (get-universal-time)))
     ; look up session if necessary
     (setq sessionid (find-cookie-session cookie))
     (setq session nil)
@@ -1219,8 +1238,7 @@
 (defun serve-session (in cookie session sessionid servletname)
   "(SERVE-NORMAL IN COOKIE SESSION SERVLETNAME S) takes theories for IN, COOKIE, SESSION, a SERVLETNAME, and a stream S.
    It outputs the result of the servlet to stream S and returns the new cookie data as a list. "
-  (let (th servlet oldcookie)
-    (setq oldcookie (contents cookie))
+  (let (th servlet)
     ; lookup servlet
     (setq servlet (find-servlet servletname))
     ; create data structure (a theory) representing the server's global state and including in, cookie, and session
