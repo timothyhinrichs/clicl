@@ -1,4 +1,7 @@
 
+; http://herge.sisl.rites.uic.edu/notamper/WeBid
+; user: user01, pass01
+
 ;;;;;;;;; Using <= for datalog and everything else for FOL
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
