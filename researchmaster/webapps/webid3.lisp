@@ -1,4 +1,4 @@
-
+(load (loadfn "daniele"))
 ;;;;;;;;; Using <= for datalog and everything else for FOL
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -385,7 +385,7 @@
 )
 
 ; defined with constraints
-; note: could combine lookupprofile and saveprofile into 1 updater with a conditioned malleable and <=> instead of =>
+; note: could combine lookupprofile and saveprofile into 1 updater with a conditioned mall1eable and <=> instead of =>
 (defupdate lookupprofile ()
   (<= (pos (profile.name ?y)) (profile.username ?x) (db.user.name ?x ?y))
 
