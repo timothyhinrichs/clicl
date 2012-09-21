@@ -255,7 +255,7 @@
 (defupdate genitemid (:language posneg)
   (<= (pos (item.id ?x)) (item.id "") (db.nextfreeauctionid ?x))
   (<= (neg (item.id ?x)) (item.id "") (item.id ?x))
-  (<= (pos (db.nextfreeauctionid ?z)) (item.id "") (db.nextfreeauctionid ?w) (symbolize ?w ?x) (+ ?x 1 ?y) (stringify ?y ?z))
+  (<= (pos (db.nextfreeauctionid ?z)) (item.id "") (db.nextfreeauctionid ?w) (to_integer ?w ?x) (+ ?x 1 ?y) (to_string ?y ?z))
   (<= (neg (db.nextfreeauctionid ?x)) (db.nextfreeauctionid ?x))
 )
 

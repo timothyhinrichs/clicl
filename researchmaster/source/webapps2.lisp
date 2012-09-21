@@ -210,7 +210,7 @@
 (defvar *appdb* (make-instance 'prologtheory))
 (defmacro defdb (&rest l)
   "(DEFDB &REST L)"
-  `(definemore *appdb* ',l))
+  `(unless (contents *appdb*) (definemore *appdb* ',l)))
 
 (defvar *updates* (make-hash-table))
 (defstruct update guards logic datalog)
@@ -406,8 +406,7 @@
 	    (x 'true)
 	    (t 'false))))
 
-(defun to-htmlstringp (x) (declare (ignore x)) nil)
-
+(defun to-htmlstringp (x) (declare (ignore x)) t)
 
 (defvar *webapp-builtins* nil)
 (defun webapp-builtins () *webapp-builtins*)
@@ -433,8 +432,8 @@
 
 ; functions
 ; (defbuiltin = same 2 0)  ; implemented directly
-(defbuiltin symbolize symbolize 1 1)
-(defbuiltin stringify stringify 1 1)
+;(defbuiltin symbolize symbolize 1 1)
+;(defbuiltin stringify stringify 1 1)
 (defbuiltin + + 2 1)
 (defbuiltin - - 2 1)
 (defbuiltin * * 2 1)
