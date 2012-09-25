@@ -20,7 +20,7 @@ o  Edit line in /path/to/clicl/bin/clicl-init.lisp
 	(setq *minisat* "/path/to/minisat.exe")
 
 
-3) Install SNARK (if using Plato)
+3) Install SNARK (if using Plato or Weblog)
 
 o  Download and install per included instructions
 	http://www.ai.sri.com/~stickel/snark.tar.gz	
@@ -28,14 +28,19 @@ o  Download and install per included instructions
 o  Add sym link to clicl directory naming the link 'snark'
 	ln -s /path/to/snark /path/to/clicl/snark
 
+4) Install PHP (if using Weblog)
 
-3) Compile CLICL
+o  Should already be available in Linux/OS X
+
+o  Necessary to use HTMLPurifier (http://htmlpurifier.org/)
+
+5) Compile CLICL
 
 	cd /path/to/clicl
 	make
 
 
-4) Run
+6) Run
 
 o  To run ESODATALOG on a single ESODB predicate 'color' on
    'examples/esodatalog/mapcoloring' with output to file 'out':
@@ -47,7 +52,7 @@ o  To start Lisp with the clicl library already loaded
 Note: To set clicl parameters, edit the file bin/clicl-init.lisp.
 
 
-5) To quit Lisp:
+7) To quit Lisp:
 
 	1> (quit)
 	? (quit)

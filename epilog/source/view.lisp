@@ -1,7 +1,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; view.lisp
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defparameter *attachments* t)
+(defparameter *attachments* t "whether or not to use Epilog's usual attachments")
+
+(defparameter *builtins* nil 
+  "when non-nil a hash table keyed on relations that are builtin")
 
 (eval-when (compile load eval)
   (proclaim '(special *ancestry* *consistency* *depth* *limit*
@@ -43,6 +46,7 @@
         ((eq (car p) 'or) (viewoneor p pl al depth cont))
         ((eq (car p) 'same) (viewonesame p pl al depth cont))
         ((eq (car p) 'distinct) (viewonedistinct p pl al depth cont))
+	((and *builtins* (gethash (car p) *builtins*)) (viewonebuiltins p pl al depth cont))
         ((and *attachments* (eq (car p) 'oneof)) (viewoneoneof p pl al depth cont))
         ((and *attachments* (eq (car p) 'choose)) (viewonechoose p pl al depth cont))
         ((and *attachments* (eq (car p) 'bagofall)) (viewonebagofall p pl al depth cont))
@@ -84,6 +88,38 @@
     (cond ((setq ol (unify (cadr p) al (caddr p) al))
            (backup ol) (viewfail (car pl) al depth))
           (t (viewonelast pl al depth cont)))))
+
+(defun viewonebuiltins (p pl al depth cont)
+  (let (values ol code numreturns numargs argvals retvals builtin)
+    (setq p (plug p al))
+    (setq builtin (gethash (car p) *builtins*))
+    (setq code (first builtin))
+    (setq numargs (second builtin))
+    (setq numreturns (third builtin))
+    (cond ((not (= (+ numargs numreturns) (length (cdr p)))) (viewfail (car pl) al depth))
+	  (t
+	   ; grab args to send; grab return args
+	   (do ((args (cdr p) (cdr args))
+		(i 0 (1+ i)))
+	       ((= i numargs) (setq retvals args))
+	     (push (car args) argvals))
+	   (setq argvals (nreverse argvals))
+	   ; run builtin code
+	   (handler-case (progn 
+			   (setq values (apply code argvals))
+			   ; common case: returning a single value
+			   (when (atom values) (setq values (list values)))
+			   ; when something is returned, check that unification holds; otherwise just check if returnval is t or not
+			   (cond ((not retvals)
+				  (if values
+				      (viewonelast pl al depth cont)
+				      (viewfail (car pl) al depth)))
+				 (retvals
+				  (setq ol (matchify `(listof . ,retvals) al `(listof . ,values) al))
+				  (if ol 
+				      (prog1 (viewonelast pl al depth cont) (backup ol))
+				      (viewfail (car pl) al depth)))))
+	     (condition () (viewfail (car pl) al depth)))))))
 
 (defun viewoneoneof (p pl al depth cont)
   (when (seqvarp (caddr p)) (setq p (plug p al)))
@@ -281,6 +317,7 @@
         ((eq (car p) 'or) (viewallor p pl al depth cont))
         ((eq (car p) 'same) (viewallsame p pl al depth cont))
         ((eq (car p) 'distinct) (viewalldistinct p pl al depth cont))
+	((and *builtins* (gethash (car p) *builtins*)) (viewallbuiltins p pl al depth cont))
         ((and *attachments* (eq (car p) 'oneof)) (viewalloneof p pl al depth cont))
         ((and *attachments* (eq (car p) 'choose)) (viewallchoose p pl al depth cont))
         ((and *attachments* (eq (car p) 'bagofall)) (viewallbagofall p pl al depth cont))
@@ -322,6 +359,38 @@
     (cond ((setq ol (unify (cadr p) al (caddr p) al))
            (backup ol) (viewfail p al depth))
           (t (viewalllast pl al depth cont)))))
+
+(defun viewallbuiltins (p pl al depth cont)
+  (let (values ol code numreturns numargs argvals retvals builtin)
+    (setq p (plug p al))
+    (setq builtin (gethash (car p) *builtins*))
+    (setq code (first builtin))
+    (setq numargs (second builtin))
+    (setq numreturns (third builtin))
+    (cond ((not (= (+ numargs numreturns) (length (cdr p)))) (viewfail (car pl) al depth))
+	  (t
+	   ; grab args to send; grab return args
+	   (do ((args (cdr p) (cdr args))
+		(i 0 (1+ i)))
+	       ((= i numargs) (setq retvals args))
+	     (push (car args) argvals))
+	   (setq argvals (nreverse argvals))
+	   ; run builtin code
+	   (handler-case (progn 
+			   (setq values (apply code argvals))
+			   ; common case: returning a single value
+			   (when (atom values) (setq values (list values)))
+			   ; when something is returned, check that unification holds; otherwise just check if returnval is t or not
+			   (cond ((not retvals)
+				  (if values
+				      (viewallexit pl al depth cont)
+				      (viewfail (car pl) al depth)))
+				 (retvals
+				  (setq ol (matchify `(listof . ,retvals) al `(listof . ,values) al))
+				  (if ol 
+				      (prog1 (viewallexit pl al depth cont) (backup ol))
+				      (viewfail (car pl) al depth)))))
+	     (condition () (viewfail (car pl) al depth)))))))
 
 (defun viewalloneof (p pl al depth cont)
   (when (seqvarp (caddr p)) (setq p (plug p al)))
@@ -485,6 +554,7 @@
         ((eq (car p) 'or) (viewsuppsor p pl al depth cont))
         ((eq (car p) 'same) (viewsuppssame p pl al depth cont))
         ((eq (car p) 'distinct) (viewsuppsdistinct p pl al depth cont))
+	((and *builtins* (gethash (car p) *builtins*)) (viewsuppsbuiltins p pl al depth cont))
         ((and *attachments* (eq (car p) 'oneof)) (viewsuppsoneof p pl al depth cont))
         ((and *attachments* (eq (car p) 'choose)) (viewsuppschoose p pl al depth cont))
         ((and *attachments* (eq (car p) 'bagofall)) (viewsuppsbagofall p pl al depth cont))
@@ -520,6 +590,38 @@
            (viewsuppslast pl al depth cont)
            (backup ol))
           (t (viewsuppsfail p al depth)))))
+
+(defun viewsuppsbuiltins (p pl al depth cont)
+  (let (values ol code numreturns numargs argvals retvals builtin)
+    (setq p (plug p al))
+    (setq builtin (gethash (car p) *builtins*))
+    (setq code (first builtin))
+    (setq numargs (second builtin))
+    (setq numreturns (third builtin))
+    (cond ((not (= (+ numargs numreturns) (length (cdr p)))) (viewsuppsfail (car pl) al depth))
+	  (t
+	   ; grab args to send; grab return args
+	   (do ((args (cdr p) (cdr args))
+		(i 0 (1+ i)))
+	       ((= i numargs) (setq retvals args))
+	     (push (car args) argvals))
+	   (setq argvals (nreverse argvals))
+	   ; run builtin code
+	   (handler-case (progn 
+			   (setq values (apply code argvals))
+			   ; common case: returning a single value
+			   (when (atom values) (setq values (list values)))
+			   ; when something is returned, check that unification holds; otherwise just check if returnval is t or not
+			   (cond ((not retvals)
+				  (if values
+				      (viewsuppsexit pl al depth cont)
+				      (viewsuppsfail (car pl) al depth)))
+				 (retvals
+				  (setq ol (matchify `(listof . ,retvals) al `(listof . ,values) al))
+				  (if ol 
+				      (prog1 (viewsuppsexit pl al depth cont) (backup ol))
+				      (viewsuppsfail (car pl) al depth)))))
+	     (condition () (viewsuppsfail (car pl) al depth)))))))
 
 (defun viewsuppsdistinct (p pl al depth cont)
   (let (ol)

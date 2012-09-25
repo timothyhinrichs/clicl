@@ -12,20 +12,22 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; make sure to end with / 
-(defparameter *fs-path* "/Users/thinrich/Research/code/clicl/researchmaster/")
-(defparameter *web-path* "/docserver/infoserver/examples/researchmaster/")
-(defparameter *component-paths* '((:app . "webapps/webid/")
-				  (:html . "webapps/webid/")
-				  (:compile . "webapps/webid/compiled/")))
-(defun fspath (component path)
+;(defparameter *fs-path* "/Users/thinrich/Research/code/clicl/researchmaster/")
+(defparameter *web-path* "/docserver/infoserver/examples/")
+(defparameter *component-paths* '((:app . ("researchmaster" "webapps" "webid"))
+				  (:html . ("researchmaster" "webapps" "webid"))
+				  (:compile . ("researchmaster" "webapps" "webid" "compiled"))
+				  (:clicl . ())))
+(defun fspath (component path &optional type)
   (let ((res (find component *component-paths* :key #'car)))
     (assert res nil (format nil "Couldn't find component ~A when computing absolute path for ~A" component path))
-    (stringappend *fs-path* (cdr res) path)))
+    (loadfn path :dir (cdr res) :root *localrootdir* :type type)))
+ ;   (stringappend *fs-path* (cdr res) path)))
 
-(defun webpath (component path)
+(defun webpath (component path &optional type)
   (let ((res (find component *component-paths* :key #'car)))
     (assert res nil (format nil "Couldn't find component ~A when computing absolute path for ~A" component path))
-    (stringappend *web-path* (cdr res) path)))
+    (namestring (loadfn path :dir (cdr res) :root *web-path* :type type))))
 
 
 (defconstant *cookie-session-name* '__session)
@@ -59,7 +61,8 @@
   
 (defun define-signature (p l)
   "(DEFINE-SIGNATURE P L) walks over the symbol declarations in P, creates a list of them, and
-   indexes that list in *signatures* by the name in P.  Returns that list."
+   indexes that list in *signatures* by the name in P.  Also constructs a guard
+   checking the types.  Returns that list."
   (let ((arity nil) (h nil) (type nil) name (sig nil))
     ; walk over the symbol declarations and turn each into a parameter
     (dolist (x l)
@@ -86,8 +89,30 @@
 		 (error 'invalid-signature :comment (format nil "Type and arity incompatible in ~A" x)))))
       ; make the parameter
       (push (make-parameter :symbol name :arity arity :type type) sig))
-    ; store list of parameters *in the order the programmer declared them* and return that list
-    (setf (gethash p *signatures*) (nreverse sig))))
+    ; store list of parameters *in the order the programmer declared them*, create guards for types, return list
+    (setq sig (nreverse sig))
+    (setf (gethash p *signatures*) sig)
+    (create-signature-type-guard p)
+    sig))
+
+
+(defun signature-guard-name (signame) (tosymbol "__" signame "_types"))
+(defun create-signature-type-guard (signame)
+  (let (th guardname atom)
+    (setq guardname (signature-guard-name signame))
+    (setq th nil)
+    (dolist (p (find-signature signame))  ; a list of parameters
+      (setq atom (signature-parameter-to-atom signame p))
+      (do ((vs (cdr atom) (cdr vs))
+	   (typenames (parameter-type p) (cdr typenames))
+	   (i 1 (1+ i)))
+	  ((null typenames))
+	; push comment on and then sentence on so they appear in the right order
+	(push (format nil "~Ath argument to ~A must be of type ~A" i (car atom) (car typenames)) th)
+	(push (list '=> atom (list (tosymbol "to_" (car typenames) "_p") (car vs))) th)))
+    (when (in-db signame) (setq th (list* :inherits '(db) th)))
+    (when (in-session signame) (setq th (list* :inherits '(session) th)))
+    (define-guard guardname th)))	   
 
 (defmacro defsignature1 (p &rest l)
   "(DEFSIGNATURE1 P &REST L) takes a signature name and a list of symbol declarations.
@@ -110,8 +135,6 @@
   (setf (parameter-arity (car p)) 1)
   (mapc #'(lambda (x) (setf (parameter-arity x) 2)) (cdr p)))
 
-(defun signature-guard (sig) (tosymbol "__" sig "_guardtypes"))
-
 (defvar *schemas* (make-hash-table))
 (defstruct schema name guards signature)
 (define-condition invalid-schema (error) ((comment :initarg :comment :accessor comment)))
@@ -130,7 +153,8 @@
   (let (h)
     (setq h (grab-keyvals l '(:signature :guards) 'invalid-schema))
     ;(when (gethash p *schemas*) (warn (format nil "Redefining schema ~A" p)))
-    (setf (gethash p *schemas*) (make-schema :name p :signature (gethash :signature h) :guards (gethash :guards h)))))
+    (setf (gethash p *schemas*) 
+	  (make-schema :name p :signature (gethash :signature h) :guards (adjoin (signature-guard-name (gethash :signature h)) (gethash :guards h))))))
 
 (defvar *guards* (make-hash-table))
 (defconstant *kernel-guards* '(__single-cookie-session __integrity))
@@ -186,7 +210,7 @@
 (defvar *appdb* (make-instance 'prologtheory))
 (defmacro defdb (&rest l)
   "(DEFDB &REST L)"
-  `(definemore *appdb* ',l))
+  `(unless (contents *appdb*) (definemore *appdb* ',l)))
 
 (defvar *updates* (make-hash-table))
 (defstruct update guards logic datalog)
@@ -243,6 +267,7 @@
   (multiple-value-bind (y present) (gethash x *tables*)
     (unless present (error 'unknown-table :comment x))
     y))
+(defun find-table-signaturename (x) (schema-signature (find-schema (find-table x))))
 
 (defmacro deftable (p &rest l)
   "(DEFFORM P &REST L)"
@@ -353,15 +378,212 @@
 	  (t (error error  :comment (format nil "Unknown option: ~A" ys))))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Builtins ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; a list of all the symbols that are built into weblog
+
+(defun to-string (x) (write-to-string x))
+(defun to-stringp (x) (declare (ignore x)) t)
+
+(defun to-integerp (x)  ; tries to parse and if error returns NIL
+  (handler-case (progn (parse-integer x) t)
+    (condition () nil)))
+(defun to-integer (x)
+  (handler-case
+      (cond ((symbolp x) x)
+	    ((stringp x) (parse-integer x))
+	    (t 0))
+    (condition () 0)))
+
+(defun to-booleanp (x)
+  (or (equalp x "true") (equalp x "false")))
+(defun to-boolean (x)
+  (handler-case
+      (cond ((equalp x "true") 'true)
+	    ((equalp x "false") 'false)
+	    (x 'true)
+	    (t 'false))))
+
+(defun to-htmlstringp (x) (declare (ignore x)) t)
+
+(defvar *webapp-builtins* nil)
+(defun webapp-builtins () *webapp-builtins*)
+
+(setq *builtins* (make-hash-table))
+(defmacro defbuiltin (p code args returns) `(define-builtin ',p (function ,code) ',args ',returns))
+(defun define-builtin (p func args returns)
+  "(DEFINE-BUILTIN P FUNC RETURNS) sets up data structures so that the weblog symbol
+   P is defined as a builtin that causes code FUNC to run and return RETURNS values."
+  (push p *webapp-builtins*)
+  (setf (gethash p *builtins*) (list func args returns)))
+
+; (defbuiltin <weblog-name> <lisp-code> <number-of-arguments> <number-of-return-values>)
+;  Note that returning more than 1 value means returning a LIST with that many values
+; supported types
+(defbuiltin to_string to-string 1 1)
+(defbuiltin to_string_p to-stringp 1 0)
+(defbuiltin to_integer to-integer 1 1)
+(defbuiltin to_integer_p to-integerp 1 0)
+(defbuiltin to_boolean to-boolean 1 1)
+(defbuiltin to_boolean_p to-booleanp 1 0)
+(defbuiltin to_htmlstring_p to-htmlstringp 1 0)
+
+; functions
+; (defbuiltin = same 2 0)  ; implemented directly
+;(defbuiltin symbolize symbolize 1 1)
+;(defbuiltin stringify stringify 1 1)
+(defbuiltin + + 2 1)
+(defbuiltin - - 2 1)
+(defbuiltin * * 2 1)
+(defbuiltin / / 2 1)
+(defbuiltin lt numlessp 2 1)
+(defbuiltin lte numleqp 2 1)
+(defbuiltin gte numgeqp 2 1)
+(defbuiltin gt numgreaterp 2 1)
+
+; Epilog's builtins (from base-new.lisp)
+; (defprop word wordp basic)
+; (defprop constant constp basic)
+; (defprop indvar indvarpp basic)
+; (defprop seqvar seqvarpp basic)
+; (defprop variable varpp basic)
+; (defprop id basicval basicval)
+; (defprop stringify basicval basicval)
+; (defprop symbolize basicval basicval)
+; (defprop convertfromstring basicval basicval)
+; (defprop nomination basicval basicval)
+; (defprop denotation basicval basicval)
+; (defprop integer integerp basic)
+; (defprop realnumber realp basic)
+; (defprop complexnumber complexp basic)
+; (defprop number numberp basic)
+; (defprop natural naturalp basic)
+; (defprop rationalnumber rationalp basic)
+; (defprop positive positivep basic)
+; (defprop negative negativep basic)
+; (defprop zero zeropp basic)
+; (defprop odd oddintegerp basic)
+; (defprop even evenintegerp basic)
+; (defprop logbit logbitpp basic) 
+; (defprop logtest logtest basic) 
+; (defprop < numlessp basic)
+; (defprop =< numleqp basic)
+; (defprop >= numgeqp basic)
+; (defprop > numgreaterp basic)
+; (defprop less lessp basic)
+; (defprop leq leqp basic)
+; (defprop * basicvalarith basicval) 
+; (defprop + basicvalarith basicval) 
+; (defprop - basicvalarith basicval) 
+; (defprop / basicvalarith basicval) 
+; (defprop 1+ basicvalarith basicval) 
+; (defprop 1- basicvalarith basicval) 
+; (defprop abs basicvalarith basicval) 
+; (defprop acos basicvalarith basicval) 
+; (defprop acosh basicvalarith basicval) 
+; (defprop ash basicvalarith basicval) 
+; (defprop asin basicvalarith basicval) 
+; (defprop asinh basicvalarith basicval) 
+; (defprop atan basicvalarith basicval) 
+; (defprop atanh basicvalarith basicval) 
+; (defprop boole basicvalarith basicval) 
+; (defprop ceiling basicvalarith basicval) 
+; (defprop cis basicvalarith basicval) 
+; (defprop complex basicvalarith basicval) 
+; (defprop conjugate basicvalarith basicval) 
+; (defprop cos basicvalarith basicval) 
+; (defprop cosh basicvalarith basicval) 
+; (defprop decode-float basicvalarith basicval) 
+; (defprop denominator basicvalarith basicval) 
+; (defprop exp basicvalarith basicval) 
+; (defprop expt basicvalarith basicval) 
+; (defprop fceiling basicvalarith basicval) 
+; (defprop ffloor basicvalarith basicval) 
+; (defprop float basicvalarith basicval) 
+; (defprop float-digits basicvalarith basicval) 
+; (defprop float-precision basicvalarith basicval) 
+; (defprop float-radix basicvalarith basicval) 
+; (defprop float-sign basicvalarith basicval) 
+; (defprop floor basicvalarith basicval) 
+; (defprop fround basicvalarith basicval) 
+; (defprop ftruncate basicvalarith basicval) 
+; (defprop gcd basicvalarith basicval) 
+; (defprop imagpart basicvalarith basicval) 
+; (defprop integer-decode-float basicvalarith basicval) 
+; (defprop integer-length basicvalarith basicval) 
+; (defprop isqrt basicvalarith basicval) 
+; (defprop lcm basicvalarith basicval) 
+; (defprop log basicvalarith basicval) 
+; (defprop logand basicvalarith basicval) 
+; (defprop logandc1 basicvalarith basicval) 
+; (defprop logandc2 basicvalarith basicval) 
+; (defprop logcount basicvalarith basicval) 
+; (defprop logeqv basicvalarith basicval) 
+; (defprop logior basicvalarith basicval) 
+; (defprop lognand basicvalarith basicval) 
+; (defprop lognor basicvalarith basicval) 
+; (defprop lognot basicvalarith basicval) 
+; (defprop logorc1 basicvalarith basicval) 
+; (defprop logorc2 basicvalarith basicval) 
+; (defprop logxor basicvalarith basicval) 
+; (defprop max basicvalarith basicval) 
+; (defprop min basicvalarith basicval) 
+; (defprop mod basicvalarith basicval) 
+; (defprop numerator basicvalarith basicval) 
+; (defprop phase basicvalarith basicval) 
+; (defprop rational basicvalarith basicval) 
+; (defprop rationalize basicvalarith basicval) 
+; (defprop realpart basicvalarith basicval) 
+; (defprop rem basicvalarith basicval) 
+; (defprop round basicvalarith basicval) 
+; (defprop scale-float basicvalarith basicval) 
+; (defprop signum basicvalarith basicval) 
+; (defprop sin basicvalarith basicval) 
+; (defprop sinh basicvalarith basicval) 
+; (defprop sqrt basicvalarith basicval) 
+; (defprop tan basicvalarith basicval) 
+; (defprop tanh basicvalarith basicval) 
+; (defprop truncate basicvalarith basicval)
+; (defprop character characterp basic)
+; (defprop alphabetic alphabeticp basic)
+; (defprop uppercase uppercasep basic)
+; (defprop lowercase lowercasep basic)
+; (defprop digit digitp basic)
+; (defprop alphanumeric alphanumberp basic)
+; (defprop chargreater chargreaterp basic)
+; (defprop charless charlessp basic)
+; (defprop string stringp basic)
+; (defprop substring substringp basic)
+; (defprop stringgreater stringgreaterp basic)
+; (defprop stringless stringlessp basic)
+; (defprop stringmatchall stringmatchallp basic)
+; (defprop stringmatchany stringmatchanyp basic)
+; (defprop stringmatchphrase stringmatchphrasep basic)
+; (defprop stringalphanumeric basicval basicval)
+; (defprop stringappend basicval basicval)
+; (defprop stringcapitalize basicval basicval)
+; (defprop stringcharpos basicval basicval)
+; (defprop stringdowncase basicval basicval)
+; (defprop stringelement basicval basicval)
+; (defprop stringlength basicval basicval)
+; (defprop stringposition basicval basicval)
+; (defprop stringsubleft basicval basicval)
+; (defprop stringsubright basicval basicval)
+; (defprop stringsubseq basicval basicval)
+; (defprop stringsubstitute basicval basicval)
+; (defprop stringupcase basicval basicval)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Builtin program elements
+;; Common Weblog program elements
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun reset-weblog ()
+(defun reset-weblog (&optional (emptydb nil))
   (setq *sessions* (make-hash-table))
-  (empty *appdb*)
-  (decludes *appdb*)
+  (when emptydb 
+    (empty *appdb*)
+    (decludes *appdb*))
   (setq *signatures* (make-hash-table))
   (setq *schemas* (make-hash-table))
   (setq *guards* (make-hash-table))
@@ -372,7 +594,6 @@
   (setq *html* (make-hash-table))
   (setq *tests* nil)
   (setq *accesscontrol* nil)
-  
 
   ; internal guard ensuring each cookie has a single session key
   (define-guard '__single-cookie-session `((=> (,*cookie-session-name* ?x) (,*cookie-session-name* ?y) (same ?x ?y))))
@@ -506,11 +727,10 @@
 (defun signature-to-atoms (signame)
   "(SIGNATURE-TO-ATOMS SIG) takes a signature name and returns a list of atoms, one for each
    relation in that signature, properly prefixed.  All arguments to the atom are distinct variables."
-  (mapcar #'(lambda (x) 
-	      (cons (withnamespace (parameter-symbol x) signame) 
-		    (nunique (parameter-arity x) "?"))) 
-	  (find-signature signame)))
+  (mapcar #'(lambda (x) (signature-parameter-to-atom signame x)) (find-signature signame)))
 
+(defun signature-parameter-to-atom (signame param)
+  (cons (withnamespace (parameter-symbol param) signame) (nunique (parameter-arity param) "?")))
 
 (defun servlet-output-signatures (servletname) 
   "(SERVLET-OUTPUT-SIGNATURES SERVLETNAME) returns the list of signature names that this servlet outputs."
@@ -852,7 +1072,6 @@
     (append (access-control-read servletname (append read support) (append views raw) bl onlycheck appatoms useratoms)
 	    (access-control-write servletname (append write support) (append posneg raw) bl onlycheck appatoms))))   
 
-(defun webapp-builtins () '(= true false))
 (defun access-control-write (servletname ac updateviews bl onlycheck appatoms)
   (let (support th pn rest ach)
     (setq appatoms (mapcar #'relation appatoms)) 
@@ -1234,7 +1453,6 @@
     (when *timings* (setf (webapp-timings-serveend *timings*) (get-universal-time)))
     cookie))
 
-
 (defun serve-session (in cookie session sessionid servletname)
   "(SERVE-NORMAL IN COOKIE SESSION SERVLETNAME S) takes theories for IN, COOKIE, SESSION, a SERVLETNAME, and a stream S.
    It outputs the result of the servlet to stream S and returns the new cookie data as a list. "
@@ -1442,6 +1660,7 @@
 
 (defstruct htmlbl forms tables)
 
+; old, slow version of renderer
 (defun render (htmlname data)
   "(RENDER HTMLNAME DATA) takes an HTMLNAME, DATA to populate that page (overwriting
    any data extracted by PAGENAME as a default), and outputs that page to the default stream.  
@@ -1474,6 +1693,7 @@
 	  (t (error 'invalid-html :comment thing)))
     (values out bl)))
 
+; current version of renderer
 (defun render2 (htmlname data)
   (when *timings* (setf (webapp-timings-renderstart *timings*) (get-universal-time)))
   (multiple-value-bind (s repls) (render-to-string2 htmlname)
@@ -1535,6 +1755,7 @@
   (let (name bl)
     (setq name (second (find "name" (second form) :key #'first :test #'equalp)))
     (setq bl (find name (htmlbl-forms bls) :key #'first :test #'equal))
+    ; if to be substituted for, do so; otherwise, replace with empty form
     (if bl
 	(xmls:parse (generate-form (second bl) data))
 	(xmls:parse "<form></form>"))))
@@ -1543,8 +1764,9 @@
   (let (name bl)
     (setq name (second (find "name" (second table) :key #'first :test #'equalp)))
     (setq bl (find name (htmlbl-tables bls) :key #'first :test #'equal))
+    ; if to be substituted for, do so; otherwise, recurse
     (if bl
-	(generate-table (second bl) data)
+	(xmls:parse (generate-table (second bl) data))
 	(list* (first table) (second table) (mapcar #'(lambda (x) (html-subst-aux x bls data)) (cddr table))))))
 
 (defun generate-form (formname data)
@@ -1553,7 +1775,9 @@
   (let (form target th html)
     (setq form (find-form formname))
     (setq target (form-target form))
-    (setq data (del-namespace (contents data) (find-form-signaturename formname)))
+    ;(setq data (del-namespace (contents data) (find-form-signaturename formname)))
+    ;(setq signame (find-form-signaturename formname))
+    ;(setq data (mapcar #'(lambda (x) (del-namespace x signame)) (contents data)))
     (setq th (prep-plato-theory formname target data))
     (push `(constraints 'nil) th)
     (setq html (compile-websheet th))
@@ -1562,14 +1786,13 @@
     (with-output-to-string (s)
       (format s "<p>") ; to ensure parsing handles both elements
       (when (probe-file (fspath :compile (tostring formname ".js"))) 
-	(princ (js-include (webpath :compile (tostring formname ".js"))) s))
+	(princ (js-include (webpath :compile (tostring formname) "js")) s))
       (output-htmlform-form s html)
       (format s "</p>"))))
 
 ; TODO: have plato's output be wrapped in a JS namespace so that it actually works.  
 ;   Need to call a version of JS init() for each of the forms.
 ;   Should only have 1 copy of the basic functions (e.g. spreadsheet.js), but then cellvalue needs to be specific to a form.
-; TODO: need to analyze guards to figure out which fields are unique, which are required, etc.
 (defun prep-plato-theory (formname target data)
   "(PREP-PLATO-THEORY FORMNAME DATA) builds a theory for Plato describing FORMNAME, except constraints."
   (let (th signame name req init desc style incundef unique type formdata values)
@@ -1584,13 +1807,14 @@
     (push `(option debug nil) th)
     (push `(definitions ',nil) th)
     ; add widgets
-    (setq signame (schema-signature (find-schema (form-schema (find-form formname)))))
+    (setq signame (find-form-signaturename formname))
     (dolist (p (find-signature signame))
       (assert (= (parameter-arity p) 1) nil 
 	      (format nil "All symbols used during form generation must have arity 1; ~A has arity ~A" (parameter-symbol p) (parameter-arity p)))
       (setq name (parameter-symbol p))
       (setq init (viewfinds '?x `(,(tosymbol (tostring signame ".") name) ?x) formdata))
-      (when init (setq init (cons 'listof init)))
+      (setq type (first (parameter-type p)))
+      (when init (setq init (cons 'listof (mapcar #'(lambda (x) (sanitize-untrusted-data type x)) init))))
       (setq desc (tostring name))
       (setq incundef t)
       (multiple-value-setq (style unique req type values) (extract-widget-info formname p))
@@ -1669,26 +1893,73 @@
 (defun extract-form-data (formname data)
   "(EXTRACT-FORM-DATA FORMNAME DATA) finds the portion of DATA appropriate for form FORMNAME
    and returns it (leaving the namespace in tact to avoid hitting Epilog's builtin functions)."
-  (let (newdata sig sigl p preds)
-    (setq sig (find-form-signaturename formname))
-    (setq preds (find-signature sig))
-    (setq sig (tostring sig "."))
-    (setq sigl (length sig))
+  (extract-signature-data (find-form-signaturename formname) data))
+
+(defun extract-signature-data (signame data)
+  (let (newdata sigl p preds)
+    (setq preds (find-signature signame))
+    (setq signame (tostring signame "."))
+    (setq sigl (length signame))
     (dolist (d (contents data))
       (setq p (tostring (relation d)))
-      (when (eq (search sig p) 0)
+      (when (eq (search signame p) 0)
 	(setq p (tosymbol (subseq p sigl)))
 	(when (member p preds :key #'parameter-symbol)
 	  (push d newdata))))
 ;	  (if (atom d)
 ;	      (push p newdata)
 ;	      (push (cons p (cdr d)) newdata)))))
-    (nreverse newdata)))
-	
+    (nreverse newdata)))	
 
 (defun generate-table (tablename data)
-  (declare (ignore tablename data))
-  (xmls:parse "<table name=\"tim\"></table>"))
+  (let (signame)
+    (setq signame (find-table-signaturename tablename))
+    (setq data (extract-signature-data signame data))
+    (setq data (mapcar #'(lambda (x) (del-namespace x signame)) data))
+    (setq data (group-by-hash data #'car))
+    (with-output-to-string (s)
+      (format s "<div>~%")
+      (dolist (p (find-signature signame)) (generate-table-one s p data))
+      (format s "</div>~%"))))
+
+(defun generate-table-one (s param data)
+  "(GENERATE-TABLE-ONE S PARAM DATA) outputs to the stream S a <table> element
+   that represents the PARAM table, filling it with the appropriate elements from DATA.
+   DATA is a hash that maps a table names to the list of data for that table."
+  (setq data (gethash (parameter-symbol param) data))
+  (format s "<table border='1'><caption>~A</caption>~%" (parameter-symbol param))
+  (dolist (atom data)
+    (princ "<tr>" s)
+    (do ((vals (cdr atom) (cdr vals))
+	 (typs (parameter-type param) (cdr typs)))
+	((null vals))
+      (princ "<td>" s)
+      (output-untrusted-data s (car typs) (car vals))
+      (princ "</td>" s))
+    (princ "</tr>" s)
+    (crlf s))
+  (princ "</table>" s)
+  (crlf s))
+
+(defun output-untrusted-data (s type val)
+  "(OUTPUT-UNTRUSTED-DATA S TYPE VAL) dumps user-data VAL of type TYPE to html stream S, 
+   after eliminating the type-appropriate HTML markup."
+  (princ (sanitize-untrusted-data type val) s))
+
+(defun sanitize-untrusted-data (type val)
+  (case type
+    (integer val)
+    (boolean val)
+    (string (htmlify val))
+    (htmlstring (htmlpurify val))
+    (otherwise 'sanitized-unknown-type)))
+
+(defun htmlpurify (val)
+  "(HTMLPURIFY VAL) returns a string representation of VAL after removing unsafe HTML.
+   Utilizes PHP htmlpurifier script in clicl/htmlpurify."
+  (write-any-file "/tmp/htmlpurify" val)
+  (exec-commandline "php" (fspath :clicl "htmlpurify" "php") "/tmp/htmlpurify"))
+  
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1855,3 +2126,6 @@
     ;(break)
     res))
   
+
+
+

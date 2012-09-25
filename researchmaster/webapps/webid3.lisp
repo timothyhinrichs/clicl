@@ -38,10 +38,15 @@
 (defsignature search titdesc keywords closed category lowprice highprice buyitnow buyitnowonly ending)
 (defschema search :signature search)
 
-(defsignature item id category title subtitle description type quantity startprice shippingfee reserveprice buynow bidinc startdate_day startdate_month startdate_year startdate_time duration shipping_conditions shipping_international shipping_terms payment options relists)
+; Really ought not to have to put the TYPE on this since we can infer it from the db.auction.  More precisely, once we ensure every servlet handles
+;   one form, we ought to be able to move constraints (and therefore types) back and forth between the form and the DB/Session/Cookies/etc.
+;  Call this the Constraint Inference Problem.  But until we have a solution in place, we need to copy types/constraints around.
+(defsignature item id category title subtitle (description :type htmlstring) type quantity startprice shippingfee reserveprice buynow bidinc startdate_day startdate_month startdate_year startdate_time duration shipping_conditions shipping_international shipping_terms payment options relists)
 (defschema item :signature item :guards (item))
+(defsignature itemid id)
+(defschema itemid :signature itemid)
 
-(defsignature3 db.auction id owner category title subtitle description type quantity startprice shippingfee reserveprice buynow bidinc startdate_day startdate_month startdate_year startdate_time duration shipping_conditions shipping_international shipping_terms payment options relists)
+(defsignature3 db.auction id owner category title subtitle (description :type (string htmlstring)) type quantity startprice shippingfee reserveprice buynow bidinc startdate_day startdate_month startdate_year startdate_time duration shipping_conditions shipping_international shipping_terms payment options relists)
 (defschema db.auction :signature db.auction :guards (item))
 
 (defsignature babysearch keywords)
@@ -251,7 +256,7 @@
 (defupdate genitemid (:language posneg)
   (<= (pos (item.id ?x)) (item.id "") (db.nextfreeauctionid ?x))
   (<= (neg (item.id ?x)) (item.id "") (item.id ?x))
-  (<= (pos (db.nextfreeauctionid ?z)) (item.id "") (db.nextfreeauctionid ?w) (symbolize ?w ?x) (+ ?x 1 ?y) (stringify ?y ?z))
+  (<= (pos (db.nextfreeauctionid ?z)) (item.id "") (db.nextfreeauctionid ?w) (to_integer ?w ?x) (+ ?x 1 ?y) (to_string ?y ?z))
   (<= (neg (db.nextfreeauctionid ?x)) (db.nextfreeauctionid ?x))
 )
 
@@ -474,11 +479,13 @@
   (malleable search.output.*)
 )
 
+(defupdate logout ()
+    (<= (neg (session.username ?x)) (session.username ?x))
+)
 (defupdate login (:guards (login-basic))
 ;  (=> (login.id ?id) (builtin.freshsession ?sess) (and (cookie.session ?sess) (session.id ?sess)))
 ;  (malleable cookie.session) 
 ;  (malleable session.*)
-
   (<= (pos (session.username ?x)) (login.id ?x))
 )
 
@@ -490,6 +497,10 @@
 (defupdate news ()
    (<= (pos (news ?x)) (db.news ?x)))
 
+(defupdate itemid2item ()
+  (<= (pos (item.id ?x)) (itemid.id ?x))
+  (<= (neg (itemid.id ?x)) (itemid.id ?x))
+)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;; Forms/Tables ;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -503,6 +514,7 @@
 (defform login :schema login :target login :guards (login-entry))
 ;(defform search :schema search :target search :guards (search-basic))
 (defform edit-auction :schema item :target save-auction)
+(defform choose-auction :schema itemid :target show-auction)
 
 ;(deftable auction :schema auction-listing)
 (defform credentials :schema login :target login)
@@ -510,7 +522,7 @@
 ;(defform category :schema categoryid :target browse-categories :guards (category))
 ;(defform topcategory :schema categoryid :target browse-categories :guards (topcategory))
 (deftable news :schema news)
-
+(deftable auction :schema item)
 
 ; (a) we should be able to derive profile-basic based on the :target.
 
@@ -530,19 +542,22 @@
 ; Registration creation
 (defservlet new-registration :page new-profile-page :entry t)
 ; Registration processing: store profile, convert profile username/pwd to login schema, login, return simple page saying "Registration saved"
-(defservlet register :guards (profile-uniqueness profile-basic) :updates (saveprofile profile2login login) :page success :entry t)
+(defservlet register :guards (profile-uniqueness profile-basic) :updates (saveprofile profile2login logout login) :page success :entry t)
 ; Profile lookup for editing
 (defservlet show-profile :updates (session2profile lookupprofile) :page edit-profile-page)
 ; Profile saving: store profile, login, repopulate profile page with profile and set status message to OK.
 (defservlet save-profile :guards (profile-loggedin profile-basic) :updates (saveprofile) :page success)
 
 (defservlet show-login :page login-page :entry t)
-(defservlet login :updates (login) :page success :entry t)
+(defservlet login :updates (logout login) :page success :entry t)
+(defservlet logout :updates (logout) :page success)
 
 ; See June 28, 2012 for notes on why we're skipping the select_category servlet
 (defservlet new-auction :guards (loggedin) :page new-auction-page)
 (defservlet save-auction :guards (loggedin auction-owner) :updates (genitemid saveauction) :page success)
 (defservlet edit-auction :guards (loggedin) :updates (lookupauction) :page new-auction-page)
+(defservlet choose-auction :page choose-auction-page)
+(defservlet show-auction :updates (itemid2item lookupauction) :page show-auction-page)
 
 ; Advanced search page: combine search fields and results onto single page 
 ;(defservlet search :guards (search-basic) :actions (runsearch) :page search :entry t)
@@ -575,6 +590,12 @@
 
 (defhtml new-auction-page header new-auction footer)
 (defhtml new-auction ("profile.html" :forms (("registration" edit-auction))))
+
+(defhtml choose-auction-page header choose-auction footer)
+(defhtml choose-auction ("profile.html" :forms (("registration" choose-auction))))
+
+(defhtml show-auction-page header show-auction footer)
+(defhtml show-auction ("auction.html" :tables (("auction" auction))))
 
 ;(defhtml search-page header search footer)
 ;(defhtml search ("search.html" :forms (("search" search)) :tables (("auctions" auctions))))
