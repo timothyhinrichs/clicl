@@ -13,6 +13,8 @@
 
 ; make sure to end with / 
 ;(defparameter *fs-path* "/Users/thinrich/Research/code/clicl/researchmaster/")
+(defparameter *randlock* (make-lock))
+(defparameter *randstate* (make-random-state))
 (defparameter *web-path* "/docserver/infoserver/examples/")
 (defparameter *component-paths* '((:app . ("researchmaster" "webapps" "webid"))
 				  (:html . ("researchmaster" "webapps" "webid"))
@@ -1500,7 +1502,9 @@
     ; grab session; ensure that there is a cookie/session link iff session is non-nil
     (cond (session  ; ensure a cookie/session link
 	   ; set session
-	   (unless sessionid (setq sessionid (random 1000)))
+	   (unless sessionid 
+	     (with-lock-grabbed (*randlock*) 
+	       (setq sessionid (random 1000 *randstate*))))
 	   (setf (gethash sessionid *sessions*) session)
 	   ; store session id in cookie
 	   (push `(,*cookie-session-name* ,sessionid) cookie))

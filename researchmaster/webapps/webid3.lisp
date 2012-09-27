@@ -554,9 +554,10 @@
 ; See June 28, 2012 for notes on why we're skipping the select_category servlet
 (defservlet new-auction :guards (loggedin) :page new-auction-page)
 (defservlet save-auction :guards (loggedin auction-owner) :updates (genitemid saveauction) :page success)
-(defservlet edit-auction :guards (loggedin) :updates (lookupauction) :page new-auction-page)
 (defservlet choose-auction :page choose-auction-page)
 (defservlet show-auction :updates (itemid2item lookupauction) :page show-auction-page)
+
+(defservlet edit-auction :guards (loggedin) :updates (lookupauction) :page new-auction-page)
 
 ; Advanced search page: combine search fields and results onto single page 
 ;(defservlet search :guards (search-basic) :actions (runsearch) :page search :entry t)
