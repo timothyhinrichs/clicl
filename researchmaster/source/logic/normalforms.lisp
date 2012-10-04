@@ -110,8 +110,9 @@
   (existentially-quantify-body (similarize-head r vs)))
 
 (defun head-args (arity) (nunique arity "?X"))
-(defun nunique (n &optional (prefix ""))
-  (do ((i 0 (1+ i))
+(defun nunique (n &optional (prefix "") (starting 0))
+  (setq n (+ n starting))
+  (do ((i starting (1+ i))
        (v nil))
       ((= i n) (nreverse v))
     (push (tosymbol (format nil "~A~A" prefix i)) v)))
@@ -182,10 +183,6 @@
 	   (values v `((,v . ,e)))))
 	(t (multiple-value-bind (new bl) (mapcaraccum #'variablize-term (cdr e))
 	     (values (cons (car e) new) bl)))))
-		 
-	 
-
-	    
 
 (defun similarize-head (r vars)
   "(SIMILARIZE-HEAD R VARS) takes any sentence of the forms (Op Lit p1 ... pn) or Lit and a list of variables VARS.

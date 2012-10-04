@@ -41,6 +41,7 @@
 (defvar *sessions* (make-hash-table))
 (defvar *output-stream* t)
 (defvar *debug-webapps* nil)
+(defvar *default-data-type* nil "Whether or not to assume undeclared slots are of type STRING")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Program Parsing
@@ -60,15 +61,18 @@
   "(DEFSIGNATURE P &REST L) takes a signature name and a list of symbol declarations.
    Each symbol declaration is either a symbol or a list (symbol [:arity n] [:type thing])"
   `(define-signature ',p ',l))
-  
+
 (defun define-signature (p l)
   "(DEFINE-SIGNATURE P L) walks over the symbol declarations in P, creates a list of them, and
    indexes that list in *signatures* by the name in P.  Also constructs a guard
-   checking the types.  Returns that list."
+   checking the types.  Returns that list.  Note that "
   (let ((arity nil) (h nil) (type nil) name (sig nil))
     ; walk over the symbol declarations and turn each into a parameter
     (dolist (x l)
-      (cond ((atom x) (setq name x))
+      (cond ((atom x) 
+	     (setq name x)
+	     (setq arity nil)
+	     (setq type nil))
 	    ((listp x) 
 	     (setq name (car x))
 	     (setq h (grab-keyvals (cdr x) '(:arity :type) 'invalid-signature))
@@ -84,37 +88,17 @@
        (when (and type (not (every #'symbolp type)))
 	(error 'invalid-signature :comment (format nil "Typename not a symbol in ~A" x)))
       ; infer arity/type if not provided
-       (cond ((and (not arity) (not type)) (setq arity 1) (setq type (list 'string)))
-	    ((and arity (not type)) (setq type (n-copies arity 'string)))
-	    ((and (not arity) type) (setq arity (length type)))
-	    (t (unless (= (length type) arity)
-		 (error 'invalid-signature :comment (format nil "Type and arity incompatible in ~A" x)))))
+       (cond ((and (not arity) (not type)) (setq arity 1) (when *default-data-type* (setq type (list 'string))))
+	     ((and arity (not type)) (unless *default-data-type* (setq type (n-copies arity 'string))))
+	     ((and (not arity) type) (setq arity (length type)))
+	     (t (unless (= (length type) arity)
+		  (error 'invalid-signature :comment (format nil "Type and arity incompatible in ~A" x)))))
       ; make the parameter
       (push (make-parameter :symbol name :arity arity :type type) sig))
     ; store list of parameters *in the order the programmer declared them*, create guards for types, return list
     (setq sig (nreverse sig))
     (setf (gethash p *signatures*) sig)
-    (create-signature-type-guard p)
     sig))
-
-
-(defun signature-guard-name (signame) (tosymbol "__" signame "_types"))
-(defun create-signature-type-guard (signame)
-  (let (th guardname atom)
-    (setq guardname (signature-guard-name signame))
-    (setq th nil)
-    (dolist (p (find-signature signame))  ; a list of parameters
-      (setq atom (signature-parameter-to-atom signame p))
-      (do ((vs (cdr atom) (cdr vs))
-	   (typenames (parameter-type p) (cdr typenames))
-	   (i 1 (1+ i)))
-	  ((null typenames))
-	; push comment on and then sentence on so they appear in the right order
-	(push (format nil "~Ath argument to ~A must be of type ~A" i (car atom) (car typenames)) th)
-	(push (list '=> atom (list (tosymbol "to_" (car typenames) "_p") (car vs))) th)))
-    (when (in-db signame) (setq th (list* :inherits '(db) th)))
-    (when (in-session signame) (setq th (list* :inherits '(session) th)))
-    (define-guard guardname th)))	   
 
 (defmacro defsignature1 (p &rest l)
   "(DEFSIGNATURE1 P &REST L) takes a signature name and a list of symbol declarations.
@@ -156,7 +140,7 @@
     (setq h (grab-keyvals l '(:signature :guards) 'invalid-schema))
     ;(when (gethash p *schemas*) (warn (format nil "Redefining schema ~A" p)))
     (setf (gethash p *schemas*) 
-	  (make-schema :name p :signature (gethash :signature h) :guards (adjoin (signature-guard-name (gethash :signature h)) (gethash :guards h))))))
+	  (make-schema :name p :signature (gethash :signature h) :guards (gethash :guards h)))))
 
 (defvar *guards* (make-hash-table))
 (defconstant *kernel-guards* '(__single-cookie-session __integrity))
@@ -238,7 +222,9 @@
   "(UPDATE-TO-DATALOG L) turns a list of sentences into an indexed Datalog theory.
    For now, assume l is already datalog."
   (declare (ignore lang))
-  (define-theory (make-instance 'prologtheory) "" l))  
+  ; transform = to SAME
+  (setq l (mapcar #'(lambda (x) (subrel '((= . same)) x)) l))
+  (define-theory (make-instance 'prologtheory) "" l))
 
 (defvar *forms* (make-hash-table))
 (defstruct form schema target guards)
@@ -265,6 +251,7 @@
 (define-condition invalid-table (error) ((comment :initarg :comment :accessor comment)))
 (define-condition unknown-table (error) ((comment :initarg :comment :accessor comment)))
 (defun tablep (x) (nth-value 1 (gethash x *tables*)))
+(defun table-schema (x) x)
 (defun find-table (x)
   (multiple-value-bind (y present) (gethash x *tables*)
     (unless present (error 'unknown-table :comment x))
@@ -283,7 +270,9 @@
     (setf (gethash p *tables*) schema)))
 
 (defvar *servlets* (make-hash-table))
-(defstruct servlet name page updates guards entry)
+(defstruct servlet name page guts entry)
+(defstruct guardlist guards)
+(defstruct updatelist updates)
 (define-condition invalid-servlet (error) ((comment :initarg :comment :accessor comment)))
 (define-condition unknown-servlet (error) ((comment :initarg :comment :accessor comment)))
 (defun servletp (x) (nth-value 1 (gethash x *servlets*)))
@@ -291,15 +280,19 @@
   (multiple-value-bind (y present) (gethash x *servlets*)
     (unless present (error 'unknown-servlet :comment x))
     y))
-(defun copy-servlet (name newname)
+(defun duplicate-servlet (name newname)
   (let (s new)
     (setq s (find-servlet name))
     (setq new (make-servlet :name newname
 			    :page (servlet-page s)
-			    :guards (copy-list (servlet-guards s))
-			    :updates (copy-list (servlet-updates s))
+			    :guts (copy-list (servlet-guts s))
 			    :entry (servlet-entry s)))
     (setf (gethash newname *servlets*) new)))
+(defun servlet-updates (servlet)
+  (apply #'append (remove-if-not #'updatelist-p (servlet-guts servlet))))
+(defun servlet-guards (servlet)
+  (apply #'append (remove-if-not #'guardlist-p (servlet-guts servlet))))
+
     
 
 (defmacro defservlet (p &rest l)
@@ -307,11 +300,15 @@
   `(define-servlet ',p ',l))
 
 (defun define-servlet (p l)
-  (let (h)
-    (setq h (grab-keyvals l '(:page :entry :updates :guards) 'invalid-servlet))
-    ;(when (gethash p *servlets*) (warn (format nil "Redefining servlet ~A" p)))
-    (setf (gethash p *servlets*) (make-servlet :name p :page (gethash :page h) :guards (gethash :guards h) 
-					       :updates (gethash :updates h) :entry (gethash :entry h)))))
+  (let (page entry guts)
+    (do ((xs l (cddr xs)))
+	((null xs))
+      (cond ((eq (first xs) :page) (setq page (second xs)))
+	    ((eq (first xs) :entry) (setq entry (second xs)))
+	    ((eq (first xs) :guards) (push (make-guardlist :guards (second xs)) guts))
+	    ((eq (first xs) :updates) (push (make-updatelist :updates (second xs)) guts))
+	    (t (error 'invalid-servlet :comment (format nil "Unknown option: ~A" xs)))) 
+    (setf (gethash p *servlets*) (make-servlet :name p :page page :guts (nreverse guts) :entry entry)))))
 
 ; HTML keys are lists of (htmlpagenames or filenames or HTMLREPL objs)
 (defvar *html* (make-hash-table))
@@ -380,70 +377,104 @@
 	  (t (error error  :comment (format nil "Unknown option: ~A" ys))))))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Builtins ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Builtins (not set by developers, but by us)
 
-; a list of all the symbols that are built into weblog
+(defvar *weblog-builtins* (make-hash-table))
+(defstruct builtin name code args returns internal)
+(defun webapp-builtins () (mapcar #'car (hash2bl *weblog-builtins*)))
 
-(defun to-string (x) (write-to-string x))
-(defun to-stringp (x) (declare (ignore x)) t)
-
-(defun to-integerp (x)  ; tries to parse and if error returns NIL
-  (handler-case (progn (parse-integer x) t)
-    (condition () nil)))
-(defun to-integer (x)
-  (handler-case
-      (cond ((symbolp x) x)
-	    ((stringp x) (parse-integer x))
-	    (t 0))
-    (condition () 0)))
-
-(defun to-booleanp (x)
-  (or (equalp x "true") (equalp x "false")))
-(defun to-boolean (x)
-  (handler-case
-      (cond ((equalp x "true") 'true)
-	    ((equalp x "false") 'false)
-	    (x 'true)
-	    (t 'false))))
-
-(defun to-htmlstringp (x) (declare (ignore x)) t)
-
-(defvar *webapp-builtins* nil)
-(defun webapp-builtins () *webapp-builtins*)
-
-(setq *builtins* (make-hash-table))
-(defmacro defbuiltin (p code args returns) `(define-builtin ',p (function ,code) ',args ',returns))
-(defun define-builtin (p func args returns)
-  "(DEFINE-BUILTIN P FUNC RETURNS) sets up data structures so that the weblog symbol
+(defmacro defbuiltin (p code args returns &optional internal) `(define-builtin ',p (function ,code) ',args ',returns ',internal))
+(defun define-builtin (p func args returns internal)
+  "(DEFINE-BUILTIN P FUNC RETURNS INTERNAL) sets up data structures so that the weblog symbol
    P is defined as a builtin that causes code FUNC to run and return RETURNS values."
-  (push p *webapp-builtins*)
-  (setf (gethash p *builtins*) (list func args returns)))
+  ; make sure args and returns are lists
+  (unless (listp args) (setq args (list args)))
+  (unless (listp returns) (setq returns (list returns)))
+  ; register as weblog builtin
+  (setf (gethash p *weblog-builtins*) (make-builtin :name p :code func :args args :returns returns :internal internal))
+  ; register builtin with Epilog's viewfind code
+  (setf (gethash p *builtins*) (list func (length args) (length returns))))
 
-; (defbuiltin <weblog-name> <lisp-code> <number-of-arguments> <number-of-return-values>)
+;;;;; Types (not set by developers, but by us)
+; can't use 'type' b/c lisp already does
+
+(defvar *sorts* (make-hash-table))
+(defstruct sort name checker caster htmlsanitizer)
+; (defsort name builtinchecker builtincaster builtinsanitizer)
+(defmacro defsort (p checker caster htmlsanitizer) `(define-sort ',p ',checker ',caster ',htmlsanitizer))
+(defun define-sort (p checker caster htmlsanitizer)
+  (setf (gethash p *sorts*) (make-sort :name p :checker checker :caster caster :htmlsanitizer htmlsanitizer)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Initialization
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun reset-weblog (&optional (emptydb nil))
+  (setq *sessions* (make-hash-table))
+  (when emptydb 
+    (empty *appdb*)
+    (decludes *appdb*))
+  (setq *signatures* (make-hash-table))
+  (setq *schemas* (make-hash-table))
+  (setq *guards* (make-hash-table))
+  (setq *updates* (make-hash-table))
+  (setq *forms* (make-hash-table))
+  (setq *tables* (make-hash-table))
+  (setq *servlets* (make-hash-table))
+  (setq *html* (make-hash-table))
+  (setq *builtins* (make-hash-table))  ; resetting Epilog's builtins
+  (setq *weblog-builtins* (make-hash-table))
+  (setq *sorts* (make-hash-table))
+  (setq *tests* nil)
+  (setq *accesscontrol* nil)
+
+  ; internal guard ensuring each cookie has a single session key
+  (define-guard '__single-cookie-session `((=> (,*cookie-session-name* ?x) (,*cookie-session-name* ?y) (same ?x ?y))))
+
+  ; internal guard to check against the global state
+  (defguard __integrity :inherits (db cookie session __single-cookie-session))
+  ; can all be re-defined by the app
+  (defguard db)
+  (defguard cookie)
+  (defguard session)
+; (defsort <name> <checker> <caster-from-string> <html-sanitizer>)
+(defsort string to-strp to-str htmlify)
+(defsort integer str-to-intp str-to-int int-noop)
+(defsort boolean str-to-booleanp str-to-bool bool-noop)
+(defsort html is-htmlp string-noop html-noop) 
+
+; (defbuiltin <weblog-name> <lisp-function> <list of types of args> <list of types of returns> [<internal>])
 ;  Note that returning more than 1 value means returning a LIST with that many values
 ; supported types
-(defbuiltin to_string to-string 1 1)
-(defbuiltin to_string_p to-stringp 1 0)
-(defbuiltin to_integer to-integer 1 1)
-(defbuiltin to_integer_p to-integerp 1 0)
-(defbuiltin to_boolean to-boolean 1 1)
-(defbuiltin to_boolean_p to-booleanp 1 0)
-(defbuiltin to_htmlstring_p to-htmlstringp 1 0)
+;  Should be checking that the INTERNAL builtins are not used by developer
+(defbuiltin to-strp to-strp string nil t)
+(defbuiltin to-str to-str string string t)
+(defbuiltin str-to-intp str-to-intp string nil t)
+(defbuiltin str-to-int str-to-int string integer t)
+(defbuiltin str-to-boolp str-to-boolp string nil t)
+(defbuiltin str-to-bool str-to-bool string boolean t)
+(defbuiltin is-htmlp is-htmlp string nil t)
+(defbuiltin html-noop identity html html t)
+(defbuiltin bool-noop identity boolean boolean t)
+(defbuiltin string-noop identity string string t)
+(defbuiltin integer-noop identity integer integer t)
+(defbuiltin htmlify htmlify string string t)
 
+
+; don't use - as our relation name since converting "-.0" to a symbol results in -0.0.
 ; functions
 ; (defbuiltin = same 2 0)  ; implemented directly
 ;(defbuiltin symbolize symbolize 1 1)
 ;(defbuiltin stringify stringify 1 1)
-(defbuiltin + + 2 1)
-(defbuiltin - - 2 1)
-(defbuiltin * * 2 1)
-(defbuiltin / / 2 1)
-(defbuiltin lt numlessp 2 1)
-(defbuiltin lte numleqp 2 1)
-(defbuiltin gte numgeqp 2 1)
-(defbuiltin gt numgreaterp 2 1)
+(defbuiltin plus + (integer integer) integer)
+(defbuiltin minus - (integer integer) integer)
+(defbuiltin times * (integer integer) integer)
+(defbuiltin div (lambda (x y) (floor (/ x y))) (integer integer) integer)
+(defbuiltin lt numlessp (integer integer) nil)
+(defbuiltin lte numleqp (integer integer) nil)
+(defbuiltin gte numgeqp (integer integer) nil)
+(defbuiltin gt numgreaterp (integer integer) nil)
+
 
 ; Epilog's builtins (from base-new.lisp)
 ; (defprop word wordp basic)
@@ -576,38 +607,45 @@
 ; (defprop stringsubseq basicval basicval)
 ; (defprop stringsubstitute basicval basicval)
 ; (defprop stringupcase basicval basicval)
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Builtins
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun to-str (x) (write-to-string x))
+(defun to-strp (x) (declare (ignore x)) t)
+
+(defun str-to-intp (x)  ; tries to parse and if error returns NIL
+  (handler-case (progn (parse-integer x) t)
+    (condition () nil)))
+(defun str-to-int (x)
+  (handler-case
+      (cond ((symbolp x) x)
+	    ((stringp x) (parse-integer x))
+	    (t 0))
+    (condition () 0)))
+
+(defun str-to-boolp (x)
+  (or (equalp x "true") (equalp x "false")))
+(defun str-to-bool (x)
+  (handler-case
+      (cond ((equalp x "true") 'true)
+	    ((equalp x "false") 'false)
+	    (x 'true)
+	    (t 'false))))
+
+(defun is-htmlp (x) 
+  (if (htmlpurify-errorsp x) nil t))
+
+(defun noop ())
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Common Weblog program elements
+;; End of Weblog initialization
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun reset-weblog (&optional (emptydb nil))
-  (setq *sessions* (make-hash-table))
-  (when emptydb 
-    (empty *appdb*)
-    (decludes *appdb*))
-  (setq *signatures* (make-hash-table))
-  (setq *schemas* (make-hash-table))
-  (setq *guards* (make-hash-table))
-  (setq *updates* (make-hash-table))
-  (setq *forms* (make-hash-table))
-  (setq *tables* (make-hash-table))
-  (setq *servlets* (make-hash-table))
-  (setq *html* (make-hash-table))
-  (setq *tests* nil)
-  (setq *accesscontrol* nil)
-
-  ; internal guard ensuring each cookie has a single session key
-  (define-guard '__single-cookie-session `((=> (,*cookie-session-name* ?x) (,*cookie-session-name* ?y) (same ?x ?y))))
-
-  ; internal guard to check against the global state
-  (defguard __integrity :inherits (db cookie session __single-cookie-session))
-  ; can all be re-defined by the app
-  (defguard db)
-  (defguard cookie)
-  (defguard session))
-
-; must be called *after* all of the parsing macros are defined
+; must be called *after* all of the parsing macros and builtins are defined
+; could be called after everything is defined, but conceptually the rest 
+; is independent of this
 (reset-weblog)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -624,12 +662,15 @@
     (dolist (x (if s (list (gethash s *servlets*)) (mapcar #'cdr (hash2bl *servlets*))))
       (unless (gethash (servlet-page x) *html*) 
 	(push (format nil "In servlet ~A, undefined page ~A" x (servlet-page x)) errors))
-      (dolist (y (servlet-guards x))
-	(unless (gethash y *guards*) 
-	  (push (format nil "In servlet ~A, undefined guard ~A" x y) errors)))
-      (dolist (y (servlet-updates x))
-	(unless (gethash y *updates*)
-	  (push (format nil "In servlet ~A, undefined update ~A" x y) errors))))
+      (dolist (y (servlet-guts x))
+	(cond ((updatelist-p y)
+	       (dolist (z (updatelist-updates y))
+		 (unless (gethash z *updates*)
+		   (push (format nil "In servlet ~A, undefined update ~A" y z) errors))))
+	      (t
+	       (dolist (z (guardlist-guards y))
+		 (unless (gethash z *guards*)
+		   (push (format nil "In servlet ~A, undefined update ~A" y z) errors)))))))
     (dolist (v (nreverse errors))
       (format t ";~A~%" v))
     (not errors)))
@@ -647,33 +688,19 @@
       (format t ";~A~%" v))
     (not errors)))
 
-(defun guard-accum-logic (guard) (guard-accum guard :key #'guard-logic))
-(defun guard-accum-datalog (guard) (guard-accum guard :key #'guard-datalog))
-(defun guard-accum (guard &key (key #'guard-logic))
-  "(GUARD-ACCUM GUARD) walks all guards inherited by GUARD (recursively) and
-   accummulates the results of applying KEY to each guard.  Memoized."
-  (remove-duplicates (guard-accum-aux guard key (make-hash-table)) :test #'equal))
-
-(defun guard-accum-aux (guardname key done)
-  "(GUARD-ACCUM-AUX GUARDNAME KEY DONE) takes a guard name GUARDNAME, a function KEY,
-   and a hash table DONE. Returns the results of applying KEY to each guard inherited
-   by GUARDNAME and memoizes results in DONE."
-  (let (logic guard)
-    (setq logic (gethash guardname done))
-    (cond (logic logic)
-	  (t (setq guard (find-guard guardname))
-	     (setf (gethash guardname done) 
-		   (append (apply #'append (mapcar #'(lambda (x) (guard-accum-aux x key done)) (guard-supers guard)))
-			   (funcall key guard)))))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Mid-level Analysis and Manipulation
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; NOTE: some of this may make less sense now that we have a sequence of updates/guards for a servlet.
+;   It was designed for servlets with a single guard and a single update (and in that order).
 (defun servlet-guard-logic (servletname)
-  "(SERVLET-GUARD-LOGIC SERVLETNAME) returns a list of all the constraints guarding SERVLETNAME."
-  (apply #'append 
-	 (mapcar #'(lambda (x) (contents (guard-fol (find-guard x)))) 
-		 (servlet-guards (find-servlet servletname)))))
+  "(SERVLET-GUARD-LOGIC SERVLETNAME) returns a list of all the constraints guarding the invocation of SERVLETNAME.
+   Ignores guards that follow any update."
+  (let (s)
+    (setq s (servlet-guts (find-servlet servletname)))
+    (apply #'append 
+	   (mapcar #'(lambda (x) (contents (guard-fol (find-guard x))))
+		   (if (guardlist-p (first s)) (guardlist-guards (first s)) nil)))))
 
 (defun servlet-all-atoms (servletname)
   "(SERVLET-WEBSTATE-ATOMS SERVLETNAME) extractes the webstate predicates used by SERVLET
@@ -704,9 +731,12 @@
     (setq empty (set-difference all inputs))
     (setq empty (remove-if #'in-reserved-namespace empty))
     empty))
-  
+
+(defun servlet-input-signatures (servletname)
+  (remove-duplicates (mapcarnot #'extract-signature-name (servlet-input-atoms servletname))))
+
 (defun servlet-input-atoms (servletname)
-  "(SERVLET-OUTPUT-ATOMS SERVLETNAME) returns a list of all atoms that may be given to SERVLETNAME as input,
+  "(SERVLET-INPUT-ATOMS SERVLETNAME) returns a list of all atoms that may be given to SERVLETNAME as input,
    though if this servlet is used for multiple forms, it may be that there is no legitimate input that uses
    all the atoms returned.  Each atom has variables for all its arguments.  Each relation name is properly prefixed 
    with its signature.  Only one atom per prefixed relation is returned."
@@ -731,12 +761,53 @@
    relation in that signature, properly prefixed.  All arguments to the atom are distinct variables."
   (mapcar #'(lambda (x) (signature-parameter-to-atom signame x)) (find-signature signame)))
 
-(defun signature-parameter-to-atom (signame param)
-  (cons (withnamespace (parameter-symbol param) signame) (nunique (parameter-arity param) "?")))
+(defun signature-parameter-to-atom (signame param &optional (starting 0))
+  (cons (withnamespace (parameter-symbol param) signame) (nunique (parameter-arity param) "?" starting)))
 
 (defun servlet-output-signatures (servletname) 
   "(SERVLET-OUTPUT-SIGNATURES SERVLETNAME) returns the list of signature names that this servlet outputs."
   (html-output-signatures (servlet-page (find-servlet servletname))))
+
+(defun form-all-guards (form)
+  "(FORM-ALL-GUARDS FORM) returns the list of all guards for this form."
+  (when (symbolp form) (setq form (find-form form)))
+  (guard-all-guards (union (form-guards form) (schema-guards (find-schema (form-schema form))))))
+
+(defun table-all-guards (table)
+  "(TABLE-ALL-GUARDS TABLE) returns the list of all guards for this table."
+  (when (symbolp table) (setq table (find-table table)))
+  (guard-all-guards (schema-guards (find-schema (table-schema table)))))
+
+(defun update-all-guards (update)
+  "(UPDATE-ALL-GUARDS UPDATE) returns the list of all guards for this update."
+  (when (symbolp update) (setq update (find-update update)))
+  (guard-all-guards (update-guards update)))
+
+(defun guard-all-guards (guards) (guard-accum guards :key #'(lambda (x) (list (guard-name x)))))
+(defun guard-accum-logic (guards) (guard-accum guards :key #'guard-logic))
+(defun guard-accum-datalog (guards) (guard-accum guards :key #'guard-datalog))
+(defun guard-accum (guards &key (key #'guard-logic))
+  "(GUARD-ACCUM GUARD) recursively walks all guards inherited by all the guard names GUARDS
+   and accummulates the results of applying KEY to each guard.  Can pass a single GUARD
+   in place of a list of GUARDS.  Memoized."
+  (unless (listp guards) (setq guards (list guards)))
+  (let (h res)
+    (setq h (make-hash-table))
+    (dolist (g guards)
+      (setq res (append (guard-accum-aux g key h) res)))
+    (remove-duplicates res :test #'equal)))
+
+(defun guard-accum-aux (guardname key done)
+  "(GUARD-ACCUM-AUX GUARDNAME KEY DONE) takes a guard name GUARDNAME, a function KEY,
+   and a hash table DONE. Returns the results of applying KEY to each guard inherited
+   by GUARDNAME and memoizes results in DONE."
+  (let (logic guard)
+    (setq logic (gethash guardname done))
+    (cond (logic logic)
+	  (t (setq guard (find-guard guardname))
+	     (setf (gethash guardname done) 
+		   (append (apply #'append (mapcar #'(lambda (x) (guard-accum-aux x key done)) (guard-supers guard)))
+			   (funcall key guard)))))))
 
 (defun html-output-signatures (thing)
   "(HTML-OUTPUT-SIGNATURES THING) takes an html descriptor (string, symbol, htmlrepl) 
@@ -998,23 +1069,309 @@
 (defun compose-posneg-pos-rel (r base) (tosymbol r base "_pos"))
 
 
+;;; types
+(define-condition relation-type-error (error) ((comment :initarg :comment :accessor comment)))
+(defvar *type-explanations* nil "Data structure constructed during type inference")
+(defun explain-type (x) (if (hash-table-p *type-explanations*) (gethash x *type-explanations*) nil))
+
+(defun infer-types ()
+  "(INFER-TYPES walks over all the servlets, infers types for all occurring symbols, and writes
+   those types back to the *signatures* datastructure or throws an error if a type-mismatch
+   occurred."
+  (let (types)
+    (setq types (type-inference))
+    (when (listp types) 
+      (print types)
+      (error 'relation-type-error :comment types))
+    (install-types types)))
+
+(defun install-types (types)
+  (let (mytypes signame)
+    (dolist (sigbl (hash2bl *signatures*))
+      ; walk over parameters
+      (setq signame (car sigbl))
+      (format t "Fixing signature ~A~%" signame)
+      (dolist (param (cdr sigbl))
+	; grab the types of all arguments, defaulting to string when there are none
+	(format t "Fixing parameter ~A~%" param)
+	(setq mytypes nil)
+	(dotimes (i (parameter-arity param))
+	  (push (or (gethash (withnamespace (relation-arg-to-name (parameter-symbol param) i) signame) types) 'string) mytypes))
+	(setf (parameter-type param) (nreverse mytypes))))))
+
+(defun type-inference ()
+  "(TYPE-INFERENCE) does type inference over all of the updates being used by some servlet.
+   Either returns a List of errors or a hash-table with types for every signature.  It is conceivable
+   that we could infer more types by analyzing guards as well---but note that we would want to analyze
+   all guards used by a servlet, a form, or a schema used by a form/servlet.  Defaults to STRING."
+  (let (equations undeclared alltypes errs declaredtypes)
+    ; create equations for each update used by some servlet
+    ; don't process the same update more than once
+    (setq equations (type-inference-equations))
+    ;(print equations)
+    (multiple-value-setq (declaredtypes undeclared) (type-inference-declared-types))
+    ;(print (hash2bl declaredtypes))
+    ; run type-inference and either return errors or fill out unknown types and return type assignments
+    (multiple-value-setq (alltypes errs) (type-inference-core declaredtypes equations))
+    (cond (errs errs)
+	  (t (dolist (u undeclared)   ;(set-difference undeclared (mapcar #'car (hash2bl alltypes))))
+	       (unless (gethash u alltypes) (setf (gethash u alltypes) 'string)))
+	     alltypes))))
+
+(defun type-inference-equations ()
+  "(TYPE-INFERENCE-EQUATIONS) analyze the servlets to extract type-equations from 
+   the updates used by the servlets.  Returns a list where each element is of the form (= <rel-arg> <rel-arg> <source>)."
+  (let (done equations)
+    (setq done (make-hash-table))
+    ; walk over servlets and process each update
+    (dolist (servlet (hash2bl *servlets*))
+      (dolist (gut (servlet-guts (cdr servlet)))
+	(when (updatelist-p gut)
+	  (dolist (updname (updatelist-updates gut))
+	    (unless (gethash updname done)
+	      (setq equations (nconc (mapcan #'(lambda (x) (type-inference-extract-equations x updname)) 
+					     (update-logic (find-update updname)))
+				     equations))
+	      (setf (gethash updname done) t))))))
+    equations))
+
+(defun type-inference-extract-equations (p name)
+  "(TYPE-INFERENCE-EXTRACT-EQUATIONS P NAME) returns a list of (= x y (update NAME P))
+   where (i) x and y are relation-arg-names where the same variable appears in P in
+   locations x and y (or variables appearing there are deemd =) and (ii)  
+   (update NAME P) allows us to reconstruct where this sentence originated from."
+  (let (equations)
+    (if (and (listp p) (eq (car p) '<=))
+	(setq equations (nconc (type-inference-extract-equations-core (maksand (body p)))
+			       (type-inference-extract-equations-core (drop-posneg (head p)))))
+	(setq equations (type-inference-extract-equations-core p)))
+    (setq equations (delete= equations))   ; turns ((= ?x p.1) (= ?x q.2) (= ?y p.3)) into ((= p.1 q.2))
+    (mapcar #'(lambda (x) (list '= (second x) (third x) `(:update ,name :rule ,p))) equations)))
+
+(defun type-inference-extract-equations-core (p)
+  (cond ((atom p) nil)
+	((member (car p) '(=> <= <=> not and or)) (mapcan #'type-inference-extract-equations-core (cdr p)))
+	((member (car p) '(forall exists)) (type-inference-extract-equations-core (third p)))
+	(t (do ((ps (cdr p) (cdr ps))
+		(i 0 (1+ i))
+		(eqns))
+	       ((null ps) eqns)
+	     (when (varp (car ps)) (push `(= ,(relation-arg-to-name (car p) i) ,(car ps)) eqns))))))  
+
+(defun type-inference-declared-types ()
+  "(TYPE-INFERENCE-DECLARED-TYPES) looks for all the types of relation-arguments and returns 2 values:
+   a hash table from relation-arg-to-name to the type and a list of undeclared relation-arguments.
+   Handles both signatures and builtins; does not inspect constraints."
+  (let (declaredtypes signame undeclared)
+    (setq declaredtypes (make-hash-table))
+    ; signatures
+    (dolist (sigbl (hash2bl *signatures*))
+      ; walk over parameters
+      (setq signame (car sigbl))
+      (dolist (param (cdr sigbl))
+	; either record that the relation's args have no declared types, or add the declarations to our hash
+	(if (not (parameter-type param))
+	    (dotimes (i (parameter-arity param))
+	      (push (relation-arg-to-name (withnamespace (parameter-symbol param) signame) i) undeclared))
+	    (do ((types (parameter-type param) (cdr types))
+		 (i 0 (1+ i)))
+		((null types))
+	      (setf (gethash (relation-arg-to-name (withnamespace (parameter-symbol param) signame) i) declaredtypes) (car types))))))
+    ; builtins
+    (dolist (b (hash2bl *weblog-builtins*))
+      (setq b (cdr b))
+      ; arguments to builtin
+      (do ((types (builtin-args b) (cdr types))
+	   (i 0 (1+ i)))
+	  ((null types))
+	(setf (gethash (relation-arg-to-name (builtin-name b) i) declaredtypes) (car types)))
+      ; returns from builtin
+      (do ((types (builtin-returns b) (cdr types))
+	   (i (length (builtin-args b)) (1+ i)))
+	  ((null types))
+	(setf (gethash (relation-arg-to-name (builtin-name b) i) declaredtypes) (car types))))
+    (values declaredtypes undeclared)))      
+
+(defun type-inference-core (declaredtypes equations)
+  "(TYPE-INFERENCE DECLAREDTYPES EQUATIONS) runs type-inference on EQUATIONS, which is a list of
+   (= rel1.arg rel2.arg rule) and a hash table DECLAREDTYPES that dictates the declared types
+   of the relk.arg that are known.  Infers the types of the remaining relk.arg elements.  If type
+   errors occur (because a relk.arg is assigned more than one), records reason for that error.
+   Returns new hash with all type assignments, list of errors, list of unassigned relk.args."
+  ; equations start: (eq ?x ?y rule)
+  (let (errs alltypes history unassigned)
+    ;(print equations)
+    (setq equations (copy-tree equations))
+    ; copy declaredtypes into alltypes
+    (setq alltypes (bl2hash (hash2bl declaredtypes)))
+    ; record rationale for each variable assignment
+    (setq history (make-hash-table))
+    (maphash #'(lambda (key val) (declare (ignore val)) (setf (gethash key history) 'declared)) alltypes)
+    ; walk over equations; infer new types; record rationale; report conflicts
+    (do ((foundnewtype t) (x) (y) (id) (xval) (yval))
+	((not foundnewtype))
+      (setq foundnewtype nil)
+      ;(print equations)
+      (dolist (p equations)
+	(unless (eq (first p) :done)  ; only analyze if haven't already processed
+	  (setq x (second p))   ; the variable
+	  (setq y (third p))  ; the variable
+	  (setq id (fourth p)) ; the source of this binding
+	  (setq xval (gethash x alltypes))  ; value stored for x 
+	  (setq yval (gethash y alltypes))  ; value stored for y
+	  ;(format t "x: ~A, xval: ~A, y: ~A, yval: ~A~%" x xval y yval)
+	  (cond ((and xval yval) 
+		 (setf (first p) :done)
+		 (unless (eq xval yval)
+		   (push `(err (explanation (binds ,id ,x ,y) 
+						   (bound ,x ,xval ,(gethash x history)) 
+						   (bound ,y ,yval ,(gethash y history))))
+			 errs)))
+		(xval
+		 (setf (gethash y alltypes) xval) 
+		 (setf (gethash y history) `(explanation (binds ,id ,x ,y) (bound ,x ,xval ,(gethash x history)) (unbound ,y)))
+		 (setq foundnewtype t))
+		(yval
+		 (setf (gethash x alltypes) yval) 
+		 (setf (gethash x history) `(explanation (binds ,id ,x ,y) (bound ,y ,yval ,(gethash x history)) (unbound ,x)))
+		 (setq foundnewtype t))))))
+    ; compute unassigned relk.args
+    (setq *type-explanations* history)
+    (dolist (e equations)
+      (unless (eq (first e) :done)
+	(unless (gethash (second e) alltypes) (push (second e) unassigned))
+	(unless (gethash (third e) alltypes) (push (third e) unassigned))))
+    ; return type assignments, errors, unassigned
+    (values alltypes errs unassigned)))
+  
+(defun relation-arg-to-name (pred argidx) (read-user-string (format nil "~A.~A" pred argidx)))
+(defun name-to-relation-arg (s) 
+  (let (idx)
+    (setq s (tostring s))
+    (setq idx (position #\. s :from-end t))
+    (values (tosymbol (subseq s 0 idx)) (tosymbol (subseq s (1+ idx))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Security
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun instrument ()
+  "(INSTRUMENT) performs a number of global manipulations of a weblog app."
+  (eliminate-parameter-tampering)  ; ensures every servlet services at most 1 form and that every servlet checks all the form's guards
+  (eliminate-cross-site-scripting) ; performs type inference (throwing errors if types don't check) and then adds sanitizers to end of servlets
+  ;(access-control) ; not stable enough to put here---should be computing new guards to add to each servlet and installing them at the start
+  (insert-type-checking-and-coersion) ; only installs declared slots: handles case when servlet services > 1 form
+)
+; DO A SEARCH FOR ALL HTMLSTRING/STRING/INTEGER/BOOLEAN AND REPLACE WITH THE DEFSORT STUFF
+
+; to eliminate XSS, we (1) throw out any data that doesn't match its type (which is where we catch
+;   people trying to write unsafe html in HTMLstring entries) and (2) ensure that any data sent to the
+;   browser is of a known type (number, boolean, htmlstring) or is HTML-encoded (for strings)
+; For (1), we simply enforce types of inputs before turning control over to user code.
+; For (2), we need to sanitize STRING data before sending it to the browser.  Option (a) is to figure out
+;   which data needs to be sanitized when it is sent to the browser.  This is easy as long as we know the types
+;   of outputs sent to the browser.  Simply allowing the developer to declare input/output/db types is insufficient, however
+;   because an input could be declared string but then the db/output could be declared HTML, thereby circumventing the
+;   sanitization that ought to have been performed on the string.
+;   So at least, we need type checking to ensure that no data ever has its type changed.  Of course, in practice, we need
+;   to cast from time to time, so to preserve XSS elimination, we must ensure there is no way to cast from STRING to HTML.
+;   Since we are in control of the builtins, this should be no problem.  More generally, we need to ensure that data with an untrusted type is
+;   never cast to a trusted type.  That said, it is quite a burden to ask the developer to declare input/output/db types
+;   all to be the same, so type inference is a real help.
+;   Option (b) is to sanitize the data before it is stored in the DB. The problem with this is that it breaks our security-as-an-afterthought
+;   paradigm.  If we sanitize anytime before a string is sent to the browser, it is possible that the user's code will operate differently
+;   with and without the XSS defense in place.  We can't sanitize the inputs before the user gets it because while writing to the DB, they may inspect
+;   the string; we can't sanitize it just before saving to the DB because the servlet outputing the data may inspect the internals.  That leaves one
+;   place: just before being sent to the browser. So this really isn't an option.
+; Notice that by eliminating unsafe data on the input and sanitizing string on the output, we do the expensive thing only on input (htmlpurify) 
+;   and we do the cheap thing (linear time) on output: html-encode.
+; Finally, the reason XSS is different than SQLi is that there are many web apps where we never want user data to contain SQL commands; however,
+;   there are many fewer web apps where we never want the user to input HTML.  So while we can eliminate SQL commands from user-data, we cannot
+;   in practice eliminate HTML commands from user data.  (We DO actually have the analog of SQL prepare statements: HTML-encoding.)
+
+(defun eliminate-cross-site-scripting ()
+  "(ELIMINATE-CROSS-SITE-SCRIPTING) First type checks (with inference) to ensure no implicit casting.  Then checks that 
+   there are no explicit type casters (builtins) that move trusted types to untrusted types.  Finally adds a sanitizer
+   to the end of every servlet for the untrusted types."
+  ; do type checking (as well as inference) and ensure no implicit casting
+  (infer-types)
+  ; check no builtin that does explicit casting that changes one unsafe type to a different type
+  ;  Don't know how to do this.  For single arg-> single arg, easy.  For relations easy.  But for String x Boolean -> Integer, what do we say?
+  ;  Maybe just skip this check and rely on the safety of the builtins b/c WE control them.
+  ;  (dolist (b (hash2bl *weblog-builtins*))
+  ;    (setq b (cdr b))
+  ;    (unless (builtin-internal b)
+  ;      (when ( ))))
+  ; add sanitizer to end of every servlet for untrusted types (and for all data headed to a form).
+  ; May be more involved than I thought b/c data can be used in different contexts; hence, we need to create copies of data,
+  ;     and sanitize each according to its context.  See paper for a few more details.
+)
+
+; If (infer-types) is run, do it *before* this, so we'll check all the right user-data types
+(defun insert-type-checking-and-coersion ()
+  "(INSERT-TYPE-CHECKING-AND-COERSION) adds guards/updates to each servlet so that
+   regardless which form data is submitted to the servlet, the application first checks
+   the types of the data (rejecting in the usual way upon violation), and then 
+   casts the string representation of that data (as per HTTP) into the proper type.
+   It does this by adding guards/updates to the front of the servlet."
+  (mapc #'(lambda (x) (insert-type-checking-and-coersion-servlet (car x))) (hash2bl *servlets*)))
+
+(defun insert-type-checking-and-coersion-servlet (servletname)
+  (let (inputsigs servlet newguards newupdates)
+    (setq servlet (find-servlet servletname))
+    (setq inputsigs (servlet-input-signatures servletname))
+    (mapc #'create-signature-type-check-and-coersion inputsigs)
+    (dolist (sig inputsigs)
+      (push (signature-typeguard-name sig) newguards)
+      (push (signature-typeupdate-name sig) newupdates))
+    ; remember to push the updates before the guards so that we're coersing only *after* we're checking
+    (push (make-updatelist :updates newupdates) (servlet-guts servlet))
+    (push (make-guardlist :guards newguards) (servlet-guts servlet))))
+    
+; compute a guard to check that we have been passed the proper type for all inputs
+(defun signature-typeguard-name (signame) (tosymbol "__" signame "_types"))
+(defun signature-typeupdate-name (signame) (tosymbol "__" signame "_types"))
+(defun create-signature-type-check-and-coersion (signame)
+  (let (guardth updateth atom atom2 part sort)
+    (setq guardth nil)
+    (setq updateth nil)
+    (dolist (p (find-signature signame))  ; a list of parameters
+      (setq atom (signature-parameter-to-atom signame p))
+      (setq atom2 (signature-parameter-to-atom signame p (parameter-arity p)))
+      (setq part nil)
+      ;(format t "parameter: ~A~%" p)
+      (do ((vs (cdr atom) (cdr vs))
+	   (vs2 (cdr atom2) (cdr vs2))
+	   (typenames (parameter-type p) (cdr typenames))
+	   (i 1 (1+ i)))
+	  ((null typenames))
+	;(format t "param name: ~A, typename: ~A~%" (parameter-symbol p) (car typenames))
+	; check: push comment and then sentence so they appear in the right order
+	(unless (eq (car typenames) 'string)
+	  (setq sort (gethash (car typenames) *sorts*))
+	  (unless sort (error 'relation-type-error :comment (format nil "unknown type ~A for ~A" (car typenames) p)))
+	  (push (format nil "Argument ~A to ~A must be of type ~A" i (car atom) (car typenames)) guardth)
+	  (push (list '=> atom (list (sort-checker sort) (car vs))) guardth)
+					; conjunction: variable = conjucnts for coersion
+	  (push (list (sort-caster sort) (car vs) (car vs2)) part))
+      ; coersion: push pos and neg versions so that old data is deleted and new data is saved
+      ;   if old=new, then pos wins over neg, so new/old is still saved
+	(when part
+	  (push (list* '<= `(pos ,atom2) atom part) updateth)
+	  (push (list '<= `(neg ,atom) atom) updateth))))
+    (when (in-db signame) (setq guardth (list* :inherits '(db) guardth)))
+    (when (in-session signame) (setq guardth (list* :inherits '(session) guardth)))
+    ; why no in-cookie check?
+    (define-guard (signature-typeguard-name signame) guardth)
+    (define-update (signature-typeupdate-name signame) nil updateth)))
+
 
 ; need to add negative parameter tampering defense as well: grab the preds the servlet updates and outputs and ensure that the user
 ;   does not supply any of those except those belonging to the signature.
 ;   On second thought, we're already defended against negative parameter tampering because we're prepending the signature name
 ;   for this form to all of the field names; so the user can't insert new keys into the global namespace---only into the
 ;   form's namespace, which will be ignored by the code anyhow (right??).
-; Need to fix the interpreter so that we first uniquify-form-servlet-combinations and then grab the signature prefix
-;   by looking it up (not using a hidden field on the form).
-; This doesn't capture constraints appearing b/c of select boxes---because of the data used to fill out the form.
-;    e.g. if the form is generated by looking up all the user's credit card numbers and filling a drop-down list,
-;    the servlet should ensure that one of those values is submitted--or at least that the value submitted is in the results
-;    of the same SQL query---the DB may have changed from the time the form was generated to the time it was submitted.
-;    Could analyze/add-to the guards to ensure that if there is a drop-down then SQL query for generating those values
-;    is equivalent to one of the guards.
+; Need to extract range for form fields from constraint dictating it must be in a DB slice
 (defun eliminate-parameter-tampering ()
   "(ELIMINATE-PARAMETER-TAMPERING) transforms a web application so that every guard checked on a form is also checked
    by its target servlet."
@@ -1025,7 +1382,7 @@
     (dolist (f (hash2bl *forms*))
       (setq form (cdr f))
       (setq s (find-servlet (form-target form)))
-      (setf (servlet-guards s) (union (servlet-guards s) (form-guards form))))))
+      (setf (servlet-guts s) (cons (make-guardlist :guards (form-all-guards form)) (servlet-guts s))))))
 
 (defun uniquify-form-servlet-combinations ()
   "(UNIQUIFY-FORM-SERVLET-COMBINATIONS) ensures that each form has a unique servlet target."
@@ -1038,7 +1395,7 @@
       (dolist (g (cdr fs)) ; walk over all but the first form
 	; create a new servlet that is identical to the original but with a different name
 	(setq newname (tosymbol "__" servletname counter))
-	(copy-servlet servletname newname)
+	(duplicate-servlet servletname newname)
 	(setq counter (1+ counter))
 	; change the form so it points to that servlet
 	(setf (form-target (cdr g)) newname)))))
@@ -1047,8 +1404,11 @@
 (defvar *session.username* 'session.username)
 (defvar *session.username-uniqueness* `(=> (,*session.username* ?x) (,*session.username* ?y) (= ?x ?y)))
 
+; NOTE: can definitely do better if we take the guards into account when reasoning about the updates
+;   Currently, we're ignoring all the guards (I think).  We're certainly not reasoning about the fact that guards 
+;   can be interspersed with updates.
 (defun access-control (servletname &optional (onlycheck nil))
-  "(ACCESS-CONTROL-CHECK SERVLETNAME ONLYCHECK) checks the servlet named SERVLETNAME against the access control policy.
+  "(ACCESS-CONTROL SERVLETNAME ONLYCHECK) checks the servlet named SERVLETNAME against the access control policy.
    ONLYCHECK can be set to :allow or :deny to check only those statements."
   (let (ac read write support updates raw posneg views bl input output db cookie session builtins appatoms useratoms)
     ; alter AC so that each allow/deny rule has (i) an object atom with all distinct variable args and (ii) a body with a single atom
@@ -1336,9 +1696,8 @@
 (define-condition internal-error (error) ((comment :initarg :comment :accessor comment)))
 ; internal servlet
 
-; TODO: parameter tampering defense so we don't need formname as data
 (defmethod process-cookies ((file (eql 'scwa)) postlines)  
-  (let (servletname formname cookies in)
+  (let (servletname formname possibleforms cookies in)
   (handler-case 
       (progn
 	(print *cookies*)
@@ -1351,8 +1710,13 @@
 		(showerror in (pairs2data *cookies*) servletname (make-instance 'unknown-servlet)))))
       (return-from process-cookies *cookies*))
 
-    ; grab source and correct for namespace
-    (setq formname (read-user-string (getf-post "formname" postlines)))
+    ; grab form source so as to prepend the correct namespace
+    ;   first check if serlvet only serves one form and if so, use it; otherwise, trust the submission 
+    ; so if we've uniquified form-servlet combinations, we do the secure thing; works either way
+    (setq possibleforms (servlet-formnames servletname)) 
+    (if (null (cdr possibleforms))
+	(setq formname (first possibleforms))
+	(setq formname (read-user-string (getf-post "formname" postlines))))
     (setq in (remove-if #'(lambda (x) (member (car x) '("servlet" "formname") :test #'equal)) postlines)) 
     (when formname
       (setq in (add-namespace in (tostring (schema-signature (find-schema (form-schema (find-form formname))))))))
@@ -1404,6 +1768,13 @@
 				  x)))
 	      l)))
 
+(defun extract-signature-name (s)
+  "(EXTRACT-NAMESPACE S) grabs everything in (relation s) up to the first ."
+  (let (idx)
+    (setq s (tostring (relation s)))
+    (setq idx (position #\. s :from-end t))
+    (if idx (tosymbol (subseq s 0 idx)) nil)))
+
 ; process is now called *after* process-cookies, which for us does all the work.
 ; So we just print the result of process-cookies, which was saved in *content*
 (defmethod process (s (file (eql 'scwa)) postlines)
@@ -1425,7 +1796,6 @@
     (format t "Serve: total = ~A sec; w/o render = ~A sec~%" serve (- serve render))
     (format t "Render: total = ~A sec~%" render)))
 
-
 (defun serve (in cookie servletname s)
   "(SERVE IN COOKIE SERVLETNAME) executes the servlet with name SERVLETNAME on data IN and COOKIE
    and prints the resulting HTML page to stream S and returns new cookie data.  All data is represented
@@ -1439,7 +1809,7 @@
       (setq sessionid (read-user-string sessionid))
       (when (listp cookie) (setq cookie (define-theory (make-instance 'prologtheory) "" cookie)))
       ; ensure no cookie session pollution
-      (handler-case (guard-check '__single-cookie-session cookie)
+      (handler-case (mapc #'(lambda (x) (guard-check x cookie))  (guard-all-guards '__single-cookie-session))
 	(guard-violation (e) (showerror in cookie servletname e) (return-from serve (contents cookie))))
       ; check if we have the session
       (multiple-value-setq (session present) (gethash sessionid *sessions*))
@@ -1464,14 +1834,11 @@
     ; create data structure (a theory) representing the server's global state and including in, cookie, and session
     (setq th (get-server-state in cookie session))
     ; process data according to servlet semantics
-;    (handler-case (progn
-                    ; check guards
-		    (mapc #'(lambda (x) (guard-check x th)) (servlet-guards servlet))
-		    ; run updates on theory TH
-		    (transduce-all-data (servlet-updates servlet) th)
-		    ; check integrity constraints for all our data stores
-		    (guard-check '__integrity th)
-;      (condition (e) (showerror in cookie servlet e) (return-from serve-session oldcookie)))
+    (dolist (thing (servlet-guts servlet))
+      (cond ((guardlist-p thing) (mapc #'(lambda (x) (guard-check x th)) (guard-all-guards (guardlist-guards thing))))
+	    ((updatelist-p thing) (transduce-all-data (updatelist-updates thing) th))))
+    ; check integrity constraints for all our data stores
+    (mapc #'(lambda (x) (guard-check x th)) (guard-all-guards '__integrity))
     ; set server's state using results of transduction
     (setq cookie (set-server-state th sessionid))
     ; render the page to the user  
@@ -1570,7 +1937,7 @@
     (setq up (gethash up *updates*))
     (unless up (error 'unknown-update :comment up))
     ; check the guards
-    (mapc #'(lambda (x) (guard-check x data)) (update-guards up))
+    (mapc #'(lambda (x) (guard-check x data)) (update-all-guards up))
     ; grab all the intensional relations from the datalog rules
     ;(setq preds (mapcar #'head (contents (update-datalog up))))
     ;(setq preds (remove-duplicates (mapcar #'(lambda (x) (make-parameter :symbol (relation x) :arity (arity x))) preds)))
@@ -1640,7 +2007,7 @@
   (format *output-stream* "~&<p>Found error in guard ~A~%" (first (comment err)))
   (format *output-stream* "<ul>")
   (dolist (e (second (comment err)))
-    (format *output-stream* "<li>Error ~S caused by ~S~%" (first e) (second e)))
+    (format *output-stream* "<li>Error ~S caused by ~S~%" (first e) (htmlify-thing (second e))))
   (format *output-stream* "</ul>~%")
   (showerror-in in)
   (showerror-cookie cookie)
@@ -1650,17 +2017,21 @@
   (format *output-stream* "<p>Data received by server:~%")
   (format *output-stream* "<ul>~%")
   (dolist (i (contents in))
-    (format *output-stream* "<li>~S~%" i))
+    (format *output-stream* "<li>~S~%" (htmlify-thing i)))
   (format *output-stream* "</ul>~%"))
 
 (defun showerror-cookie (cookie)
   (format *output-stream* "<p>Cookies received by server:~%")
   (format *output-stream* "<ul>~%")
   (dolist (i (contents cookie))
-    (format *output-stream* "<li>~S~%" i))
+    (format *output-stream* "<li>~S~%" (htmlify-thing i)))
   (format *output-stream* "</ul>~%"))
 
-
+(defun htmlify-thing (a)
+  (cond ((stringp a) (htmlify a))
+	((symbolp a) a)
+	((listp a) (mapcar #'htmlify-thing a))
+	(t a)))
 
 (defstruct htmlbl forms tables)
 
@@ -1817,8 +2188,8 @@
 	      (format nil "All symbols used during form generation must have arity 1; ~A has arity ~A" (parameter-symbol p) (parameter-arity p)))
       (setq name (parameter-symbol p))
       (setq init (viewfinds '?x `(,(tosymbol (tostring signame ".") name) ?x) formdata))
-      (setq type (first (parameter-type p)))
-      (when init (setq init (cons 'listof (mapcar #'(lambda (x) (sanitize-untrusted-data type x)) init))))
+      (setq type (or (first (parameter-type p)) 'string))  ; default to string
+      (when init (setq init (cons 'listof (mapcar #'htmlify init))))
       (setq desc (tostring name))
       (setq incundef t)
       (multiple-value-setq (style unique req type values) (extract-widget-info formname p))
@@ -1861,7 +2232,7 @@
 	   (setq values (cons 'listof values)))
 	  (t
 	   (setq style 'textbox)
-	   (setq typename (first (parameter-type param)))
+	   (setq typename (or (first (parameter-type param)) 'string))
 	   (setq values nil)))
     (values style unique required typename values)))
 	    
@@ -1951,12 +2322,12 @@
   (princ (sanitize-untrusted-data type val) s))
 
 (defun sanitize-untrusted-data (type val)
-  (case type
-    (integer val)
-    (boolean val)
-    (string (htmlify val))
-    (htmlstring (htmlpurify val))
-    (otherwise 'sanitized-unknown-type)))
+  (let (sort)
+    (setq sort (gethash type *sorts*))
+    (cond ((not sort)
+	   (htmlify (format nil "~A" val)))
+	  (t
+	   (viewfindx '?x `(,(sort-htmlsanitizer sort) ,val ?x) 'a)))))
 
 (defun htmlpurify (val)
   "(HTMLPURIFY VAL) returns a string representation of VAL after removing unsafe HTML.
@@ -1964,6 +2335,12 @@
   (write-any-file "/tmp/htmlpurify" val)
   (exec-commandline "php" (fspath :clicl "htmlpurify" "php") "/tmp/htmlpurify"))
   
+(defun htmlpurify-errorsp (val)
+  "(HTMLPURIFY-ERRORSP VAL) returns a boolean indicating whether or not the purification
+   process returns errors."
+  (write-any-file "/tmp/htmlpurify" val)
+  (setq val (exec-commandline "php" (fspath :clicl "htmlpurifyp" "php") "/tmp/htmlpurify"))
+  (if (char= (char val 0) #\E) t nil))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

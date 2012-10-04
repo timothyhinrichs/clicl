@@ -4,6 +4,7 @@
 
 ;;;;;;;;; Using <= for datalog and everything else for FOL
 
+(reset-weblog)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;; Schemas ;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -22,6 +23,8 @@
 ;    More precisely, predicates must be valid JS and HTML identifiers (safe to use alphanum and _)
 ;    In logic, reference via <signaturename>.<predicate>
 
+(defsignature db (nextfreeauctionid :type integer))
+
 (defsignature3 db.user id name pass newsletter regdate birthmonth birthday birthyear address city state zip country telephone) 
 (defschema db.user :signature db.user :guards (db.user))
 
@@ -37,15 +40,13 @@
 (defsignature search titdesc keywords closed category lowprice highprice buyitnow buyitnowonly ending)
 (defschema search :signature search)
 
-; Really ought not to have to put the TYPE on this since we can infer it from the db.auction.  More precisely, once we ensure every servlet handles
-;   one form, we ought to be able to move constraints (and therefore types) back and forth between the form and the DB/Session/Cookies/etc.
-;  Call this the Constraint Inference Problem.  But until we have a solution in place, we need to copy types/constraints around.
-(defsignature item id category title subtitle (description :type htmlstring) type quantity startprice shippingfee reserveprice buynow bidinc startdate_day startdate_month startdate_year startdate_time duration shipping_conditions shipping_international shipping_terms payment options relists)
+; note that the type of DESCRIPTION is now inferred from (i) db.auction.DESCRIPTION and (ii) updates that store this description in db.auction.description
+(defsignature item id category title subtitle description type quantity startprice shippingfee reserveprice buynow bidinc startdate_day startdate_month startdate_year startdate_time duration shipping_conditions shipping_international shipping_terms payment options relists)
 (defschema item :signature item :guards (item))
 (defsignature itemid id)
 (defschema itemid :signature itemid)
 
-(defsignature3 db.auction id owner category title subtitle (description :type (string htmlstring)) type quantity startprice shippingfee reserveprice buynow bidinc startdate_day startdate_month startdate_year startdate_time duration shipping_conditions shipping_international shipping_terms payment options relists)
+(defsignature3 db.auction (id :type integer) owner category title subtitle (description :type (integer html)) type (quantity :type (integer integer)) startprice shippingfee reserveprice buynow bidinc startdate_day startdate_month startdate_year startdate_time duration shipping_conditions shipping_international shipping_terms payment options relists)
 (defschema db.auction :signature db.auction :guards (item))
 
 (defsignature babysearch keywords)
@@ -147,8 +148,8 @@
   (exists ?x (login.id ?x))   "Must provide login ID"
   (exists ?y (login.pass ?y))  "Must provide login password"
   (=> (login.id ?id) (login.pass ?pass) (db.user.pass ?id ?pass)) "Login incorrect"
-  (=> (login.id ?x) (login.id ?y) (same ?x ?y))  "Can only provide 1 login ID"
-  (=> (login.pass ?x) (login.pass ?y) (same ?x ?y))  "Can only provide 1 password"
+  (=> (login.id ?x) (login.id ?y) (= ?x ?y))  "Can only provide 1 login ID"
+  (=> (login.pass ?x) (login.pass ?y) (= ?x ?y))  "Can only provide 1 password"
 )
 
 (defguard category 
@@ -229,7 +230,7 @@
 
 (defdb
   ; DO NOT DELETE THIS
-  (db.nextfreeauctionid "1")
+  (db.nextfreeauctionid 1)
 
   (db.user "thinrich")
   (db.user.name "thinrich" "Tim")
@@ -253,17 +254,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defupdate genitemid (:language posneg)
-  (<= (pos (item.id ?x)) (item.id "") (db.nextfreeauctionid ?x))
-  (<= (neg (item.id ?x)) (item.id "") (item.id ?x))
-  (<= (pos (db.nextfreeauctionid ?z)) (item.id "") (db.nextfreeauctionid ?w) (to_integer ?w ?x) (+ ?x 1 ?y) (to_string ?y ?z))
+  (<= (pos (item.id ?x)) (db.nextfreeauctionid ?x))
+  (<= (neg (item.id ?x)) (item.id ?x))
+  (<= (pos (db.nextfreeauctionid ?y)) (db.nextfreeauctionid ?x) (+ ?x 1 ?y))
   (<= (neg (db.nextfreeauctionid ?x)) (db.nextfreeauctionid ?x))
 )
 
 (defupdate saveauction (:language posneg)
 
-  ; add the new and delete the old (pos overrides neg)
+  ; Add the new and delete the old (pos overrides neg)
   (<= (pos (db.auction.id ?x)) (item.id ?x))
-  (<= (pos (db.auction.owner ?x ?y)) (item.id ?x) (session.username ?x ?y))
+  (<= (pos (db.auction.owner ?x ?y)) (item.id ?x) (session.username ?y))
   (<= (pos (db.auction.category ?x ?y)) (item.id ?x) (ITEM.CATEGORY ?y))
   (<= (pos (db.auction.title ?x ?y)) (item.id ?x) (item.title ?y))
   (<= (pos (db.auction.subtitle ?x ?y)) (item.id ?x) (item.subtitle ?y))
@@ -286,7 +287,7 @@
   (<= (pos (db.auction.relists ?x ?y)) (item.id ?x) (item.relists ?y))
 
   (<= (neg (db.auction.id ?x)) (item.id ?x))
-  (<= (neg (db.auction.owner ?x ?y)) (db.auction.owner ?x ?y))
+  (<= (neg (db.auction.owner ?x ?y)) (item.id ?x) (db.auction.owner ?x ?y))
   (<= (neg (db.auction.category ?x ?y)) (item.id ?x) (db.auction.category ?x ?y))
   (<= (neg (db.auction.title ?x ?y)) (item.id ?x) (db.auction.title ?x ?y))
   (<= (neg (db.auction.subtitle ?x ?y)) (item.id ?x) (db.auction.subtitle ?x ?y))
@@ -736,3 +737,5 @@
 |#
 )
 
+(infer-types)
+(insert-type-checking-and-coersion)

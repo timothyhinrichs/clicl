@@ -107,14 +107,15 @@
 	   ; run builtin code
 	   (handler-case (progn 
 			   (setq values (apply code argvals))
-			   ; common case: returning a single value
-			   (when (atom values) (setq values (list values)))
-			   ; when something is returned, check that unification holds; otherwise just check if returnval is t or not
-			   (cond ((not retvals)
+			   ; if numreturns=0, just check if function returns non-nil
+			   ; otherwise, check that unification holds
+			   (cond ((= numreturns 0)
 				  (if values
 				      (viewonelast pl al depth cont)
 				      (viewfail (car pl) al depth)))
 				 (retvals
+			          ; common case: returning a single value
+				  (when (atom values) (setq values (list values)))
 				  (setq ol (matchify `(listof . ,retvals) al `(listof . ,values) al))
 				  (if ol 
 				      (prog1 (viewonelast pl al depth cont) (backup ol))
@@ -378,14 +379,14 @@
 	   ; run builtin code
 	   (handler-case (progn 
 			   (setq values (apply code argvals))
-			   ; common case: returning a single value
-			   (when (atom values) (setq values (list values)))
 			   ; when something is returned, check that unification holds; otherwise just check if returnval is t or not
-			   (cond ((not retvals)
+			   (cond ((= numreturns 0)
 				  (if values
 				      (viewallexit pl al depth cont)
 				      (viewfail (car pl) al depth)))
 				 (retvals
+			          ; common case: returning a single value
+				  (when (atom values) (setq values (list values)))
 				  (setq ol (matchify `(listof . ,retvals) al `(listof . ,values) al))
 				  (if ol 
 				      (prog1 (viewallexit pl al depth cont) (backup ol))
@@ -609,14 +610,14 @@
 	   ; run builtin code
 	   (handler-case (progn 
 			   (setq values (apply code argvals))
-			   ; common case: returning a single value
-			   (when (atom values) (setq values (list values)))
 			   ; when something is returned, check that unification holds; otherwise just check if returnval is t or not
-			   (cond ((not retvals)
+			   (cond ((= numreturns 0)
 				  (if values
 				      (viewsuppsexit pl al depth cont)
 				      (viewsuppsfail (car pl) al depth)))
 				 (retvals
+			          ; common case: returning a single value
+				  (when (atom values) (setq values (list values)))
 				  (setq ol (matchify `(listof . ,retvals) al `(listof . ,values) al))
 				  (if ol 
 				      (prog1 (viewsuppsexit pl al depth cont) (backup ol))
