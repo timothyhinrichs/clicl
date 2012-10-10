@@ -61,3 +61,14 @@ dl.phpa-tabs dd.active a:hover	{ text-decoration: underline; color: #660000; }
 .table-bar a:active	{ color: #BA1D1D; }
 a:active	{ color: #BA1D1D; }
 .container	{ background-color: #ffffff; }
+
+
+
+#side-panel{
+	float:left;
+	border-right:solid grey 2px;
+	width: 10%;
+}
+#content{
+	float:left;
+}
