@@ -9,6 +9,7 @@
 ; message id must be unique
 (defguard message
   (=> (message.id ?x) (message.id ?y) (= ?x ?y))
+  (=> (message.text ?x) (message.text ?y) (= ?x ?y))
 )
 
 ; save a new message to the db
@@ -19,7 +20,7 @@
  )
 
 ; the form to input a new message
-(defform new-message :schema message :target new-message)
+(defform new-message :schema message :target new-message :guards (message))
 
 ; the table to show the messages
 (deftable messages :schema message)
