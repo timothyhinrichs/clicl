@@ -307,8 +307,8 @@
 	    ((eq (first xs) :entry) (setq entry (second xs)))
 	    ((eq (first xs) :guards) (push (make-guardlist :guards (second xs)) guts))
 	    ((eq (first xs) :updates) (push (make-updatelist :updates (second xs)) guts))
-	    (t (error 'invalid-servlet :comment (format nil "Unknown option: ~A" xs)))) 
-    (setf (gethash p *servlets*) (make-servlet :name p :page page :guts (nreverse guts) :entry entry)))))
+	    (t (error 'invalid-servlet :comment (format nil "Unknown option: ~A" xs)))))
+    (setf (gethash p *servlets*) (make-servlet :name p :page page :guts (nreverse guts) :entry entry))))
 
 ; HTML keys are lists of (htmlpagenames or filenames or HTMLREPL objs)
 (defvar *html* (make-hash-table))

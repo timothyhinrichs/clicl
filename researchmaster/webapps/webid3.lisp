@@ -740,3 +740,37 @@
 
 (infer-types)
 (insert-type-checking-and-coersion)
+
+#|
+(deftheory mytheory ""
+  (<= (output ?t ?u ?v ?w)
+      (requester ?x)
+      (not (blacklisted ?x))
+      (db.user ?t ?u ?v ?w)
+      (active ?t))
+
+  (<= (requester ?x)
+      (profile.id ?x))
+
+  (<= (requester ?x)
+      (session.username ?x))
+
+  (<= (requester ?x)
+      (cookie.username ?x))
+
+  (db.user tim a b c)
+  (db.user alex d e f)
+  (db.user nathan g h i)
+  (db.user nina j k l)
+  (session.username alex)
+  (blacklisted tim)
+  (active nathan)
+  (active alex)
+)
+(trace-expression '?)
+(viewfindx '(out ?t ?u ?v ?w) '(output ?t ?u ?v ?w) 'mytheory)
+(untrace-expression)
+(trace-expression '(active ?x))
+(viewfinds '(out ?t ?u ?v ?w) '(output ?t ?u ?v ?w) 'mytheory)
+
+|#
