@@ -144,6 +144,13 @@
 (defun intersectionp (list1 list2 &key (test #'eq) (key #'identity))
   (some #'(lambda (x) (if (member x list2 :test test :key key) t)) list1))
 
+(defun duplicatesp (list &key (test #'eq) (key #'identity))
+  (let ((h (make-hash-table :test test)))
+    (dolist (l list)
+      (setq l (funcall key l))
+      (when (gethash l h) (return t))
+      (setf (gethash l h) t))))
+
 (defun slice-n (index list)
   "(SLICE-N INDEX LIST) returns the INDEXth value in list LIST and removes that value from LIST destructively."
   (cond ((= index 0) (values (car list) (cdr list)))
@@ -241,6 +248,12 @@
   (cond ((funcall test list) (funcall function list))
         ((atom list) list)
         (t (mapcar #'(lambda (x) (maptree function x :test test)) list))))
+
+(defun n-intersection (x &key (test #'eq) (key #'identity))
+  (let (res)
+    (setq res (copy-list (first x)))
+    (dolist (y (cdr x) res)
+      (setq res (nintersection res y :test test :key key)))))
 
 (defun mapunion (function list &key (test #'eq))
   "(MAPUNION FUNCTION LIST EQUAL) applies function to each element of list,

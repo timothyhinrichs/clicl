@@ -207,6 +207,17 @@
 		  (when (negative-literalp (head r)) (setq newhead (maknot newhead)))
 		  (maksred (cons newhead (nconc equality (cddr r))))))))))
 
+(defun give-lit-vars (lit vars)
+  "(GIVE-LIT-VARS LIT VARS) takes any literal LIT and a list of vars as long
+   as the arity of LIT.  Returns (i) LIT where args are VARS, (ii) resulting equality statements."
+  (let (atom newlit)
+    (when (null vars) (return-from give-lit-vars (values lit nil)))
+    (setq atom (drop-not lit))
+    (setq newlit (cons (car atom) vars))
+    (when (negative-literalp lit) (setq newlit (maknot newlit)))
+    (values newlit (mapcar #'(lambda (x y) `(= ,x ,y)) vars (cdr atom)))))
+
+
 (defun existentially-quantify-body (p)
   (cond ((atom p) p)
         ((not (eq (car p) '<=)) p)

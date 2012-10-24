@@ -963,7 +963,7 @@ function addWidget (obj) {
   (setf (gethash n (dictionary-index dict)) v))
 ;  (setf (dictionary-index dict) (acons n v (dictionary-index dict))))
 
-(defstruct webform name preds univ constraints definitions options submit)
+(defstruct webform name preds univ constraints definitions options submit eq)
 (defvar *predkinds* '(:widget :extensional :intensional :builtin :query))
 (defstruct pred parameter (kind :extensional) (display nil))
 ; NAME is the HTML attribute (i.e. the symbol used in constraints and sent to server); ID is the DOM identifier and must be unique
@@ -994,7 +994,7 @@ function addWidget (obj) {
 (defun mak-undefinedvalue (x) (make-value :symbol 'undefined :shortname 'undefined :prettyname x))
 (defvar *undefinedvalue* (mak-undefinedvalue ""))
 (defvar *tmp3*)
-(defun load-formstructure (th)
+(defun load-formstructure (th &optional (fixwidgets t))
   "(LOAD-FORMSTRUCTURE TH) given a dump (as output by dump-formstructure),
    create the internal WEBFORM object that the code that follows operates on."
   (setq th (define-prologtheory (make-instance 'prologtheory) "" (contents th)))
@@ -1021,6 +1021,7 @@ function addWidget (obj) {
     
     ; case sensitivity for values
     (if (viewfindp '(option casesensitive t) options) (setq valuecomp #'equal) (setq valuecomp #'equalp))
+    (setf (webform-eq w) valuecomp)
 
     ; make widgets into objects
     (setq widgets (mapcar #'(lambda (w) (apply #'make-widget (cdr w))) widgets))
@@ -1064,7 +1065,7 @@ function addWidget (obj) {
     (setq types (nreverse ts))
 
     ; adjust widgets
-    (mapc #'(lambda (x) (ws-fixwidget x univ types valuecomp)) widgets)
+    (when fixwidgets (mapc #'(lambda (x) (ws-fixwidget x univ types valuecomp)) widgets))
 
     ;;; Build predicate list ;;;
     ; Widgets: those declared to be widgets
@@ -1127,7 +1128,8 @@ function addWidget (obj) {
     (values w (mapcar #'(lambda (x) (format nil "Unknown symbol: ~A" x)) vocab))))
   
 (defun ws-fixwidget (w univ types valuecomp)
-  "(WS-FIXWIDGET W) adjusts the given widget W to meet assumptions of compiler."
+  "(WS-FIXWIDGET W) adjusts the given widget W to meet assumptions of compiler.  Setting FIX to nil
+   turns off 'fixes' that break Weblog."
   (let (type)
     ; ensure that both name and ID are supplied
     (unless (widget-name w) (setf (widget-name w) (widget-id w)))
@@ -1137,7 +1139,7 @@ function addWidget (obj) {
     ; if typename not supplied or unknown, set to univ
     (setq type (find (widget-typename w) types :key #'parameter-symbol))
     (unless (or type (member (widget-typename w) *builtintypes*))
-      (setf (widget-typename w) (mak-univ))) 
+      (setf (widget-typename w) (mak-univ)))
 
     ; set display so that the typename, unique, and undef fields can all be satisfied
     (cond ((find (widget-typename w) *infinitetypes*) 
@@ -1196,7 +1198,6 @@ function addWidget (obj) {
 	  ((eq type 'boolean) (cons 'listof (ws-vals2objs (list *booleanfalse*) univ valuecomp)))
 	  ((eq type 'number) (cons 'listof (ws-vals2objs (list "1") univ valuecomp)))
 	  (t (assert nil nil (format nil "Couldn't compute initial value for ~A" (widget-name w)))))))
-
 
 (defun addshortnames (struct)
   "(ADDSHORTNAMES STRUCT) adds shortnames for all values in the universe."
@@ -1274,97 +1275,152 @@ function addWidget (obj) {
     ;(intcode-to-server code buf)
     (setf (htmlform-server result) (intcode-tp code))
 
+    ; render form in HTML.
+    ; requires adjusting all widget-init, widget-typename, and widget-style to be lists 
+    ;   since HTML generation supports widgets with multiple fields.
+    ; compile-websheet-html assumes widget-init is a list of tuples of data (without any LISTOFs)
+    (dolist (w (webform-widgets struct))
+      (setf (widget-init w) (mapcar #'list (cdr (widget-init w))))
+      (setf (widget-style w) (list (widget-style w)))
+      (setf (widget-typename w) (list (widget-typename w))))
+    (compile-websheet-html result struct)
+    result))
+
+(defun compile-websheet-html (htmlform struct)
+  "(COMPILE-WEBSHEET-HTML HTMLFORM STRUCT)  takes an HTMLFORM object and a webform struct generates the HTML portion of the webform.
+    Note that here we're assuming STRUCT may represent multi-column widgets and hence widget-init, widget-style, and widget-typename are all lists."
+  (setq *tmp* struct)
+  (let (code)
     ; fill in remaining values for rendering form on client
-    (setf (htmlform-onload result) "init()")
-    (setf (htmlform-submitprep result) "submitprep()")
-    (setf (htmlform-name result) (webform-name struct))
-    (setf (htmlform-action result) (format nil "/plato/commitform?"))
+    (setf (htmlform-onload htmlform) "init()")
+    (setf (htmlform-submitprep htmlform) "submitprep()")
+    (setf (htmlform-name htmlform) (webform-name struct))
+    (setf (htmlform-action htmlform) (format nil "/plato/commitform?"))
     (dolist (r (webform-widgets struct))
       (setq code (compile-websheet-widget r struct))  ; returns a struct
       (cond ((not code))
-	    ((eq (widget-style r) 'hidden) (push (htmlwidget-html code) (htmlform-hidden result)))
-	    (t (push code (htmlform-widgets result)))))
+	    ((eq (widget-style r) '(hidden)) (push (htmlwidget-html code) (htmlform-hidden htmlform)))
+	    (t (push code (htmlform-widgets htmlform)))))
     (push (with-output-to-string (s) (output-ws-hidden s "formname" nil nil (make-value :prettyname (webform-name struct)) nil nil nil))
-	  (htmlform-hidden result))
+	  (htmlform-hidden htmlform))
     (push (with-output-to-string (s) (output-ws-hidden s "time" nil nil (make-value :prettyname (get-universal-time)) nil nil nil))
-	  (htmlform-hidden result))
-    (setf (htmlform-widgets result) (nreverse (htmlform-widgets result)))
-    (setf (htmlform-options result) (webform-options struct))
-    (setf (htmlform-cssincludes result) *corecss*)
-    (setf (htmlform-jsincludes result) *corejs*)
-    result))
+	  (htmlform-hidden htmlform))
+    (setf (htmlform-widgets htmlform) (nreverse (htmlform-widgets htmlform)))
+    (setf (htmlform-options htmlform) (webform-options struct))
+    (setf (htmlform-cssincludes htmlform) *corecss*)
+    (setf (htmlform-jsincludes htmlform) *corejs*))
+  htmlform)
 
 (defun compile-websheet-widget (r struct)
   "(COMPILE-WEBSHEET-WIDGET R STRUCT) takes a widget and a webform struct and returns an HTML widget
    representing R."
-  (let ((res nil) s)
+  (let ((res nil) s unary init name id)
     (when (widget-name r)
       (setq res (make-htmlwidget))
       (setf (htmlwidget-name res) (widget-name r))
       (setf (htmlwidget-description res) (widget-desc r))
       (setf (htmlwidget-required res) (widget-req r))
       (setq s (make-array 0 :element-type 'character :adjustable t :fill-pointer 0))
-      (unless (eq (widget-style r) 'hidden)
+      (unless (equal (widget-style r) '(hidden))
 	(format s "<span id=\"~Abox\" class=\"databox\" onMouseOver=\"~A\" onMouseOut=\"~A\" >~%" 
 		(websheet-cellname (widget-id r))
 		(format nil "~(~A_mouseover('~A')~)" (widget-style r) (websheet-cellname (widget-id r)))
 		(format nil "~(~A_mouseout('~A')~)" (widget-style r) (websheet-cellname (widget-id r)))))
-      (cond ((eq (widget-style r) 'selector)
-	     (output-websheet-selector  
-	      s 
-	      (websheet-cellname (widget-name r))
-	      (websheet-cellname (widget-id r))	      
-	      (pred-univ (find (widget-typename r) (webform-preds struct) :key #'pred-name))
-	      (widget-unique r)
-	      (widget-incundef r)
-	      (widget-init r)
-	      (tostring (list "selector_change('" (websheet-cellname (widget-name r)) "')"))
-	      (tostring (list "selector_focus('" (websheet-cellname (widget-name r)) "')"))))
-	    ((eq (widget-style r) 'textbox)
-	     (output-websheet-textbox  
-	      s 
-	      (websheet-cellname (widget-name r)) 
-	      (websheet-cellname (widget-id r)) 
-	      (widget-unique r)
-	      (widget-incundef r)
-	      (widget-init r)
-	      (tostring (list "textbox_change('" (websheet-cellname (widget-name r)) "')"))
-	      (tostring (list "textbox_focus('" (websheet-cellname (widget-name r)) "')"))))
-	    ((eq (widget-style r) 'hidden)
-	     (output-websheet-hidden  
-	      s 
-	      (websheet-cellname (widget-name r)) 
-	      (websheet-cellname (widget-id r)) 
-	      (widget-unique r)
-	      (widget-incundef r)
-	      (widget-init r)
-	      ""  ;(list "textbox_change('" (websheet-cellname (widget-name r)) "')"))
-	      "")) ;(tostring (list "textbox_focus('" (websheet-cellname (widget-name r)) "')"))))
-	   ((eq (widget-style r) 'radio)
-	     (output-websheet-radio 
-	      s
-	      (websheet-cellname (widget-name r)) 
-	      (websheet-cellname (widget-id r)) 
-	      (pred-univ (find (widget-typename r) (webform-preds struct) :key #'pred-name))
-	      (widget-unique r)
-	      (widget-incundef r)
-	      (widget-init r)
-	      (tostring (list "radio_change('" (websheet-cellname (widget-name r)) "')"))
-	      (tostring (list "radio_focus('" (websheet-cellname (widget-name r)) "')"))))
-	   ((eq (widget-style r) 'checkbox)
-	     (output-websheet-checkbox 
-	      s 
-	      (websheet-cellname (widget-name r)) 
-	      (websheet-cellname (widget-id r)) 
-	      (pred-univ (find (widget-typename r) (webform-preds struct) :key #'pred-name))
-	      (widget-unique r)
-	      (widget-incundef r)
-	      (widget-init r)
-	      (tostring (list "checkbox_change('" (websheet-cellname (widget-name r)) "')"))
-	      (tostring (list "checkbox_focus('" (websheet-cellname (widget-name r)) "')")))))
-      (unless (eq (widget-style r) 'hidden) (format s "</span>"))
+      (setq unary (null (cdr (widget-style r))))
+      (cond (unary  ; leverage HTML's ability to natively support selecting multiple values for unary fields
+	     (setq init (mapcar #'first (widget-init r)))
+	     (output-websheet-style (first (widget-style r)) 
+				    (first (widget-typename r)) 
+				    init 
+				    r 
+				    (or (cdr init) (not (widget-unique r)))
+				    struct
+				    s))
+	    (t	 
+	     ;(format t "~~%~% init for widget ~A is ~A~%~%" (widget-name r) (widget-init r))
+	     (setq name (widget-name r))
+	     (setq id (widget-id r))
+	     (do ((inits (widget-init r) (cdr inits))
+		  (row 0 (1+ row)))
+		 ((null inits))
+	       (compile-websheet-widget-output-multivalue-head s)
+	       (do ((styles (widget-style r) (cdr styles))
+		    (types (widget-typename r) (cdr types))
+		    (is (car inits) (cdr is))
+		    (col 0 (1+ col)))
+		   ((null styles))
+		 (setf (widget-name r) (format nil "~A[~A][~A]" name col row))
+		 (setf (widget-id r) (format nil "~A[~A][~A]" id col row))
+		 (output-websheet-style (first styles) (first types) (list (first is)) r nil struct s))
+	       (compile-websheet-widget-output-multivalue-foot s))
+	     (setf (widget-name r) name)
+	     (setf (widget-id r) id)))
+      (unless (equal (widget-style r) '(hidden)) (format s "</span>"))
       (setf (htmlwidget-html res) s)
       res)))
+
+(defun compile-websheet-widget-output-multivalue-head (s))
+(defun compile-websheet-widget-output-multivalue-foot (s))
+
+(defun output-websheet-style (style type values r multi struct s)
+  "(OUTPUT-WEBSHEET-STYLE STYLE R VALUES MULTI S) takes a symbol STYLE, a widget R, a list of initial values VALUES,
+   a boolean MULTI, and a stream S.  It outputs to S the widget R in style STYLE, where MULTI controls whether or not to output a widget that
+   enables multiple values to be chosen. Requires that if len(values) > 1 then multi=true."
+  (assert (or (null (cdr values)) multi) nil (format nil "Cannot have more than 1 default value if widget only accepts 1 value"))
+  (cond ((eq style 'selector)
+	 (output-websheet-selector  
+	  s 
+	  (websheet-cellname (widget-name r))
+	  (websheet-cellname (widget-id r))	      
+	  (pred-univ (find type (webform-preds struct) :key #'pred-name))
+	  (not multi)
+	  (widget-incundef r)
+	  values
+	  (tostring (list "selector_change('" (websheet-cellname (widget-name r)) "')"))
+	  (tostring (list "selector_focus('" (websheet-cellname (widget-name r)) "')"))))
+	((eq style 'textbox)
+	 (output-websheet-textbox  
+	  s 
+	  (websheet-cellname (widget-name r)) 
+	  (websheet-cellname (widget-id r)) 
+	  (not multi)
+	  (widget-incundef r)
+	  values
+	  (tostring (list "textbox_change('" (websheet-cellname (widget-name r)) "')"))
+	  (tostring (list "textbox_focus('" (websheet-cellname (widget-name r)) "')"))))
+	((eq style 'hidden)
+	 (output-websheet-hidden  
+	  s 
+	  (websheet-cellname (widget-name r)) 
+	  (websheet-cellname (widget-id r)) 
+	  (not multi)
+	  (widget-incundef r)
+	  values
+	  ""  ;(list "textbox_change('" (websheet-cellname (widget-name r)) "')"))
+	  "")) ;(tostring (list "textbox_focus('" (websheet-cellname (widget-name r)) "')"))))
+	((eq style 'radio)
+	 (output-websheet-radio 
+	  s
+	  (websheet-cellname (widget-name r)) 
+	  (websheet-cellname (widget-id r)) 
+	  (pred-univ (find type (webform-preds struct) :key #'pred-name))
+	  (not multi)
+	  (widget-incundef r)
+	  values
+	  (tostring (list "radio_change('" (websheet-cellname (widget-name r)) "')"))
+	  (tostring (list "radio_focus('" (websheet-cellname (widget-name r)) "')"))))
+	((eq style 'checkbox)
+	 (output-websheet-checkbox 
+	  s 
+	  (websheet-cellname (widget-name r)) 
+	  (websheet-cellname (widget-id r)) 
+	  (pred-univ (find type (webform-preds struct) :key #'pred-name))
+	  (not multi)
+	  (widget-incundef r)
+	  values
+	  (tostring (list "checkbox_change('" (websheet-cellname (widget-name r)) "')"))
+	  (tostring (list "checkbox_focus('" (websheet-cellname (widget-name r)) "')"))))
+	(t (format s "Unknown widget type: ~A" style))))
 
 ; For now, on multi-select widgets, the empty set signals undefined.  In other words,
 ;   the user can choose any set except the empty set.
@@ -1392,7 +1448,6 @@ function addWidget (obj) {
 
 (defun output-websheet-hidden (s name id unique incundef values changeaction focus)
   (declare (ignore unique))
-  (setq values (cdr values))
   (dolist (v values)
     (output-ws-hidden s name id incundef v changeaction focus nil)))
 
@@ -1403,7 +1458,6 @@ function addWidget (obj) {
 	  (if value (value-prettyname value) "")))
 
 (defun output-websheet-textbox (s name id unique incundef values changeaction focus)
-  (setq values (cdr values))
   (if unique
       (output-ws-textbox s name id incundef (first values) changeaction focus nil)
       (output-websheet-multi s name id incundef values changeaction focus #'output-ws-textbox)))
@@ -1434,12 +1488,11 @@ function addWidget (obj) {
     (output-plus-widget s (format nil "addTableRow('~A',this)" ghost) bottom)
     (format s "</td></tr></table>")))
 
-; checkbox does not handle undefined value or multiple values, but we should never get here if either is the case
+; checkbox does not handle undefined value for boolean types, but we should never get here if that is the case
 (defun output-websheet-checkbox (s name id options unique incundef values changeaction focus)
   (declare (ignore incundef))
-  (setq values (cdr values))
-  (assert (or (not unique) (not (cddr values))) nil 
-	  (format nil "Widget ~A cannot be a checkbox because it is unique and not boolean." name))
+;  (assert (or (not unique) (not (cddr values))) nil   ; shouldn't this be (cddr options)
+;	  (format nil "Widget ~A cannot be a checkbox because it is unique and not boolean." name))
   (if unique
       (output-ws-checkbox s name id (first options) (equalp (first values) (first options))
 			  changeaction focus nil)
@@ -1460,7 +1513,6 @@ function addWidget (obj) {
 
 (defun output-websheet-radio (s name id options unique incundef values changeaction focus)
   (declare (ignore unique))
-  (setq values (cdr values))
   (when incundef
     (setq options (cons (mak-undefinedvalue "Undefined") options)))
   (dolist (o options)

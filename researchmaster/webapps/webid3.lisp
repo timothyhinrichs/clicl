@@ -42,6 +42,11 @@
 (defsignature search titdesc keywords closed category lowprice highprice buyitnow buyitnowonly ending)
 (defschema search :signature search)
 
+(defsignature paper (id :type integer) title (author :type (string string string)))
+(defsignature3 db.paper id title (author :type (integer string string string)))
+(defschema paper :signature paper)
+(defschema db.paper :signature db.paper)
+
 ; note that the type of DESCRIPTION is now inferred from (i) db.auction.DESCRIPTION and (ii) updates that store this description in db.auction.description
 (defsignature item id category title subtitle description type quantity startprice shippingfee reserveprice buynow bidinc startdate_day startdate_month startdate_year startdate_time duration shipping_conditions shipping_international shipping_terms payment options relists)
 (defschema item :signature item :guards (item))
@@ -64,6 +69,12 @@
 ;;;;;;;;;;;;;;;;;; Guards ;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; each guard is a datalog theory (or a combination of theories)
+
+(defguard paper
+   (=> (paper.id ?x) (paper.id ?y) (= ?x ?y))
+   (=> (paper.title ?x) (paper.title ?y) (= ?x ?y))
+   (=> (paper.author ?x1 ?x2 ?x3) (paper.author ?y1 ?y2 ?y3) (and (= ?x1 ?y1) (= ?x2 ?y2) (= ?x3 ?y3)))
+)
 
 (defguard item
     (=> (item.type ?x) (or (= ?x "standard") (= ?x "dutch"))) "Auctions must be Standard or Dutch"
@@ -162,6 +173,10 @@
   (category.id 0)
   (=> (category.id ?x) (category.id ?y) (= ?x ?y)))
 
+(defguard auctionid
+    (=> (itemid.id ?x) (itemid.id ?y) (= ?x ?y))
+    (=> (itemid.id ?x) (db.auction.id ?x)))
+
 ;(defguard db :inherits (db.user))
 
 (defguard db.user :inherits (db.user-basic db.user-misc))
@@ -232,7 +247,7 @@
 
 (defdb
   ; DO NOT DELETE THIS
-  (db.nextfreeauctionid 1)
+  (db.nextfreeauctionid 2)
 
   (db.user "thinrich")
   (db.user.name "thinrich" "Tim")
@@ -249,18 +264,54 @@
   (db.user.newsletter "thinrich" "true")
   (db.user.accttype "thinrich" "buyer")
 
+  (db.auction.id 1)
+  (db.auction.owner 1 "thinrich")
+  (db.auction.category 1 "")
+  (db.auction.title 1 "My auction")
+  (db.auction.subtitle 1 "")
+  (db.auction.description 1 "")
+  (db.auction.type 1 "standard")
+  (db.auction.quantity 1 1)
+  (db.auction.startprice 1 "")
+  (db.auction.shippingfee 1 "")
+  (db.auction.reserveprice 1 "")
+  (db.auction.buynow 1 "")
+  (db.auction.bidinc 1 "")
+  (db.auction.startdate_day 1 "")
+  (db.auction.startdate_month 1 "")
+  (db.auction.startdate_year 1 "")
+  (db.auction.startdate_time 1 "")
+  (db.auction.duration 1 "undefined")
+  (db.auction.shipping_conditions 1 "undefined")
+  (db.auction.shipping_international 1 "")
+  (db.auction.shipping_terms 1 "")
+  (db.auction.relists 1 "undefined")
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;; DB Updates ;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defupdate genpaperid (:language posneg)
+  (<= (pos (paper.id ?x)) (db.nextfreeauctionid ?x))
+  (<= (neg (paper.id ?x)) (paper.id ?x))
+  (<= (pos (db.nextfreeauctionid ?y)) (db.nextfreeauctionid ?x) (+ ?x 1 ?y))
+  (<= (neg (db.nextfreeauctionid ?x)) (db.nextfreeauctionid ?x)))
+
+(defupdate savepaper (:language posneg)
+  (<= (pos (db.paper.id ?x)) (paper.id ?x))
+  (<= (pos (db.paper.title ?x ?y)) (paper.id ?x) (paper.title ?y))
+  (<= (pos (db.paper.author ?w ?x ?y ?z)) (paper.id ?w) (paper.author ?x ?y ?z)))
+
+(defupdate lookuppaper (:language posneg)
+  (<= (pos (paper.title ?x ?y)) (paper.id ?x) (db.paper.title ?x ?y))
+  (<= (pos (paper.author ?x ?y ?z)) (paper.id ?x) (db.paper.author ?x ?y ?z ?w)))
+
 (defupdate genitemid (:language posneg)
   (<= (pos (item.id ?x)) (db.nextfreeauctionid ?x))
   (<= (neg (item.id ?x)) (item.id ?x))
   (<= (pos (db.nextfreeauctionid ?y)) (db.nextfreeauctionid ?x) (+ ?x 1 ?y))
-  (<= (neg (db.nextfreeauctionid ?x)) (db.nextfreeauctionid ?x))
-)
+  (<= (neg (db.nextfreeauctionid ?x)) (db.nextfreeauctionid ?x)))
 
 (defupdate saveauction (:language posneg)
 
@@ -336,10 +387,9 @@
   (<= (pos (item.relists ?y)) (item.id ?x) (db.auction.relists ?x ?y))
 )
 
-; defined as constraints + malleable
 (defupdate saveprofile (:language posneg)
 
-  ; dumb implementation: delete entire old profile and add entire new profile
+  ; delete entire old profile and add entire new profile: compiler should optimize
   (<= (pos (db.user ?x)) (profile.username ?x))
   (<= (pos (db.user.name ?x ?y)) (and (profile.username ?x) (profile.name ?y)) )
 
@@ -516,16 +566,17 @@
 (defform login :schema login :target login :guards (login-entry))
 ;(defform search :schema search :target search :guards (search-basic))
 (defform edit-auction :schema item :target save-auction)
-(defform choose-auction :schema itemid :target show-auction)
+(defform choose-auction :schema itemid :guards (auctionid) :target show-auction)
 
 ;(deftable auction :schema auction-listing)
 (defform credentials :schema login :target login)
 ;(defform babysearch :schema babysearch :target search)
-;(defform category :schema categoryid :target browse-categories :guards (category))
+(defform category :schema categoryid :target browse-categories :guards (category))
 ;(defform topcategory :schema categoryid :target browse-categories :guards (topcategory))
 (deftable news :schema news)
 (deftable auction :schema item)
 
+(defform paper :schema paper :guards (paper) :target save-paper)
 ; (a) we should be able to derive profile-basic based on the :target.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -561,6 +612,9 @@
 (defservlet show-auction :updates (itemid2item lookupauction) :page show-auction-page)
 
 (defservlet edit-auction :guards (loggedin) :updates (lookupauction) :page new-auction-page)
+
+(defservlet new-paper :page new-paper-page)
+(defservlet save-paper :updates (genpaperid savepaper) :page success)
 
 ; Advanced search page: combine search fields and results onto single page 
 ;(defservlet search :guards (search-basic) :actions (runsearch) :page search :entry t)
@@ -599,6 +653,9 @@
 
 (defhtml show-auction-page header show-auction footer)
 (defhtml show-auction ("auction.html" :tables (("auction" auction))))
+
+(defhtml new-paper-page header new-paper footer)
+(defhtml new-paper ("profile.html" :forms (("registration" paper))))
 
 ;(defhtml search-page header search footer)
 ;(defhtml search ("search.html" :forms (("search" search)) :tables (("auctions" auctions))))
@@ -742,36 +799,3 @@
 (infer-types)
 (insert-type-checking-and-coersion)
 
-#|
-(deftheory mytheory ""
-  (<= (output ?t ?u ?v ?w)
-      (requester ?x)
-      (not (blacklisted ?x))
-      (db.user ?t ?u ?v ?w)
-      (active ?t))
-
-  (<= (requester ?x)
-      (profile.id ?x))
-
-  (<= (requester ?x)
-      (session.username ?x))
-
-  (<= (requester ?x)
-      (cookie.username ?x))
-
-  (db.user tim a b c)
-  (db.user alex d e f)
-  (db.user nathan g h i)
-  (db.user nina j k l)
-  (session.username alex)
-  (blacklisted tim)
-  (active nathan)
-  (active alex)
-)
-(trace-expression '?)
-(viewfindx '(out ?t ?u ?v ?w) '(output ?t ?u ?v ?w) 'mytheory)
-(untrace-expression)
-(trace-expression '(active ?x))
-(viewfinds '(out ?t ?u ?v ?w) '(output ?t ?u ?v ?w) 'mytheory)
-
-|#

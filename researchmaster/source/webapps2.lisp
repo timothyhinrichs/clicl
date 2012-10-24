@@ -182,6 +182,12 @@
     (setq constraints (mapcar #'order-datalog-rule constraints))
     (define-theory (make-instance 'prologtheory) "" (subrel '((= . same)) (append constraints rules)))))
 
+(defun logic-to-datalog (l)
+  (setq l (mapcan #'to-canonical-datalog l))
+  (setq l (mapcar #'(lambda (x) (order-datalog-rule x :attach (webapp-builtin-params))) l))
+  (setq l (subrel '((= . same)) l))
+  l)
+
 (defun extract-kif-plus-text (l)
   (let (th)
     (setq th nil)
@@ -293,8 +299,6 @@
 (defun servlet-guards (servlet)
   (apply #'append (remove-if-not #'guardlist-p (servlet-guts servlet))))
 
-    
-
 (defmacro defservlet (p &rest l)
   "(DEFSERVLET P &REST L)"
   `(define-servlet ',p ',l))
@@ -380,8 +384,12 @@
 ;;;;; Builtins (not set by developers, but by us)
 
 (defvar *weblog-builtins* (make-hash-table))
-(defstruct builtin name code args returns internal)
-(defun webapp-builtins () (mapcar #'car (hash2bl *weblog-builtins*)))
+(defstruct builtin name code args returns internal param)
+(defun webapp-builtins () (cons '= (mapcar #'car (hash2bl *weblog-builtins*))))
+(defun webapp-builtin-params () 
+  (cons (make-parameter :symbol '= :arity 2) 
+	(mapcar #'(lambda (x) (builtin-param (cdr x))) (hash2bl *weblog-builtins*))))
+(defun is-builtin (x) (if (eq x '=) t (nth-value 1 (gethash x *weblog-builtins*))))
 
 (defmacro defbuiltin (p code args returns &optional internal) `(define-builtin ',p (function ,code) ',args ',returns ',internal))
 (defun define-builtin (p func args returns internal)
@@ -391,7 +399,9 @@
   (unless (listp args) (setq args (list args)))
   (unless (listp returns) (setq returns (list returns)))
   ; register as weblog builtin
-  (setf (gethash p *weblog-builtins*) (make-builtin :name p :code func :args args :returns returns :internal internal))
+  (setf (gethash p *weblog-builtins*) 
+	(make-builtin :name p :code func :args args :returns returns :internal internal
+		      :param (make-parameter :symbol p :arity (+ (length args) (length returns)) :type (append args returns))))
   ; register builtin with Epilog's viewfind code
   (setf (gethash p *builtins*) (list func (length args) (length returns))))
 
@@ -474,7 +484,7 @@
 (defbuiltin lte numleqp (integer integer) nil)
 (defbuiltin gte numgeqp (integer integer) nil)
 (defbuiltin gt numgreaterp (integer integer) nil)
-
+(defbuiltin currenttime get-universal-time nil integer) 
 
 ; Epilog's builtins (from base-new.lisp)
 ; (defprop word wordp basic)
@@ -1697,44 +1707,54 @@
 ; internal servlet
 
 (defmethod process-cookies ((file (eql 'scwa)) postlines)  
-  (let (servletname formname possibleforms cookies in)
-  (handler-case 
-      (progn
-	(print *cookies*)
-    ; grab target (only necessary b/c deployed using interpreter)
-    (setq servletname (read-user-string (getf-post "servlet" postlines)))
-    (unless (gethash servletname *servlets*)
-      (setq *content* 
-	    (with-output-to-string (s)
-	      (let ((*output-stream* s))
-		(showerror in (pairs2data *cookies*) servletname (make-instance 'unknown-servlet)))))
-      (return-from process-cookies *cookies*))
+  (let (servletname formname possibleforms cookies in signame)
+    (handler-case 
+	(progn
+	  (print *cookies*)
+          ; grab target (only necessary b/c deployed with ?scwa in infomaster)
+	  (setq servletname (read-user-string (getf-post "servlet" postlines)))
+	  (unless (gethash servletname *servlets*)
+	    (setq *content* 
+		  (with-output-to-string (s)
+		    (let ((*output-stream* s))
+		      (showerror in (pairs2data-unary *cookies*) servletname (make-instance 'unknown-servlet)))))
+	    (return-from process-cookies *cookies*))
 
-    ; grab form source so as to prepend the correct namespace
-    ;   first check if serlvet only serves one form and if so, use it; otherwise, trust the submission 
-    ; so if we've uniquified form-servlet combinations, we do the secure thing; works either way
-    (setq possibleforms (servlet-formnames servletname)) 
-    (if (null (cdr possibleforms))
-	(setq formname (first possibleforms))
-	(setq formname (read-user-string (getf-post "formname" postlines))))
-    (setq in (remove-if #'(lambda (x) (member (car x) '("servlet" "formname") :test #'equal)) postlines)) 
-    (when formname
-      (setq in (add-namespace in (tostring (schema-signature (find-schema (form-schema (find-form formname))))))))
+          ; grab form source so as to prepend the correct namespace
+          ;   first check if serlvet only serves one form and if so, use it; otherwise, trust the submission.
+          ; so if we've uniquified form-servlet combinations, we do the secure thing; but still works otherwise.
+	  (setq possibleforms (servlet-formnames servletname)) 
+	  (if (null (cdr possibleforms))
+	      (setq formname (first possibleforms))
+	      (setq formname (read-user-string (getf-post "formname" postlines))))
+	  (setq in (remove-if #'(lambda (x) (member (car x) '("servlet" "formname") :test #'equal)) postlines)) 
+	  (when formname ; prefix keys with signature --- leave as string for pairs2data
+	    (setq signame (tostring (schema-signature (find-schema (form-schema (find-form formname))))))
+	    (setq in (mapcar #'(lambda (x) (cons (stringappend signame "." (car x)) (cdr x))) in)))
 
-    ; run the servlet and return its cookies
-    (setq in (pairs2data in))
-    (setq cookies (pairs2data *cookies*))  ; make sure not to add namespace to cookies so server gets raw data
-    (setq *content*
-	  (with-output-to-string (stream)
-	    (setq cookies (serve in cookies servletname stream))))
-    ; turn cookies database back to pairs
-    (data2pairs (del-namespace cookies 'cookie)))
-    (condition () 
-      (setq *content* 
-	    (with-output-to-string (s) 
-	      (let ((*output-stream* s))					       
-		(showerror in (pairs2data *cookies*) servletname (make-instance 'internal-error)))))
-      *cookies*))))
+          ; translate the HTTP request data to KIF-data (errors possible with arrays)
+	  (handler-case (setq in (pairs2data in))
+	    (condition (e)
+	      (setq *content*
+		    (with-output-to-string (s)
+		      (let ((*output-stream* s))
+			(showerror in (pairs2data-unary *cookies*) servletname e))))
+	      (return-from process-cookies *cookies*)))
+
+          ; run the servlet and return its cookies
+	  (setq cookies (pairs2data-unary *cookies*))  ; make sure not to add namespace to cookies so server gets raw data
+	  (setq *content*
+		(with-output-to-string (stream)
+		  (setq cookies (serve in cookies servletname stream))))
+          ; turn cookies database back to pairs
+	  (data2pairs (del-namespace cookies 'cookie)))
+      ; if any uncaught errors occur, probably my fault --- call it an 'internal-error'
+      (condition () 
+	(setq *content* 
+	      (with-output-to-string (s) 
+		(let ((*output-stream* s))					       
+		  (showerror in (pairs2data-unary *cookies*) servletname (make-instance 'internal-error)))))
+	*cookies*))))
 
 (defun withnamespace (pred signame) (tosymbol (stringappend signame "." pred)))
 
@@ -1781,10 +1801,90 @@
   (declare (ignore postlines))
   (princ *content* s))
 
-(defun pairs2data (pairs)
-  (mapcar #'(lambda (x) (list (tosymbol-atomic (car x)) (cdr x))) pairs))
+(define-condition invalid-array-data (error) ((comment :initarg :comment :accessor comment)))
+(defun pairs2data-unary (pairs) (mapcar #'(lambda (x) (list (tosymbol-atomic (first x)) (cdr x))) pairs))
+(defun pairs2data (pairs &optional (rowcol nil))
+  "(PAIRS2DATA PAIRS) takes a list of ('a' . 'b') and returns a list of (a b).
+  If a key is of the form 'a[i][j]', creates a list of (a b1 b2 b3 b4).
+  Treats i as the column and j as the row; to switch, set optional ROWCOL to T.
+  Default of ROWCOL to NIL plays well with JS code that dynamically adds rows by just changing the last index of each input field.
+  Returns data or throws an invalid-array-data error."
+  (let (arrays reg h rel row val p rows cols atom res)
+    ; a list of (key lastidx nexttolastindex val)
+    (setq arrays (mapcar #'(lambda (x) (multiple-value-bind (newkey firstidx secondidx) (parse-array (car x))
+					 (if rowcol 
+					     (list (tosymbol-atomic newkey) firstidx secondidx (cdr x))
+					     (list (tosymbol-atomic newkey) secondidx firstidx (cdr x))))) pairs))
+    ; handle non-array as usual (to preserve order)
+    (multiple-value-setq (arrays reg) (split #'second arrays))
+    (setq reg (mapcar #'(lambda (x) (list (tosymbol-atomic (first x)) (fourth x))) reg))
+    ; for arrays, hash data into 3-level hash table: keyed on (i) relations, (ii) rows, and (iii) cols
+    (setq h (make-hash-table))
+    (dolist (a arrays) 
+      (setq rel (gethash (first a) h))
+      (unless rel  ; initialize hash for rows of this relation
+	(setq rel (make-hash-table))
+	(setf (gethash (first a) h) rel))
+      (setq row (gethash (second a) rel))  ; already know (second a) is NON-NIL
+      (cond ((not (third a))  ; only a single index
+	     (if row  ; if already a value, throw an error
+		 (error 'invalid-array-data
+			:comment (format nil "2 values for same index: ~A[~A] is set to ~A and ~A" (first a) (second a) row (fourth a)))
+		 (setf (gethash (second a) rel) (fourth a))))
+	    (t
+	     (unless row ; initialize hash for cols of this row
+	       (setq row (make-hash-table))
+	       (setf (gethash (second a) rel) row))
+	     (setq val (gethash (third a) row))
+	     (if val
+		 (error 'invalid-array-data 
+			:comment (format nil "2 values for same index: ~A[~A][~A] is set to ~A and ~A" (first a) (second a) (third a) val (fourth a)))
+		 (setf (gethash (third a) row) (fourth a))))))
+    ; walk over the hash-tables to create data, checking for missing values as we go
+    (setq res nil)
+    ;(print (hash2bl h))
+    (dolist (rel.rows (hash2bl h))
+      (setq p (car rel.rows))
+      (setq rows (cdr rel.rows))
+      ;(format t "~&hash for rel ~A:" p)
+      ;(print (hash2bl rows))
+      (dotimes (i (hash-table-count rows))
+	(setq cols (gethash i rows))
+	(setq atom (list p))
+	(cond ((not cols)
+	       (error 'invalid-array-data
+		      :comment (format nil "no row index ~A for relation ~A" i p)))
+	      ((hash-table-p cols)
+	       ;(format t "~& hash for row ~A: " i)
+	       ;(print (hash2bl cols))
+	       (dotimes (j (hash-table-count cols))
+		 (setq val (gethash j cols))
+		 (unless val (error 'invalid-array-data
+				    :comment (format nil "no col index ~A for row ~A in relation ~A" j i p)))
+		 (push (gethash j cols) atom))
+	       (push (nreverse atom) res))
+	      (t
+	       (push (list p cols) res)))))
+    (nconc reg (nreverse res))))
 
-(defun data2pairs (data)
+
+(defun parse-array (key)
+  (let (lbrack rbrack lbrack2 rbrack2 lastidx lastidx2)
+    ; grab last index
+    (setq lbrack (search "[" key :from-end t))
+    (setq rbrack (search "]" key :from-end t))
+    (when (or (not lbrack) (not rbrack)) (return-from parse-array (values key nil nil)))
+    (handler-case (setq lastidx (parse-integer (subseq key (1+ lbrack) rbrack)))
+      (condition () (return-from parse-array (values key nil nil))))
+    ; grab 2nd to last index
+    (setq lbrack2 (search "[" key :from-end t :end2 lbrack))
+    (setq rbrack2 (search "]" key :from-end t :end2 lbrack))
+    (when (or (not lbrack2) (not rbrack2)) (return-from parse-array (values (subseq key 0 lbrack) lastidx nil)))
+    (handler-case (setq lastidx2 (parse-integer (subseq key (1+ lbrack2) rbrack2)))
+      (condition () (return-from parse-array (values (subseq key 0 lbrack) lastidx nil))))
+    (values (subseq key 0 lbrack2) lastidx2 lastidx)))
+
+(Defun unarydata2pairs (data)
   (mapcar #'(lambda (x) (cons (first x) (second x))) data))
 
 (defstruct webapp-timings servestart renderstart renderend serveend)
@@ -1802,7 +1902,7 @@
    as lists of KIF atoms."
   (let (sessionid session present (*attachments* t) (*output-stream* s))
     (when *timings* (setq *timings* (make-webapp-timings)) (setf (webapp-timings-servestart *timings*) (get-universal-time)))
-    ; look up session if necessary
+    ; look up session
     (setq sessionid (find-cookie-session cookie))
     (setq session nil)
     (when sessionid
@@ -1850,7 +1950,7 @@
 
 (defun get-server-state (in cookie session)
   "(GET-SERVER-STATE IN COOKIE SESSION) returns a theory (possibly with includees) that contains 
-   all of IN, COOKIE, SESSION, and *appdb*"
+   all of IN, COOKIE, SESSION, and *appdb*.  IN, COOKIE, SESSION can each be either lists or epilog theories."
   (let (th theories)
     (setq theories (list *appdb*))
     (if (listp in) (setq th (nconc th in)) (push in theories))
@@ -1984,6 +2084,14 @@
     (showerror-cookie cookie)
     (format *output-stream* "</body></html>")))
 
+(defmethod showerror (in cookie servlet (err invalid-array-data))
+  (format *output-stream* "<html><head><title>Invalid array data</title></head><body>")
+  (format *output-stream* "~&<P>Array data in request to servlet ~A invalid: ~%<br>" servlet)
+  (format *output-stream* "<b>~A</b>" (comment err))
+  (showerror-in in)
+  (showerror-cookie cookie)
+  (format *output-stream* "</body></html>"))
+   
 (defmethod showerror (in cookie servlet (err unknown-servlet))
   (format *output-stream* "<html><head><title>Unknown servlet</title></head><body>")
   (format *output-stream* "~&<P>Unknown servlet: ~A.~%" servlet)
@@ -2147,7 +2255,7 @@
 (defun generate-form (formname data)
   "(GENERATE-FORM FORMNAME DATA) output an HTML form as described by FORMNAME
    where the initial values are drawn from DATA.  Assume JS for error-checking has already been compiled."
-  (let (form target th html)
+  (let (form target th wf html)
     (setq form (find-form formname))
     (setq target (form-target form))
     ;(setq data (del-namespace (contents data) (find-form-signaturename formname)))
@@ -2155,7 +2263,11 @@
     ;(setq data (mapcar #'(lambda (x) (del-namespace x signame)) (contents data)))
     (setq th (prep-plato-theory formname target data))
     (push `(constraints 'nil) th)
-    (setq html (compile-websheet th))
+    (setq wf (load-formstructure th nil))
+    (print (webform-widgets wf))
+    (mapc #'(lambda (x) (weblog-adjust-initvals x (webform-univ wf) (webform-eq wf))) (webform-widgets wf))
+    (print (webform-widgets wf))
+    (setq html (compile-websheet-html (make-htmlform) wf))
     (setf (htmlform-action html) (format nil "/scwa?"))
     (setf (htmlform-submitprep html) "true")
     (with-output-to-string (s)
@@ -2165,12 +2277,27 @@
       (output-htmlform-form s html)
       (format s "</p>"))))
 
+(defun weblog-adjust-initvals (w univ valuecomp)
+  "(WEBLOG-ADJUST-INITVALS W UNIV VALUECOMP) turns the initial values for widget W into objects
+   to play nicely with the form gen of Plato.  This is functionality we skip during load-formstructure
+   b/c Weblog has already initialized the widget types/displays/initial values properly."
+  (setf (widget-init w)
+	 (mapcar #'(lambda (x) 
+		     (mapcar #'(lambda (y) 
+				 (let (elem)
+				   (setq elem (find y univ :key #'value-prettyname :test valuecomp))
+				   (cond (elem elem)
+					 (t (setq elem (make-value :symbol (gentemp "o") :prettyname y))
+					    elem)))) 
+			     x))
+		 (widget-init w))))
+
 ; TODO: have plato's output be wrapped in a JS namespace so that it actually works.  
 ;   Need to call a version of JS init() for each of the forms.
 ;   Should only have 1 copy of the basic functions (e.g. spreadsheet.js), but then cellvalue needs to be specific to a form.
 (defun prep-plato-theory (formname target data)
   "(PREP-PLATO-THEORY FORMNAME DATA) builds a theory for Plato describing FORMNAME, except constraints."
-  (let (th signame name req init desc style incundef unique type formdata values)
+  (let (th signame name fullname args req init desc styles incundef unique types formdata extradata singletuple)
     ;(print (contents data))
     (setq formdata (extract-form-data formname data))
     ;(print formdata)
@@ -2184,59 +2311,137 @@
     ; add widgets
     (setq signame (find-form-signaturename formname))
     (dolist (p (find-signature signame))
-      (assert (= (parameter-arity p) 1) nil 
-	      (format nil "All symbols used during form generation must have arity 1; ~A has arity ~A" (parameter-symbol p) (parameter-arity p)))
       (setq name (parameter-symbol p))
-      (setq init (viewfinds '?x `(,(tosymbol (tostring signame ".") name) ?x) formdata))
-      (setq type (or (first (parameter-type p)) 'string))  ; default to string
-      (when init (setq init (cons 'listof (mapcar #'htmlify init))))
+      (setq fullname (tosymbol (tostring signame ".") name))
+      (setq args (nunique (parameter-arity p) "?"))
+      (setq init (viewfinds args (cons fullname args) formdata))
+      ;(setq type (or (first (parameter-type p)) 'string))  ; default to string
+      (when init (setq init (mapcar #'(lambda (x) (mapcar #'htmlify x)) init)))
       (setq desc (tostring name))
       (setq incundef t)
-      (multiple-value-setq (style unique req type values) (extract-widget-info formname p))
-      (when values (push `(type ,type ,values) th))
-      (push `(widget :name ,name :req ,req :init ,init :desc ,desc :style ,style :incundef ,incundef :unique ,unique :typename ,type) th))
+      (multiple-value-setq (styles unique req types extradata singletuple) (extract-widget-info formname p incundef))
+      (when (and unique (not init)) (setq init (list singletuple)))  ; need to know what to fill in if only 1 row
+      (dolist (e extradata) (push (list 'type (first e) (cons 'listof (cdr e))) th))  ; add type info to th
+      (push `(widget :name ,name :id ,name :req ,req :init ,init :desc ,desc :style ,styles :incundef ,incundef :unique ,unique :typename ,types) th))
     ; providing all the fields for this widget since otherwise load-formstructure does something stupid
-    (push `(widget :name servlet :init (listof ,target) :style hidden :desc "" :req nil :incundef nil :unique t :typename string) th)
+    (push `(widget :name servlet :init ((,target)) :style (hidden) :desc "" :req nil :incundef nil :unique t :typename (string)) th)
     (nreverse th)))
 
-(defun extract-widget-info (formname param)
+(defun extract-widget-info (formname param incundef)
   "(EXTRACT-WIDGET-INFO FORMNAME PARAM) analyzes the guards for FORMNAME to figure out the properties
   for the widget PARAM and returns (i) style, (ii) unique, (iii) required, (iv) typename, (v) list of datalog defining typename.
   Here we're just looking for some simple syntactic patterns; if instead we were to do this at
-  compilation time, we could see what statements were entailed."
-  (let (sig style unique required values typename paramsymbol form schema)
+  compilation time, we could see what statements were entailed.  INCUNDEF only used to generate single default tuple."
+  (let (sig unique required paramsymbol dbqueries enumlists atom1 args1 atom2 args2 phiexists phiunique arity vars idx res)
     ; prefix the parameter name by the signature
     (setq sig (schema-signature (find-schema (form-schema (find-form formname)))))
     (setq paramsymbol (tosymbol (tostring sig ".") (parameter-symbol param)))
+    (setq arity (parameter-arity param))
     ; analyze logic
-    (setq values t)
-    (setq form (find-form formname))
-    (setq schema (find-schema (form-schema form)))
-    (dolist (g (union (form-guards form) (schema-guards schema)))
+    (setq dbqueries nil)
+    (setq enumlists nil)
+    (setq atom1 (cons paramsymbol (nunique arity "?")))
+    (setq args1 (cdr atom1))
+    (setq atom2 (cons paramsymbol (nunique arity "?" arity)))
+    (setq args2 (cdr atom2))
+    (setq phiexists `(exists ,args1 ,atom1))
+    (setq phiunique (list* 'or `(not ,atom1) `(not ,atom2) (mapcar #'(lambda (x y) `(= ,x ,y)) args1 args2)))    
+    ; look at each FOL guard statement to see if we know what it means
+    (dolist (g (form-all-guards formname))
       (dolist (p (guard-logic (find-guard g)))
 	(unless (stringp p)
-	; required
-	  (when (samep p `(exists ?x (,paramsymbol ?x))) (setq required t))
-	; convert to clausal and check each clause
+	  ; required
+	  (when (samep p phiexists) 
+	    (setq required t))
+	  ; convert to clausal and check each clause
 	  (dolist (q (clauses p))
-	  ; uniqueness
-	    (when (sentequal q `(or (not (,paramsymbol ?x)) (not (,paramsymbol ?y)) (= ?x ?y)) :test #'samep)
+	    ; uniqueness
+	    (when (sentequal q phiunique :test #'samep)
 	      (setq unique t))
-	  ; enumeration of values: last one wins
-	    (multiple-value-bind (list isenum) (enumerated-type q paramsymbol)
-	      (when isenum (setq values list)))))))
-    ; figure out info to return
-    (cond ((listp values)  ; found an enumerator
-	   (setq style 'selector)
-	   (setq typename (tosymbol (gentemp "type")))
-	   (setq values (cons 'listof values)))
+	    ; enumeration of values: index.list is of the form (index . list), where index is the 0-based arg index
+	    (multiple-value-bind (index.list isenum) (enumerated-type q paramsymbol)
+	      (when isenum (push index.list enumlists)))
+	    ; database query
+	    (multiple-value-bind (query isquery safevars) (database-type q paramsymbol arity)
+	      (when isquery (push (list query (intersect safevars args1)) dbqueries)))))))
+      ; Evaluate DB queries to expand lists of known values
+    (dolist (q dbqueries)
+      (setq vars (mapcar #'(lambda (x) (parse-integer (symbol-name x) :start 1)) (second q)))
+      (setq vars (sort vars #'<))
+      (setq res (logical-database-query (mapcar #'makevariable vars) (first q) *appdb*))
+      (print q)
+      (dolist (v (second q))
+	(print v)
+	(setq idx (devariable v))
+	(push (cons idx (mapcar #'(lambda (x) (nth idx x)) res)) enumlists)))
+    ; intersect enumerated lists by arg index
+    (setq enumlists (group-by enumlists #'car))  ; yields a list of (index . list1 list2 ...)
+    (setq enumlists (mapcar #'(lambda (x) (setf (cdr x) (n-intersection (cdr x) :test #'equal))) enumlists))  ; now (index . list)
+    ; for each arg, set type/display (defaulting to string/textbox if no info)
+    (let (vals styles typenames typ extradata singletuple)
+      (dotimes (i arity)
+	(setq vals (cdr (assoc i enumlists)))
+	(cond (vals
+		(push 'selector styles)
+		(setq typ (tosymbol (gentemp "type"))) ; create type name
+		(push (cons typ vals) extradata) ; record type's values
+		(push typ typenames)
+		(if incundef (push (mak-undefined) singletuple) (push (first vals) singletuple)))
+	       (t
+		(push 'textbox styles)
+		(push 'string typenames)
+		(push "" singletuple))))
+      (setq typenames (nreverse typenames))
+      (setq styles (nreverse styles))
+      (setq singletuple (nreverse singletuple))
+      (values styles unique required typenames extradata singletuple))))
+
+(defun logical-database-query (thing p th)
+  (let (r)
+    (setq r (list '<= (cons '__tlh thing) p))
+    (setq r (logic-to-datalog (brfs r)))
+    (setq r (define-theory (make-instance 'prologtheory) "" r))
+    (includes r th) 
+    (viewfinds thing (cons '__tlh thing) r)))
+
+(defun database-type (p sym arity)
+  "(DATABASE-TYPE P ARITY SYM) checks if clause P is equivalent to (or (not (p @x)) (phi @x))
+   where phi is a DB query, i.e. have relations in the DB prefix and where all of @x vars
+   are distinct and appear in PHI.  Moreover, all vars in non-db literals must appear
+   in some positive DB literal (a version of safety).
+   Returns 2 values: the phi(@x), after applying @x/nunique(len(@x)),
+   and whether or not the sentence is of the desired form (to handle the case (not (p @x))."
+  (let (atom safevars bl)
+    (setq atom (cons sym (nunique arity "?")))
+    (cond ((not (listp p)) (values 'notlistp nil))
+	  ((and (atomicp p) (samep p `(not ,atom))) (values 'false t))
+	  ((not (eq (car p) 'or)) (values 'notorvalue nil))
 	  (t
-	   (setq style 'textbox)
-	   (setq typename (or (first (parameter-type param)) 'string))
-	   (setq values nil)))
-    (values style unique required typename values)))
+	   (setq p (cdr p))
+           ; check only one occurrence of (not (p @x)); similtaneously ensure all args are vars and are unique
+	   (multiple-value-bind (notps rest) (split #'(lambda (x) (samep x `(not ,atom))) p)
+	     (when (or (not notps) (cdr notps)) (return-from database-type (values 'toomanyps nil)))
+	     (setq notps (first notps))
+	     (setq p rest)
+             ; check that (i) every var appearing in rest appears in some positive literal that is in the DB namespace and 
+	     ;    (ii) the remaining literals are builtins
+	     (multiple-value-bind (db others) (split #'in-db p)
+	       (setq safevars (vars (remove-if-not #'positive-literalp db)))
+	       (cond ((and (subsetp (vars rest) safevars)
+			   (every #'(lambda (x) (is-builtin (relation x))) others))
+		      (setq bl (mapcar #'cons (cdr (second notps)) (cdr atom)))
+		      (values (sublis bl (maksor p)) t (sublis bl safevars)))
+		     (t (values 'notjustdb nil)))))))))
 	    
 (defun enumerated-type (p sym)
+  "(ENUMERATED-TYPE P SYM) check if P enumerates a list of possible values for the unary symbol SYM.
+   Generalizing this to non-unary possibly requires analyzing several clauses at once (or analyzing the original sentence)."
+  (multiple-value-bind (list hasval) (enumerated-type-aux p sym)
+    (if hasval
+	(values (cons 0 list) hasval)
+	(values list hasval))))
+
+(defun enumerated-type-aux (p sym)
   "(ENUMERATED-TYPE P SYM) checks if clause P is equivalent to (or (not (p ?x)) (= ?x a1) (= ?x a2) ...)
    Returns 2 values: the list of (a1 a2 ...) and whether or not the sentence is of the desired form (
   to handle the case (not (p ?x))."
@@ -2248,7 +2453,7 @@
 	 (let (v vals)
            ; check only one occurrence of (not (p ?x)), grab var.
 	   (multiple-value-bind (notps rest) (split #'(lambda (x) (samep x `(not (,sym ?x)))) p)
-	     (when (or (not notps) (cdr notps)) (return-from enumerated-type (values nil nil)))
+	     (when (or (not notps) (cdr notps)) (return-from enumerated-type-aux (values nil nil)))
 	     (setq notps (first notps))
 	     (setq v (first (vars notps)))
 	     (setq p rest))
