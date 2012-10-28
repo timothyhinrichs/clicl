@@ -4,31 +4,46 @@
 	<title>Demo</title>
 	<script>
 	$(function() {
-		function addAuthorRow(e) {
-			var $row = $('.author-row:last');
+		function addRow(e) {
+			var $row = $(this).parent();
 			var $newRow = $row.clone();
-			
-			//remove the add row link to the old row
-			$row.children('a:first').remove();
-			
+						
 			//compute the new rowIndex
-			var newRowIndex = $('.author-row').index($row) + 1;
-			
+			var newRowIndex = $('.' + $row.attr('class')).index($row) + 1;
+
 			//fetch all the input fields
 			var $inputs = $newRow.children('input');
-			//update the name attributes
-			$($inputs[0]).attr('name', 'author[' + newRowIndex + ']'); // AUTHOR
-			$($inputs[1]).attr('name', 'email[' + newRowIndex + ']'); // EMAIL
-			
+			$inputs.each(function(index, input) {
+				$(input).val('');
+				var $name_attr = $(input).attr('name');
+				var $matches = $name_attr.match('\^(\\w+)\\[\\d+\\]\$');
+				if ($matches) {
+					var $prefix = $matches[1];
+					$(input).attr('name', $prefix + '[' + newRowIndex + ']' );
+				};
+			});
 			//append the new row as a previous row sibling
-			$row.parent().append($newRow);
+			$newRow.insertAfter($row);
 
 			//block any other action by the <a> tag
 			e.preventDefault();
 			
 			return true;
 		}
-		$('#foo').live("click", addAuthorRow);
+
+		function removeRow(e) {
+			var $row = $(this).parent();
+			var $rows = $('.' + $row.attr('class'));
+
+			//Allow row deletion if not the only row
+			if ($rows.length > 1) {
+				$(this).parent().remove();
+			}
+			e.preventDefault();
+		}
+
+		$('.add-button').live("click", addRow);
+		$('.remove-button').live("click", removeRow);
 	});
 	</script>
 </head>
@@ -37,7 +52,9 @@
 	<div class='author-row'>
 		Author: <input type="text" name="author[0]"/>
 		Email: <input type="text" name="email[0]"/>
-		<a id='foo' class='add-button' href="">Add row</a>
+		University: <input type="test" name="univ[0]"/>
+		<a class='add-button' href="">Add row</a>
+		<a class='remove-button' href="">Remove row</a>
 	</div>
 </form>
 
