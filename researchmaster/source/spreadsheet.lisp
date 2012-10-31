@@ -452,6 +452,18 @@ Input GUI
   (format s "      border='0' onClick=\"~A\"~A />" func (if id (format nil " id='~A'" id) "")) 
   (crlf s))
 
+(defun output-plusminus-widget-class (s)
+  (output-plus-widget-class s)
+  (output-minus-widget-class s))
+
+(defun output-plus-widget-class (s)
+  (format s "   <img src='/docserver/infomaster/images/add.gif' border='0' class='add-button' />") 
+  (crlf s))
+
+(defun output-minus-widget-class (s)
+  (format s "   <img src='/docserver/infomaster/images/delete.gif' border='0' class='remove-button' />") 
+  (crlf s))
+
 
 (defun output-websheet-editor-script (s)  
 (format s "
@@ -588,6 +600,8 @@ function addWidget (obj) {
 (defparameter *extrajs* nil)
 (defparameter *corecss* '("/docserver/infoserver/examples/researchmaster/style/websheet.css"))
 (defparameter *corejs* '("/docserver/infoserver/examples/researchmaster/javascript/browser.js"
+			 "http://code.jquery.com/jquery-latest.js"
+			 "/docserver/infoserver/examples/researchmaster/javascript/plusminus.js"
 			 "/docserver/infoserver/examples/researchmaster/javascript/util.js"
 			 "/docserver/infoserver/examples/researchmaster/javascript/spreadsheet.js"
 			 "/docserver/infoserver/examples/researchmaster/javascript/ds.js"
@@ -1311,6 +1325,8 @@ function addWidget (obj) {
     (setf (htmlform-jsincludes htmlform) *corejs*))
   htmlform)
 
+(defun ws-styles-to-mousestyle (styles) (if (atom styles) styles 'textbox))
+
 (defun compile-websheet-widget (r struct)
   "(COMPILE-WEBSHEET-WIDGET R STRUCT) takes a widget and a webform struct and returns an HTML widget
    representing R."
@@ -1322,10 +1338,10 @@ function addWidget (obj) {
       (setf (htmlwidget-required res) (widget-req r))
       (setq s (make-array 0 :element-type 'character :adjustable t :fill-pointer 0))
       (unless (equal (widget-style r) '(hidden))
-	(format s "<span id=\"~Abox\" class=\"databox\" onMouseOver=\"~A\" onMouseOut=\"~A\" >~%" 
+	(format s "<span id='~Abox' class='databox' onMouseOver=\"~A\" onMouseOut=\"~A\" >~%" 
 		(websheet-cellname (widget-id r))
-		(format nil "~(~A_mouseover('~A')~)" (widget-style r) (websheet-cellname (widget-id r)))
-		(format nil "~(~A_mouseout('~A')~)" (widget-style r) (websheet-cellname (widget-id r)))))
+		(format nil "~(~A_mouseover('~A')~)" (ws-styles-to-mousestyle (widget-style r)) (websheet-cellname (widget-id r)))
+		(format nil "~(~A_mouseout('~A')~)" (ws-styles-to-mousestyle (widget-style r)) (websheet-cellname (widget-id r)))))
       (setq unary (null (cdr (widget-style r))))
       (cond (unary  ; leverage HTML's ability to natively support selecting multiple values for unary fields
 	     (setq init (mapcar #'first (widget-init r)))
@@ -1343,7 +1359,7 @@ function addWidget (obj) {
 	     (do ((inits (widget-init r) (cdr inits))
 		  (row 0 (1+ row)))
 		 ((null inits))
-	       (compile-websheet-widget-output-multivalue-head s)
+	       (compile-websheet-widget-output-multivalue-head id s)
 	       (do ((styles (widget-style r) (cdr styles))
 		    (types (widget-typename r) (cdr types))
 		    (is (car inits) (cdr is))
@@ -1352,6 +1368,7 @@ function addWidget (obj) {
 		 (setf (widget-name r) (format nil "~A[~A][~A]" name col row))
 		 (setf (widget-id r) (format nil "~A[~A][~A]" id col row))
 		 (output-websheet-style (first styles) (first types) (list (first is)) r nil struct s))
+	       (output-plusminus-widget-class s)
 	       (compile-websheet-widget-output-multivalue-foot s))
 	     (setf (widget-name r) name)
 	     (setf (widget-id r) id)))
@@ -1359,8 +1376,11 @@ function addWidget (obj) {
       (setf (htmlwidget-html res) s)
       res)))
 
-(defun compile-websheet-widget-output-multivalue-head (s))
-(defun compile-websheet-widget-output-multivalue-foot (s))
+(defun compile-websheet-widget-output-multivalue-head (id s)
+  (format s "<div class='~A'>~%" (websheet-cellname id)))
+
+(defun compile-websheet-widget-output-multivalue-foot (s)
+  (format s "</div>~%"))
 
 (defun output-websheet-style (style type values r multi struct s)
   "(OUTPUT-WEBSHEET-STYLE STYLE R VALUES MULTI S) takes a symbol STYLE, a widget R, a list of initial values VALUES,
@@ -1479,10 +1499,10 @@ function addWidget (obj) {
     (format s "<table border='0'>")
     (dolist (v (cons t values))
       (format s "<tr~A>~%<td>" (if (eq v 't) att nil))
+      (funcall widgetfunc s name id incundef (if (eq v 't) nil v) changeaction focus (eq v 't))
+      (format s "~&</td><td>~%")
       (output-plusminus-widget s (format nil "addTableRow('~A',this)" ghost)
 			       (format nil "remWidgetSlot('~A',this)" (websheet-cellname id)))
-      (format s "~&</td><td>~%")
-      (funcall widgetfunc s name id incundef (if (eq v 't) nil v) changeaction focus (eq v 't))
       (format s "~&</td></tr>~%"))
     (format s "<tr style='background-color:white'><td align='left' colspan='2'>")
     (output-plus-widget s (format nil "addTableRow('~A',this)" ghost) bottom)

@@ -24,11 +24,11 @@ div.righttd { clear: both; }
 
 /* table version */
 td.required { text-align: center; }
-td.description { text-align: right; }
+td.description { text-align: right;  vertical-align:text-top; }
 td.data { text-align: left; padding: 4px; font-size: 80% }
 
 /* Active box around input elements */
-.databox { padding: 3px; }
+/* .databox { padding: 3px; } */
 
 /* Active coloring */
 .conflict { color: blue; }

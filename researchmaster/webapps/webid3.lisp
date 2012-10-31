@@ -42,8 +42,8 @@
 (defsignature search titdesc keywords closed category lowprice highprice buyitnow buyitnowonly ending)
 (defschema search :signature search)
 
-(defsignature paper (id :type integer) title (author :type (string string string)))
-(defsignature3 db.paper id title (author :type (integer string string string)))
+(defsignature paper (id :type integer) title (author :type (string string string)) comment)
+(defsignature3 db.paper id title (author :type (integer string string string)) comment)
 (defschema paper :signature paper)
 (defschema db.paper :signature db.paper)
 
@@ -301,11 +301,13 @@
 (defupdate savepaper (:language posneg)
   (<= (pos (db.paper.id ?x)) (paper.id ?x))
   (<= (pos (db.paper.title ?x ?y)) (paper.id ?x) (paper.title ?y))
-  (<= (pos (db.paper.author ?w ?x ?y ?z)) (paper.id ?w) (paper.author ?x ?y ?z)))
+  (<= (pos (db.paper.author ?w ?x ?y ?z)) (paper.id ?w) (paper.author ?x ?y ?z))
+  (<= (pos (db.paper.comment ?x ?y)) (paper.id ?x) (paper.comment ?y)))
 
 (defupdate lookuppaper (:language posneg)
   (<= (pos (paper.title ?x ?y)) (paper.id ?x) (db.paper.title ?x ?y))
-  (<= (pos (paper.author ?x ?y ?z)) (paper.id ?x) (db.paper.author ?x ?y ?z ?w)))
+  (<= (pos (paper.author ?x ?y ?z)) (paper.id ?x) (db.paper.author ?x ?y ?z ?w))
+  (<= (pos (paper.comment ?x ?y)) (paper.id ?x) (db.paper.comment ?x ?y)))
 
 (defupdate genitemid (:language posneg)
   (<= (pos (item.id ?x)) (db.nextfreeauctionid ?x))
