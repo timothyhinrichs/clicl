@@ -649,7 +649,7 @@
 
 (defhtml new-auction-page header new-auction footer)
 (defhtml new-auction ("profile.html" :forms (("registration" edit-auction))))
-
+          
 (defhtml choose-auction-page header choose-auction footer)
 (defhtml choose-auction ("profile.html" :forms (("registration" choose-auction))))
 

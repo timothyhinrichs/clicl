@@ -1747,7 +1747,7 @@
 		(with-output-to-string (stream)
 		  (setq cookies (serve in cookies servletname stream))))
           ; turn cookies database back to pairs
-	  (data2pairs (del-namespace cookies 'cookie)))
+	  (data2pairs-unary (del-namespace cookies 'cookie)))
       ; if any uncaught errors occur, probably my fault --- call it an 'internal-error'
       (condition () 
 	(setq *content* 
@@ -1884,7 +1884,7 @@
       (condition () (return-from parse-array (values (subseq key 0 lbrack) lastidx nil))))
     (values (subseq key 0 lbrack2) lastidx2 lastidx)))
 
-(Defun unarydata2pairs (data)
+(Defun data2pairs-unary (data)
   (mapcar #'(lambda (x) (cons (first x) (second x))) data))
 
 (defstruct webapp-timings servestart renderstart renderend serveend)
@@ -2264,9 +2264,9 @@
     (setq th (prep-plato-theory formname target data))
     (push `(constraints 'nil) th)
     (setq wf (load-formstructure th nil))
-    (print (webform-widgets wf))
+    ;(print (webform-widgets wf))
     (mapc #'(lambda (x) (weblog-adjust-initvals x (webform-univ wf) (webform-eq wf))) (webform-widgets wf))
-    (print (webform-widgets wf))
+    ;(print (webform-widgets wf))
     (setq html (compile-websheet-html (make-htmlform) wf))
     (setf (htmlform-action html) (format nil "/scwa?"))
     (setf (htmlform-submitprep html) "true")
@@ -2369,9 +2369,9 @@
       (setq vars (mapcar #'(lambda (x) (parse-integer (symbol-name x) :start 1)) (second q)))
       (setq vars (sort vars #'<))
       (setq res (logical-database-query (mapcar #'makevariable vars) (first q) *appdb*))
-      (print q)
+      ;(print q)
       (dolist (v (second q))
-	(print v)
+	;(print v)
 	(setq idx (devariable v))
 	(push (cons idx (mapcar #'(lambda (x) (nth idx x)) res)) enumlists)))
     ; intersect enumerated lists by arg index
