@@ -1,5 +1,5 @@
-(load (loadfn "daniele"))
-(load (loadfn "gabriele"))
+(load (loadfn "webid_daniele"))
+(load (loadfn "webid_gabriele"))
 
 ; http://herge.sisl.rites.uic.edu/notamper/WeBid
 ; user: user01, pass01

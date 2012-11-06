@@ -51,6 +51,7 @@
 
 ; web apps
 (load (loadfn "webid3" :dir "webapps"))
+;(load (loadfn "websubrev" :dir "webapps"))
 
 
 

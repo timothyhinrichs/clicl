@@ -2,7 +2,6 @@
 (defservlet auction-listing :guards (loggedin) :updates (fetch-your-auctions) :page auction-listing :Entry t)
 (defservlet search :updates(search-auctions fetch-auctions) :page auction-listing :Entry t)
 (defservlet search-by-categ :updates(search-by-categ fetch-auctions) :page auction-listing :Entry t)
-;#cool - i can use the same update and servlet!
 (defservlet adv-search-results :updates(adv-search-auctions0 adv-search-auctions1 adv-search-auctions2 adv-search-auctions3 fetch-auctions) :page auction-listing :Entry t)
 (defservlet adv-search :page adv-search :Entry t)
 ; SIGNATURES AND SCHEMA
@@ -78,34 +77,18 @@
 )
 ; adv-search -> item
 (defupdate adv-search-auctions0(:language posneg)
-  ;keywords similarity LIKE?
-  ;(defsignature advsearch titdesc keywords closed category lowprice highprice buyitnow buyitnowonly ending)
   (<= (pos (item.id ?auc)) (db.auction.id ?auc)) 
-  ;(<= (pos (item.id ?auc)) (db.auction.category ?auc ?k) (advsearch.keywords ?k)) 
-  ;other fields
 )
 
 (defupdate adv-search-auctions1(:language posneg)
-  ;keywords similarity LIKE?
-  ;(defsignature advsearch titdesc keywords closed category lowprice highprice buyitnow buyitnowonly ending)
   (<= (neg (item.id ?auc)) (db.auction.title ?auc ?k)(advsearch.titdesc ?x) (not (= ?x ?k))) 
-  ;(<= (pos (item.id ?auc)) (db.auction.category ?auc ?k) (advsearch.keywords ?k)) 
-  ;other fields
 )
 
 (defupdate adv-search-auctions2(:language posneg)
-  ;keywords similarity LIKE?
-  ;(defsignature advsearch titdesc keywords closed category lowprice highprice buyitnow buyitnowonly ending)
-  ;(<= (pos (item.id ?auc)) (db.auction.title ?auc ?k)(advsearch.titdesc ?k)) 
   (<= (neg (item.id ?auc)) (db.auction.category ?auc ?k)(advsearch.category ?x) (not (= ?x ?k))) 
-  ;other fields
 )
 (defupdate adv-search-auctions3(:language posneg)
-  ;keywords similarity LIKE?
-  ;(defsignature advsearch titdesc keywords closed category lowprice highprice buyitnow buyitnowonly ending)
-  ;(<= (pos (item.id ?auc)) (db.auction.title ?auc ?k)(advsearch.titdesc ?k)) 
   (<= (neg (item.id ?auc)) (db.auction.category ?auc ?k)(advsearch.category ?x) (not (= ?x ?k))) 
-  ;other fields
 )
 
 
