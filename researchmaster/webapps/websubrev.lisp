@@ -24,6 +24,7 @@
    (=> (paper.category ?x) (paper.category ?y) (= ?x ?y))
    (=> (paper.title ?x) (paper.title ?y) (= ?x ?y))
    (=> (paper.author ?x1 ?x2 ?x3) (paper.author ?y1 ?y2 ?y3) (and (= ?x1 ?y1) (= ?x2 ?y2) (= ?x3 ?y3)))
+   (=> (paper.author ?x1 ?x2 ?x3) (in ?x3 "[0-9a-zA-Z]@[0-9a-zA-Z\\.]"))
 )
 
 ;PAGES
