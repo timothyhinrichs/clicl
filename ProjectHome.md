@@ -1,0 +1,1 @@
+A (mostly) Common Lisp code library for manipulating and analyzing statements in formal logic and building web applications leveraging that library.
